@@ -1,0 +1,57 @@
+name: Build Windows .exe & Verify Linux
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  verify-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Syntax check Python & Linux installer
+        run: |
+          python -m py_compile vimona/*.py run_vimona.py
+          bash -n installers/install-linux.sh
+
+  build-windows-exe:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up MSYS2 UCRT64 (GTK4 + Libadwaita + Python)
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: false
+          install: >-
+            mingw-w64-ucrt-x86_64-python
+            mingw-w64-ucrt-x86_64-python-gobject
+            mingw-w64-ucrt-x86_64-gtk4
+            mingw-w64-ucrt-x86_64-libadwaita
+            mingw-w64-ucrt-x86_64-python-numpy
+            mingw-w64-ucrt-x86_64-python-pillow
+            mingw-w64-ucrt-x86_64-python-opencv
+            mingw-w64-ucrt-x86_64-ffmpeg
+            mingw-w64-ucrt-x86_64-python-pip
+      - name: Build Vimona.exe (onefile + onedir) and Vimona-Setup.exe
+        shell: pwsh
+        run: |
+          $env:PATH = "C:\msys64\ucrt64\bin;$env:PATH"
+          C:\msys64\ucrt64\bin\python3.exe -m pip install --no-warn-script-location pyinstaller
+          & .\installers\build_windows_exe.ps1 -PythonExe "C:\msys64\ucrt64\bin\python3.exe"
+          & .\installers\build_windows_exe.ps1 -PythonExe "C:\msys64\ucrt64\bin\python3.exe" -OneFile
+      - name: Upload Windows .exe artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vimona-Windows-x64
+          path: |
+            dist/Vimona.exe
+            dist/Vimona-Setup.exe
+          if-no-files-found: warn

@@ -409,6 +409,10 @@ def _match_installed_app(
     return None
 
 
+def _current_uid() -> int:
+    return os.getuid() if hasattr(os, "getuid") else 0
+
+
 def scan_installed_running_apps(min_rss_mb: float = 8.0) -> list[InstalledAppUsage]:
     """Scan `/proc` for currently running user-installed desktop apps ONLY.
 
@@ -416,12 +420,14 @@ def scan_installed_running_apps(min_rss_mb: float = 8.0) -> list[InstalledAppUsa
     audio/dbus/gvfs portals, shells, and Vimona itself. Groups multi-process apps
     (browsers, Electron apps) into one entry with summed RSS MB.
     """
-    uid = os.getuid()
+    proc_root = Path("/proc")
+    if not proc_root.is_dir():
+        return []
+    uid = _current_uid()
     my_pid = os.getpid()
     by_id, by_bin = _load_installed_desktop_catalog()
     grouped: dict[str, list[tuple[int, float, _DesktopAppMeta, str]]] = {}
 
-    proc_root = Path("/proc")
     for entry in proc_root.iterdir():
         if not entry.name.isdigit():
             continue
@@ -658,7 +664,10 @@ def _get_ancestor_pids() -> set[int]:
 
 def _get_ppid_map() -> dict[int, int]:
     ppids: dict[int, int] = {}
-    for entry in Path("/proc").iterdir():
+    proc_root = Path("/proc")
+    if not proc_root.is_dir():
+        return ppids
+    for entry in proc_root.iterdir():
         if not entry.name.isdigit():
             continue
         pid = int(entry.name)
@@ -730,7 +739,7 @@ def _is_pid_protected_live(pid: int) -> tuple[bool, str]:
                 proc_uid = int(parts[1])
         elif ln.startswith("Name:"):
             comm = ln.split(":", 1)[1].strip()
-    if proc_uid != -1 and proc_uid != os.getuid():
+    if proc_uid != -1 and proc_uid != _current_uid():
         return True, "Root / OS service"
     raw_cmd = ""
     try:
@@ -765,13 +774,16 @@ def _is_pid_protected_live(pid: int) -> tuple[bool, str]:
 
 def scan_all_processes_by_ram(min_rss_mb: float = 4.0) -> list[ProcessRamUsage]:
     """Return ALL processes sorted highest RAM first, flagging OS & model processes as protected."""
-    uid = os.getuid()
+    proc_root = Path("/proc")
+    if not proc_root.is_dir():
+        return []
+    uid = _current_uid()
     ancestors = _get_ancestor_pids()
     protected_pids = _get_protected_pid_map()
     ppid_map = _get_ppid_map()
     out: list[ProcessRamUsage] = []
 
-    for entry in Path("/proc").iterdir():
+    for entry in proc_root.iterdir():
         if not entry.name.isdigit():
             continue
         pid = int(entry.name)
@@ -866,7 +878,7 @@ def scan_all_processes_by_ram(min_rss_mb: float = 4.0) -> list[ProcessRamUsage]:
 
 def safe_kill_process(proc: ProcessRamUsage) -> tuple[bool, str]:
     """Terminate a non-critical user process cleanly without risking a system crash."""
-    if proc.protected or proc.uid != os.getuid() or proc.pid in _get_ancestor_pids() or proc.pid <= 2:
+    if proc.protected or proc.uid != _current_uid() or proc.pid in _get_ancestor_pids() or proc.pid <= 2:
         return False, f"Protected process ({proc.protection_reason or 'OS / Model critical'}) cannot be killed."
     live_prot, live_reason = _is_pid_protected_live(proc.pid)
     if live_prot:

@@ -89,5 +89,6 @@ def main(argv: list[str] | None = None) -> int:
         app.quit()
 
     signal.signal(signal.SIGINT, _sig_handler)
-    signal.signal(signal.SIGTERM, _sig_handler)
+    if hasattr(signal, "SIGTERM"):
+        signal.signal(signal.SIGTERM, _sig_handler)
     return app.run(argv if argv is not None else sys.argv)

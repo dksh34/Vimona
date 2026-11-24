@@ -140,7 +140,10 @@ def _kill_pids_referencing_path(target_dir: Path) -> bool:
     target = str(target_dir)
     killed_any = False
     proc_root = Path("/proc")
+    if not proc_root.is_dir():
+        return False
     my_pid = os.getpid()
+    force_sig = getattr(signal, "SIGKILL", signal.SIGTERM)
     for entry in proc_root.iterdir():
         if not entry.name.isdigit():
             continue
@@ -154,7 +157,7 @@ def _kill_pids_referencing_path(target_dir: Path) -> bool:
             continue
         if target in cmdline:
             try:
-                os.kill(pid, signal.SIGKILL)
+                os.kill(pid, force_sig)
                 killed_any = True
             except OSError:
                 pass
@@ -294,7 +297,10 @@ class AirGappedProcess:
 
         if self.proc.poll() is None:
             try:
-                os.killpg(os.getpgid(self.pid), signal.SIGTERM)
+                if hasattr(os, "killpg") and hasattr(os, "getpgid"):
+                    os.killpg(os.getpgid(self.pid), signal.SIGTERM)
+                else:
+                    self.proc.terminate()
             except OSError:
                 try:
                     self.proc.terminate()
@@ -307,7 +313,10 @@ class AirGappedProcess:
                 time.sleep(0.1)
             if self.proc.poll() is None:
                 try:
-                    os.killpg(os.getpgid(self.pid), signal.SIGKILL)
+                    if hasattr(os, "killpg") and hasattr(os, "getpgid"):
+                        os.killpg(os.getpgid(self.pid), getattr(signal, "SIGKILL", signal.SIGTERM))
+                    else:
+                        self.proc.kill()
                 except OSError:
                     try:
                         self.proc.kill()

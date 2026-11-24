@@ -581,9 +581,15 @@ def run_ephemeral_research(
         stdout, stderr = proc.communicate(timeout=timeout_s)
     except subprocess.TimeoutExpired:
         try:
-            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+            if hasattr(os, "killpg") and hasattr(os, "getpgid"):
+                os.killpg(os.getpgid(proc.pid), getattr(signal, "SIGKILL", signal.SIGTERM))
+            else:
+                proc.kill()
         except OSError:
-            pass
+            try:
+                proc.kill()
+            except OSError:
+                pass
         proc.wait()
         # Sweep any orphaned vimona_ephem_* dirs on /dev/shm owned by current UID
         _sweep_orphan_shm_profiles()
@@ -619,7 +625,7 @@ def run_ephemeral_research(
 
 def _sweep_orphan_shm_profiles() -> None:
     """Best-effort sweep ensuring no `vimona_ephem_*` directory remains on `/dev/shm`."""
-    uid = os.getuid()
+    uid = os.getuid() if hasattr(os, "getuid") else 0
     for base in (SHM_DIR, Path(tempfile.gettempdir())):
         if not base.is_dir():
             continue

@@ -42,7 +42,7 @@ def cleanup_ephemeral_media(include_current: bool = True) -> None:
         shutil.rmtree(entry, ignore_errors=True)
     shm_root = Path("/dev/shm")
     if shm_root.is_dir():
-        uid = os.getuid()
+        uid = os.getuid() if hasattr(os, "getuid") else 0
         for entry in shm_root.glob("vimona_ephem_*"):
             try:
                 if entry.stat().st_uid == uid:

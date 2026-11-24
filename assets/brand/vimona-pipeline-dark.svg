@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1160 270" width="1160" height="270" role="img" aria-label="Vimona Three-Stage Air-Gapped Memory Relay Pipeline">
+  <defs>
+    <linearGradient id="pbg-d" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0e0e13"/>
+      <stop offset="100%" stop-color="#15151d"/>
+    </linearGradient>
+    <marker id="arr-d" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#7078a8"/>
+    </marker>
+  </defs>
+
+  <rect x="4" y="4" width="1152" height="262" rx="20" fill="url(#pbg-d)" stroke="#ffffff" stroke-opacity="0.11" stroke-width="1.5"/>
+
+  <!-- Stage 1 -->
+  <g transform="translate(30, 32)">
+    <rect x="0" y="0" width="244" height="206" rx="14" fill="#181822" stroke="#6aa9ff" stroke-opacity="0.32"/>
+    <rect x="16" y="16" width="84" height="22" rx="11" fill="#1d2842"/>
+    <text x="58" y="31" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10.5" font-weight="700" fill="#89b8ff">STAGE 01</text>
+    <text x="16" y="64" font-family="Inter, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#ffffff">Router &amp; Chat LLM</text>
+    <text x="16" y="88" font-family="ui-monospace, monospace" font-size="11.5" fill="#9ea6c2">Qwen 3.5 · llama-server</text>
+    <line x1="16" y1="106" x2="228" y2="106" stroke="#ffffff" stroke-opacity="0.08"/>
+    <text x="16" y="130" font-family="Inter, -apple-system, sans-serif" font-size="12" fill="#c8c8d4">• Vulkan GPU acceleration</text>
+    <text x="16" y="152" font-family="Inter, -apple-system, sans-serif" font-size="12" fill="#c8c8d4">• Top-3 .vimona-skill inject</text>
+    <text x="16" y="174" font-family="Inter, -apple-system, sans-serif" font-size="12" fill="#c8c8d4">• Prompt &amp; beat breakdown</text>
+    <text x="16" y="194" font-family="ui-monospace, monospace" font-size="10.5" fill="#6aa9ff">Stops to 0.0 GB before render</text>
+  </g>
+
+  <line x1="280" y1="135" x2="314" y2="135" stroke="#7078a8" stroke-width="2" marker-end="url(#arr-d)"/>
+
+  <!-- Stage 2 -->
+  <g transform="translate(320, 32)">
+    <rect x="0" y="0" width="244" height="206" rx="14" fill="#181822" stroke="#3ddc84" stroke-opacity="0.32"/>
+    <rect x="16" y="16" width="84" height="22" rx="11" fill="#1a2f24"/>
+    <text x="58" y="31" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10.5" font-weight="700" fill="#6ee7a4">STAGE 02</text>
+    <text x="16" y="64" font-family="Inter, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#ffffff">/dev/shm Web Sandbox</text>
+    <text x="16" y="88" font-family="ui-monospace, monospace" font-size="11.5" fill="#9ea6c2">Ephemeral Firefox · SafeBlur</text>
+    <line x1="16" y1="106" x2="228" y2="106" stroke="#ffffff" stroke-opacity="0.08"/>
+    <text x="16" y="130" font-family="Inter, -apple-system, sans-serif" font-size="12" fill="#c8c8d4">• SlideCommit user gate</text>
+    <text x="16" y="152" font-family="Inter, -apple-system, sans-serif" font-size="12" fill="#c8c8d4">• 93 KB ML NSFW check</text>
+    <text x="16" y="174" font-family="Inter, -apple-system, sans-serif" font-size="12" fill="#c8c8d4">• RAM-only extract -&gt; wipe</text>
+    <text x="16" y="194" font-family="ui-monospace, monospace" font-size="10.5" fill="#3ddc84">0 bytes touched on SSD</text>
+  </g>
+
+  <line x1="570" y1="135" x2="604" y2="135" stroke="#7078a8" stroke-width="2" marker-end="url(#arr-d)"/>
+
+  <!-- Stage 3 -->
+  <g transform="translate(610, 32)">
+    <rect x="0" y="0" width="244" height="206" rx="14" fill="#1a1c28" stroke="#8595ff" stroke-opacity="0.40"/>
+    <rect x="16" y="16" width="84" height="22" rx="11" fill="#252847"/>
+    <text x="58" y="31" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10.5" font-weight="700" fill="#b4beff">STAGE 03</text>
+    <text x="16" y="64" font-family="Inter, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#ffffff">Air-Gapped Diffusion</text>
+    <text x="16" y="88" font-family="ui-monospace, monospace" font-size="11.5" fill="#b4bce8">Pony V6 XL · Wan 2.1 VACE</text>
+    <line x1="16" y1="106" x2="228" y2="106" stroke="#ffffff" stroke-opacity="0.08"/>
+    <text x="16" y="130" font-family="Inter, -apple-system, sans-serif" font-size="12" fill="#d8dae8">• unshare -r -n · ENETUNREACH</text>
+    <text x="16" y="152" font-family="Inter, -apple-system, sans-serif" font-size="12" fill="#d8dae8">• AF_UNIX loopback bridge</text>
+    <text x="16" y="174" font-family="Inter, -apple-system, sans-serif" font-size="12" fill="#d8dae8">• 720p 24fps DSLR upscale</text>
+    <text x="16" y="194" font-family="ui-monospace, monospace" font-size="10.5" fill="#8595ff">UMT5 CPU + CausVid 6-step</text>
+  </g>
+
+  <line x1="860" y1="135" x2="894" y2="135" stroke="#7078a8" stroke-width="2" marker-end="url(#arr-d)"/>
+
+  <!-- Stage 4 -->
+  <g transform="translate(900, 32)">
+    <rect x="0" y="0" width="230" height="206" rx="14" fill="#181822" stroke="#ffb86c" stroke-opacity="0.32"/>
+    <rect x="16" y="16" width="84" height="22" rx="11" fill="#322518"/>
+    <text x="58" y="31" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10.5" font-weight="700" fill="#ffc98a">STAGE 04</text>
+    <text x="16" y="64" font-family="Inter, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#ffffff">Gallery &amp; Playlist</text>
+    <text x="16" y="88" font-family="ui-monospace, monospace" font-size="11.5" fill="#c4b8a8">Session Vault · Eco Mode</text>
+    <line x1="16" y1="106" x2="214" y2="106" stroke="#ffffff" stroke-opacity="0.08"/>
+    <text x="16" y="130" font-family="Inter, -apple-system, sans-serif" font-size="12" fill="#c8c8d4">• Explicit vault export only</text>
+    <text x="16" y="152" font-family="Inter, -apple-system, sans-serif" font-size="12" fill="#c8c8d4">• Sequential batch queue</text>
+    <text x="16" y="174" font-family="Inter, -apple-system, sans-serif" font-size="12" fill="#c8c8d4">• 5s–10s thermal cooldown</text>
+    <text x="16" y="194" font-family="ui-monospace, monospace" font-size="10.5" fill="#ffb86c">Protected PID RAM monitor</text>
+  </g>
+</svg>

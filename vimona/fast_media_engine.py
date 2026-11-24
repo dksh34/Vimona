@@ -86,7 +86,10 @@ def _kill_proc_group(proc: subprocess.Popen[Any] | None) -> None:
     if proc.poll() is not None:
         return
     try:
-        os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+        if hasattr(os, "killpg") and hasattr(os, "getpgid"):
+            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+        else:
+            proc.terminate()
     except OSError:
         try:
             proc.terminate()
@@ -99,7 +102,10 @@ def _kill_proc_group(proc: subprocess.Popen[Any] | None) -> None:
         time.sleep(0.1)
     if proc.poll() is None:
         try:
-            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+            if hasattr(os, "killpg") and hasattr(os, "getpgid"):
+                os.killpg(os.getpgid(proc.pid), getattr(signal, "SIGKILL", signal.SIGTERM))
+            else:
+                proc.kill()
         except OSError:
             try:
                 proc.kill()

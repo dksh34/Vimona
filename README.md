@@ -1,220 +1,311 @@
 <div align="center">
 
-<img src="dev.vimona.Desktop.svg" alt="Vimona" width="84" height="84" />
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/brand/vimona-hero-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/brand/vimona-hero-light.svg">
+  <img alt="Vimona — Local-First Air-Gapped AI Workstation" src="assets/brand/vimona-hero-dark.svg" width="100%">
+</picture>
 
-# Vimona
+<br/><br/>
 
-**Private offline AI studio for Linux — chat, `/dev/shm` visual search, Pony V6 XL imagery, and Wan 2.1 video running sequentially inside 16 GB RAM.**
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](pyproject.toml)
+[![GTK4 + Libadwaita](https://img.shields.io/badge/UI-GTK4%20%2B%20Libadwaita-4A86CF?style=for-the-badge&logo=gnome&logoColor=white)](vimona/window.py)
+[![Air-Gap Namespace](https://img.shields.io/badge/Network-unshare%20--r%20--n-2EA043?style=for-the-badge&logo=linux&logoColor=white)](vimona/airgap.py)
+[![Wan 2.1 + Pony XL](https://img.shields.io/badge/Diffusion-Wan%202.1%20%2B%20Pony%20V6%20XL-7C5CFF?style=for-the-badge)](vimona/workflows.py)
+[![Windows CI](https://img.shields.io/badge/Windows-.exe%20Workflow-0078D4?style=for-the-badge&logo=windows&logoColor=white)](.github/workflows/build-windows.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-F59E0B?style=for-the-badge)](LICENSE)
 
 <p>
-  <img src="https://img.shields.io/badge/GTK4_%2B_Libadwaita-Native_Linux-4a86e8?style=flat-square&logo=gnome&logoColor=white" alt="GTK4 + Libadwaita" />
-  <img src="https://img.shields.io/badge/Compute-Vulkan0_%2B_ROCm-c94c4c?style=flat-square&logo=amd&logoColor=white" alt="Vulkan0 + ROCm" />
-  <img src="https://img.shields.io/badge/Isolation-unshare_%2B_%2Fdev%2Fshm-2e7d5b?style=flat-square" alt="Air-Gapped Isolation" />
-  <img src="https://img.shields.io/badge/License-MIT-7a7a7a?style=flat-square" alt="MIT License" />
+  <a href="#featured-demo-comfyui--wan-21-720p-video"><strong>720p Video Demo</strong></a> ·
+  <a href="#workspace-tour"><strong>Workspace Tour</strong></a> ·
+  <a href="#memory-relay-architecture"><strong>Architecture</strong></a> ·
+  <a href="#installation"><strong>Linux & Windows Install</strong></a> ·
+  <a href="#keyboard-shortcuts"><strong>Shortcuts</strong></a>
 </p>
 
-[Demos](#-demos) · [Architecture](#-architecture) · [Playlist](#-overnight-render-playlist) · [Skills](#-modular-skills) · [Performance](#-quiet-eco-vs-turbo) · [Run](#-run)
-
 </div>
+
+**Vimona** is a local desktop workstation for unified-memory machines (`16 GB` RAM / `8 GB` iGPU) that puts uncensored chat, ephemeral RAM-only web research, `Pony V6 XL` image rendering, and `Wan 2.1 VACE` `720p` video synthesis behind a native **GTK4 + Libadwaita** UI.
+
+Instead of crushing shared RAM by holding multiple models live, Vimona swaps them sequentially: chat models shut down completely (`0.0 GB`) before diffusion boots inside a network-isolated Linux namespace (`unshare -r -n` + `AF_UNIX` bridge), while any browser lookup runs inside a disposable `/dev/shm` Firefox profile wiped immediately after extraction.
 
 ---
 
-## Demos
+## Key Capabilities
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>🔒 Air-Gapped Diffusion Relay</h3>
+      <code>sd-server</code> and <code>ComfyUI</code> run inside <code>unshare -r -n</code> with zero WAN/LAN/DNS interfaces (<code>ENETUNREACH</code>), bridged strictly over an isolated <code>AF_UNIX</code> socket in <code>/dev/shm</code>.
+    </td>
+    <td width="50%" valign="top">
+      <h3>🎬 720p Wan 2.1 + Pony V6 XL</h3>
+      Generates crisp SDXL anchors via Vulkan (<code>--vae-tiling</code> disabled), animates motion with <code>Wan 2.1 VACE 1.3B + CausVid LoRA</code> (<code>6</code> steps), and finishes to <code>1280×720</code> at <code>24 fps</code>.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>🧠 93 KB SafeBlur ML Gate</h3>
+      Pure NumPy dual text + vision logistic model (<code>vimona/safety_ml.py</code>) scores prompts and video/image frames offline in milliseconds—staying unblurred for normal photography and cinema.
+    </td>
+    <td width="50%" valign="top">
+      <h3>⚡ Overnight Queue & Thermal Eco</h3>
+      Batch multi-prompt image/video jobs cleanly with Auto-Clean RAM sweeps, plus a toggleable <strong>Quiet / Eco Mode</strong> (<code>50%</code> CPU threads, <code>nice/ionice</code>, <code>5–10s</code> cooldowns).
+    </td>
+  </tr>
+</table>
+
+---
+
+## Featured Demo: ComfyUI + Wan 2.1 720p Video
+
+Captured live from the GTK4 workspace (generation wait cut cleanly between handoff stages and finished clip) animating an alpine dawn anchor into `1280×720` `24 fps` footage (`temporal consistency: 0.999`):
 
 <div align="center">
-  <img src="assets/demos/07-comfyui-video-making.webp" alt="ComfyUI Wan 2.1 VACE video making pipeline" width="840" />
-  <br />
-  <b>ComfyUI Video Making Pipeline — Wan 2.1 VACE 1.3B + CausVid · 24fps Flow</b> · <a href="assets/demos/07-comfyui-video-making.mp4">MP4</a>
-  <br />
-  <sub>Text AI unloads to <code>0.0 GB</code> → air-gapped Pony anchor + <code>ComfyUI</code> sliding windows + optical-flow interpolation + live playback.</sub>
+
+<img src="assets/demos/07-comfyui-video-making.webp" width="96%" alt="Vimona ComfyUI + Wan 2.1 VACE 720p Alpine Dawn Video Showcase"/>
+
+<br/>
+
+[Watch full-resolution MP4](assets/demos/07-comfyui-video-making.mp4) · **Anchor:** Alpine Dawn Ridge (`Pony V6 XL` full-VAE) · **Video Graph:** `Wan 2.1 VACE 1.3B` + `CausVid LoRA (0.45)` · **Output:** `1280×720 @ 24 fps`
+
 </div>
 
-<br />
-
-<table>
-  <tr>
-    <td width="50%" align="center">
-      <img src="assets/demos/01-studio-modes-thinking.webp" alt="Studio mode lock, live thinking, and camera pills" />
-      <br />
-      <b>Mode Lock, Live Thinking & Camera Pills</b> · <a href="assets/demos/01-studio-modes-thinking.mp4">MP4</a>
-      <br />
-      <sub>Lock new chats to Images/Video/Open, watch streamed reasoning, and re-angle shots with one click.</sub>
-    </td>
-    <td width="50%" align="center">
-      <img src="assets/demos/02-ephemeral-research-lightbox.webp" alt="RAM-only web research, Micro-ML Safe-Blur, and Lightbox" />
-      <br />
-      <b><code>/dev/shm</code> Research, Micro-ML Blur & Lightbox</b> · <a href="assets/demos/02-ephemeral-research-lightbox.mp4">MP4</a>
-      <br />
-      <sub>Zero-disk Firefox sandbox, frosted Gaussian Safe-Blur via local ML, and zoomed RAM Lightbox.</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" align="center">
-      <img src="assets/demos/03-media-relay-gallery-safeblur.webp" alt="16 GB RAM relay, 2-pass Pony DSLR keyframes, 24fps player, and Gallery" />
-      <br />
-      <b>16 GB RAM Relay, Keyframes, Video & Gallery</b> · <a href="assets/demos/03-media-relay-gallery-safeblur.mp4">MP4</a>
-      <br />
-      <sub>Clean LLM teardown before 2-pass Pony V6 XL rendering, 24fps optical-flow playback, and isolated Gallery.</sub>
-    </td>
-    <td width="50%" align="center">
-      <img src="assets/demos/04-overnight-render-playlist.webp" alt="Overnight Render Playlist with reorder, auto-clean RAM, and Batch Complete alert" />
-      <br />
-      <b>Overnight Render Playlist & Memory Hygiene</b> · <a href="assets/demos/04-overnight-render-playlist.mp4">MP4</a>
-      <br />
-      <sub>Ordered queue cards, up/down/cancel controls, between-job RAM sweeps, and one Batch Complete alert.</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" align="center">
-      <img src="assets/demos/05-skills-manager.webp" alt="Modular Skills Manager UI" />
-      <br />
-      <b>Modular <code>.vimona-skill</code> Manager</b> · <a href="assets/demos/05-skills-manager.mp4">MP4</a>
-      <br />
-      <sub>Search, filter, author custom packs with sampler overrides, import/export, and Top-3 dynamic routing.</sub>
-    </td>
-    <td width="50%" align="center">
-      <img src="assets/demos/06-eco-turbo-ram-monitor.webp" alt="Quiet Eco vs Turbo toggle and RAM monitor" />
-      <br />
-      <b>Quiet / Eco vs. Turbo & RAM Steward</b> · <a href="assets/demos/06-eco-turbo-ram-monitor.mp4">MP4</a>
-      <br />
-      <sub>Live CPU thread cap + <code>nice</code>/<code>ionice</code> thermal profile switcher and active engine telemetry.</sub>
-    </td>
-  </tr>
-</table>
-
----
-
-## Architecture
-
-<table>
-  <tr>
-    <td width="25%" valign="top">
-      <b>RAM Relay</b>
-      <br /><sub>Passes memory strictly between Gemma (<code>0.0 GB</code> when idle), <code>sd-server</code>, and ComfyUI.</sub>
-    </td>
-    <td width="25%" valign="top">
-      <b>Air-Gapped Netns</b>
-      <br /><sub>Media workers boot inside <code>unshare -r -n</code> (no WAN/DNS) via <code>/dev/shm</code> UNIX sockets.</sub>
-    </td>
-    <td width="25%" valign="top">
-      <b><code>/dev/shm</code> Browser</b>
-      <br /><sub>Headless Firefox runs purely in RAM for visual refs, then wipes cleanly before rendering.</sub>
-    </td>
-    <td width="25%" valign="top">
-      <b>93 KB Micro-ML Blur</b>
-      <br /><sub>Sub-2 ms NumPy/OpenCV text + vision classifier triggers frosted Safe-Blur without false alarms.</sub>
-    </td>
-  </tr>
-</table>
-
-```mermaid
-flowchart LR
-    U["Composer + Top-3 Skill Router"] --> LLM["Gemma · llama-server (Vulkan0)"]
-    LLM -->|web_search| FF["Firefox (/dev/shm · wiped)"]
-    FF --> TEARDOWN["Unload Text AI (0.0 GB)"]
-    LLM -->|render_media| TEARDOWN
-    TEARDOWN --> NETNS["Air-Gapped Namespace (unshare -r -n)"]
-    NETNS -->|2-Pass Booster| PONY["Pony V6 XL (sd-server)"]
-    NETNS -->|Sliding Windows| WAN["Wan 2.1 VACE 1.3B (ComfyUI)"]
-    WAN --> FLOW["24fps Flow + Consistency Check"]
-    PONY --> GAL["Isolated Session Gallery"]
-    FLOW --> GAL
-```
-
 <details>
-<summary><b>ComfyUI Video Backend Graph (<code>workflows.py</code> + <code>memory_relay.py</code>)</b></summary>
+<summary>Inspect the ComfyUI Graph & DSLR Finish Parameters</summary>
 
-1. **Air-Gapped Launch (`unshare -r -n`)**: ComfyUI boots via `--lowvram --use-pytorch-cross-attention --offline` bridged cleanly through an `AF_UNIX` socket in `/dev/shm`.
-2. **CPU Text Offload**: `UMT5-XXL fp8` loads with `device="cpu"` so `wan2.1_vace_1.3B_fp16` + `ModelSamplingSD3(shift=8.0)` + `CausVid LoRA` stay comfortably inside unified iGPU RAM.
-3. **Sliding-Window Anchoring**: Pony keyframe anchors `WanVaceToVideo(reference_image)`, while each consecutive 4s clip extracts its final frame via `ffmpeg` into `LoadImage` + `SolidMask(0.0)` (`control_video` / `control_masks`).
-4. **Post-Render Pipeline**: `VHS_VideoCombine` outputs stitch smoothly via `ffmpeg minterpolate` optical flow to `24 fps` and pass OpenCV frame histogram consistency checks before appearing in the gallery.
-
-</details>
-
----
-
-## Overnight Render Playlist
-
-- **Queue Control**: Reorder (`↑`/`↓`), cancel (`×`), toggle **`Auto-Clean RAM`**, and choose **`Batch Alert: Single / Per job`**.
-- **Lifecycle**: `Queued` → Text unload (`0.0 GB`) & RAM sweep → `Air-Gapped Rendering` → `Consistency Check` (OpenCV frame check on video) → `Cooldown` (Eco) → `Done`.
-- **Single Alert**: Suppresses per-render notification spam during batches and fires one privacy-safe `Batch Complete` summary when done.
-
----
-
-## Modular Skills
-
-Only `enabled: true` packs are indexed; `select_active_skills()` injects the top **2–3 trigger-matched** skills per turn plus negative-prompt and sampler overrides (`cfg`, `sampler`, `flow_shift`, `booster`).
-
-<details>
-<summary><b><code>.vimona-skill</code> JSON schema example</b> (drop onto Skills Manager to import)</summary>
-
-```json
-{
-  "id": "neon-rain-rimlight",
-  "name": "Neon Rain Rimlight",
-  "version": "1.2.0",
-  "author": "vimona-user",
-  "category": "Lighting",
-  "trigger_keywords": ["neon", "rain", "wet street", "cyberpunk", "night"],
-  "system_instructions": "Use high-contrast cyan and magenta rim lighting across wet asphalt reflections and deep shadow falloff.",
-  "negative_prompt_patch": "flat lighting, overcast haze, washed out contrast",
-  "comfyui_node_overrides": {
-    "cfg": 6.0,
-    "sampler": "euler_ancestral",
-    "flow_shift": 7.5,
-    "booster": false
-  }
-}
-```
-
-</details>
-
----
-
-## Quiet / Eco vs. Turbo
-
-| Metric | Quiet / Eco (`Vulkan Eco · Thermal Cap`) | Turbo (`Vulkan Fast · Turbo`) |
+| Stage | Configuration | Purpose |
 | :--- | :--- | :--- |
-| **Worker Threads** | 50% physical/logical core cap (`OMP_NUM_THREADS`, OpenCV, FFmpeg) | 100% available cores |
-| **Process Priority** | Linux `ionice -c 3` + `nice -n 12` (`BELOW_NORMAL_PRIORITY_CLASS` Win) | Normal scheduling |
-| **Batch Pacing** | `7.0s` inter-job thermal cooldown | Immediate back-to-back |
-| **Image Booster** | Single-pass fast render | 2-pass HiRes DSLR detailer + optical finish |
+| **Namespace Lock** | `unshare -r -n` + `/dev/shm/*.sock` | Drops all external interfaces; `127.0.0.1` bridged only via `AF_UNIX` |
+| **Text Encoder** | `umt5_xxl_fp8` pinned to CPU | Frees GPU/unified VRAM budget for `Wan 2.1` UNet latents |
+| **Diffusion Core** | `wan2.1_vace_1.3B_fp16` + `CausVid T2V` (`0.45`) | `640×368 @ 10 fps`, `uni_pc`, `6` steps (`shift=5.5`, `cfg=1.1`) |
+| **DSLR Finish** | `ffmpeg` `lanczos` + `unsharp=5:5:0.75` + `eq` | Crisp `1280×720` `24 fps` (`6500k` H.264) verified by histogram check (`0.999`) |
+
+</details>
 
 ---
 
-## Run
+## Workspace Tour
+
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <strong>Mode Lock &amp; Structured Thinking</strong><br/>
+      <sub>Studio chat, Image, or Video mode with transparent step reasoning</sub><br/><br/>
+      <img src="assets/demos/01-studio-modes-thinking.webp" width="100%" alt="Mode lock popup and structured reasoning trace"/><br/>
+      <sub><a href="assets/demos/01-studio-modes-thinking.mp4">MP4 Recording</a></sub>
+    </td>
+    <td width="50%" align="center">
+      <strong>Zero-Trace <code>/dev/shm</code> Research</strong><br/>
+      <sub>SlideCommit permission gate, RAM-only Firefox pull, instant wipe</sub><br/><br/>
+      <img src="assets/demos/02-ephemeral-research-lightbox.webp" width="100%" alt="Zero-trace ephemeral browser research and lightbox"/>
+      <br/><sub><a href="assets/demos/02-ephemeral-research-lightbox.mp4">MP4 Recording</a></sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <strong>Memory Relay &amp; Selective SafeBlur</strong><br/>
+      <sub>LLM stops to 0.0 GB; crisp gallery renders unblur selectively via ML</sub><br/><br/>
+      <img src="assets/demos/03-media-relay-gallery-safeblur.webp" width="100%" alt="Memory relay image gallery with selective frosted SafeBlur"/><br/>
+      <sub><a href="assets/demos/03-media-relay-gallery-safeblur.mp4">MP4 Recording</a></sub>
+    </td>
+    <td width="50%" align="center">
+      <strong>Overnight Render Playlist</strong><br/>
+      <sub>Queue mixed image & video prompts with Auto-Clean RAM sweeps</sub><br/><br/>
+      <img src="assets/demos/04-overnight-render-playlist.webp" width="100%" alt="Overnight sequential render playlist dock"/><br/>
+      <sub><a href="assets/demos/04-overnight-render-playlist.mp4">MP4 Recording</a></sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <strong><code>.vimona-skill</code> Manager &amp; Router</strong><br/>
+      <sub>Toggle, import, or author skills; top 2–3 injected per turn</sub><br/><br/>
+      <img src="assets/demos/05-skills-manager.webp" width="100%" alt="Skills manager modal and live top-3 skill pills"/><br/>
+      <sub><a href="assets/demos/05-skills-manager.mp4">MP4 Recording</a></sub>
+    </td>
+    <td width="50%" align="center">
+      <strong>Quiet / Eco Mode &amp; Protected RAM Monitor</strong><br/>
+      <sub>Throttle threads + cooldowns and inspect/close heavy apps safely</sub><br/><br/>
+      <img src="assets/demos/06-eco-turbo-ram-monitor.webp" width="100%" alt="Quiet/Eco thermal mode and Protected PID RAM monitor"/><br/>
+      <sub><a href="assets/demos/06-eco-turbo-ram-monitor.mp4">MP4 Recording</a></sub>
+    </td>
+  </tr>
+</table>
+
+<details>
+<summary>High-Resolution UI Snapshots (Render Playlist Dock &amp; Skills Manager)</summary>
+
+<br/>
+
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <img src="assets/render-playlist-eco.png" width="100%" alt="Render Playlist Dock and Quiet/Eco active banner"/><br/>
+      <sub>Sequential Render Playlist + Quiet/Eco mode active banner</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="assets/skills-manager.png" width="100%" alt="Portable .vimona-skill Manager modal"/><br/>
+      <sub>Portable <code>.vimona-skill</code> Manager with trigger-matched activation</sub>
+    </td>
+  </tr>
+</table>
+
+</details>
+
+---
+
+## Memory Relay Architecture
+
+<div align="center">
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/brand/vimona-pipeline-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/brand/vimona-pipeline-light.svg">
+  <img alt="Vimona Air-Gapped Memory Relay Pipeline" src="assets/brand/vimona-pipeline-dark.svg" width="100%">
+</picture>
+
+</div>
+
+### How Security & Isolation Work Together
+
+1. **Explicit Research Gate (`SlideCommitWidget`)** — External web fetches never happen implicitly. Live page/reference lookups spawn Firefox inside `/dev/shm/vimona_ephem_*` only after you drag-confirm, pull references strictly into memory, and run `scorched_earth_wipe()` before any diffusion process launches.
+2. **Kernel Namespace Lock (`vimona/airgap.py`)** — Diffusion engines run inside `unshare -r -n` on Linux with zero network devices aside from isolated `lo`. Vimona bridges HTTP IPC exclusively through a host-bound `AF_UNIX` socket file.
+3. **Volatile Session Vault (`vimona/storage.py`)** — Intermediate keyframe/video artifacts remain inside volatile session directories (`$TMPDIR`) until you explicitly click **Export / Save to Gallery**.
+4. **Compact 93 KB ML SafeBlur (`vimona/safety_ml.py`)** — A lightweight NumPy logistic regression model trained directly on visual color/edge/contrast features (`22` image features) and hashed n-gram text features (`512` dims, weights in `safety_ml_weights.npz`). Sensitive hits get a frosted translucent glass pill (`rgba(14,14,20,0.42)`) toggleable on demand; normal scenic or action renders stay untouched.
+
+---
+
+## Installation
+
+### 🐧 Linux (Fedora / Ubuntu / Debian / Arch)
+
+Clone the repository and run the universal installer (`installers/install-linux.sh`), which installs GTK4, Libadwaita, PyGObject, OpenCV, FFmpeg, Firefox, and registers both `~/.local/bin/vimona` and the desktop app icon:
 
 ```bash
-./launch-vimona.sh
-# or
-python3 run_vimona.py
+git clone https://github.com/your-org/vimona.git
+cd vimona
+chmod +x installers/install-linux.sh
+./installers/install-linux.sh
+```
+
+Then launch from your desktop application menu (**Vimona**) or run:
+
+```bash
+vimona
 ```
 
 <details>
-<summary><b>Keyboard shortcuts & repository map (34 files in <code>vimona/</code>)</b></summary>
+<summary>Linux Installer Flags &amp; Direct Launch</summary>
 
-| Keys | Action |
+```bash
+# Register launcher & .desktop icon without touching system packages
+./installers/install-linux.sh --skip-deps
+
+# Uninstall launcher, desktop entry, and app files cleanly
+./installers/install-linux.sh --uninstall
+
+# Or launch directly from the cloned repo without installing
+./launch-vimona.sh
+```
+
+</details>
+
+---
+
+### 🪟 Windows 10 / 11 (`.exe` Installer & Standalone Build)
+
+Vimona includes cross-platform process/UID guards (`win32` compatible) alongside native Windows packaging scripts and an automated GitHub Actions `.exe` workflow:
+
+| Artifact / Script | Purpose | Target |
+| :--- | :--- | :--- |
+| [`.github/workflows/build-windows.yml`](.github/workflows/build-windows.yml) | Automated CI build uploading `Vimona.exe` & `Vimona-Setup.exe` artifacts | Windows x64 |
+| [`installers/install-windows.ps1`](installers/install-windows.ps1) | Installs MSYS2 UCRT64 GTK4 + Libadwaita runtime & creates Start Menu / Desktop shortcuts | Windows 10/11 |
+| [`installers/build_windows_exe.ps1`](installers/build_windows_exe.ps1) | Packages standalone `dist\Vimona\Vimona.exe` (or `-OneFile` `dist\Vimona.exe`) via PyInstaller | Developers / CI |
+| [`installers/vimona-setup.iss`](installers/vimona-setup.iss) | Inno Setup script to compile `Vimona-Setup.exe` wizard with `assets/vimona.ico` | Installer Wizard |
+
+**Quick Windows install via PowerShell:**
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\installers\install-windows.ps1
+```
+
+**Build standalone `Vimona.exe` & `Vimona-Setup.exe` locally on Windows:**
+
+```powershell
+# Builds dist\Vimona\Vimona.exe + dist\Vimona-Setup.exe (when Inno Setup 6 is installed)
+.\installers\build_windows_exe.ps1
+
+# Or build a single portable binary: dist\Vimona.exe
+.\installers\build_windows_exe.ps1 -OneFile
+```
+
+> **Note:** On Linux hosts without MinGW/Wine/PyInstaller-Windows, run the GitHub Actions workflow (`Build Windows .exe & Verify Linux`) on GitHub to download ready-to-run `Vimona.exe` and `Vimona-Setup.exe` artifacts cleanly.
+
+---
+
+### 🤖 Local Model Paths
+
+Vimona expects local inference engines and checkpoints alongside its workspace paths:
+
+- **Chat / Router LLM (`llama-server`)** — Vulkan `GGUF` server (`http://127.0.0.1:8080` / managed by `MemoryRelayManager`)
+- **SDXL Still Images (`sd-server`)** — `Pony V6 XL` (`sd-server` Vulkan without `--vae-tiling`)
+- **Video (`ComfyUI`)** — `~/comfyui` with `wan2.1_vace_1.3B_fp16.safetensors`, `umt5_xxl_fp8_e4m3fn_scaled.safetensors`, and `Wan21_CausVid_bidirect2_T2V_1_3B_lora_rank32.safetensors`
+
+---
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
 | :--- | :--- |
-| `Ctrl` + `N` | New chat + centered Mode Picker |
-| `Ctrl` + `K` | Focus composer |
-| `Ctrl` + `B` / `\` | Toggle sidebar |
-| `Ctrl` + `Shift` + `A` | Select & copy conversation viewer |
-| `Esc` | Close active overlay / Lightbox |
-| `Left` / `Right` | Previous / next Lightbox item |
-| `Space` · `+`/`-`/`0` · `I` | Play/pause video · zoom · metadata drawer |
+| `Ctrl` + `N` | Start a new chat (opens mode picker) |
+| `Ctrl` + `B` / `Ctrl` + `\` | Toggle the conversation sidebar |
+| `Ctrl` + `K` | Focus the message / prompt composer |
+| `Ctrl` + `Shift` + `A` | Open whole-chat multi-turn selector |
+| `Enter` / `Shift` + `Enter` | Send prompt / Insert newline |
+| `Space` | Play / Pause active video in Lightbox |
+| `←` / `→` (or `,` / `.`) | Navigate media items in Lightbox |
+| `+` / `-` / `0` / `I` | Zoom in / out / reset view / toggle Lightbox inspector drawer |
+| `Esc` | Close active overlay, Lightbox, selector, or modal |
+
+---
+
+## Project Layout
 
 ```text
 vimona/
-├── app.py, window.py, controller.py        # GTK4 app, workspace, turn & playlist orchestration
-├── memory_relay.py, airgap.py              # Zero-overlap 16 GB relay + unshare -r -n AF_UNIX bridge
-├── fast_media_engine.py, workflows.py      # 2-pass sd-server booster, 24fps optical flow, Wan VACE graphs
-├── search_worker.py, storage.py            # /dev/shm ephemeral Firefox scraper & isolated session staging
-├── safety_ml.py, safety_ml_weights.npz     # 93 KB text/vision Micro-ML classifier (zero LLM)
-├── safety_blur.py, safety_patterns.py      # GPU frosted Gaussian Safe-Blur + slide-to-reveal gate
-├── skills_loader.py, skills_manager.py     # .vimona-skill schema, import/export, Top-3 prompt router
-├── perf_profile.py, ram_manager.py         # Eco/Turbo thread & priority enforcement + protected sweeper
-├── widgets.py, tokens.py, icons.py         # Composer, Playlist drawer, Gallery, Lightbox & dark palette
-└── media.py, models.py, shaders/skills     # OpenCV video decoder, dataclasses, CRT/gooey/metallic FX
+├── run_vimona.py                 # Entrypoint launching Adw.Application
+├── launch-vimona.sh              # Linux wrapper launching run_vimona.py
+├── dev.vimona.Desktop.{desktop,svg}
+├── installers/
+│   ├── install-linux.sh          # Fedora / Ubuntu / Debian / Arch installer
+│   ├── install-windows.ps1       # Windows 10/11 MSYS2 GTK4 setup & shortcuts
+│   ├── build_windows_exe.ps1     # PyInstaller Vimona.exe + Inno Setup builder
+│   └── vimona-setup.iss          # Windows Setup Wizard definition
+├── .github/workflows/
+│   └── build-windows.yml         # CI build for Vimona.exe & Linux checks
+├── assets/
+│   ├── vimona.ico                # Multi-size Windows icon (16..256px)
+│   ├── brand/                    # Light & dark hero + pipeline SVGs
+│   ├── demos/                    # 01..07 animated WebP & MP4 showcases
+│   └── *.png                     # High-res UI workspace snapshots
+└── vimona/
+    ├── app.py & window.py        # GTK4 + Libadwaita window & Lightbox UI
+    ├── controller.py             # Turn routing, SlideCommit, media handoff
+    ├── memory_relay.py           # Mutual-exclusion RAM swap between LLM & ComfyUI
+    ├── airgap.py                 # unshare -r -n namespace + AF_UNIX bridge
+    ├── workflows.py              # Wan 2.1 VACE 1.3B + CausVid ComfyUI graph
+    ├── fast_media_engine.py      # Pony V6 XL runner + 720p DSLR ffmpeg finish
+    ├── safety_ml.py              # 93 KB offline NumPy text+vision SafeBlur ML
+    ├── search_worker.py          # Ephemeral /dev/shm headless Firefox scraper
+    ├── playlist.py               # Sequential overnight render queue
+    ├── skills_loader.py          # .vimona-skill CRUD & top-3 router
+    ├── perf_profile.py           # Quiet/Eco vs Turbo thermal throttling
+    └── ram_manager.py            # Protected PID /proc RAM inspector
 ```
 
-</details>
+<div align="center">
+  <br/>
+  <sub>Built with GTK4, Libadwaita, llama.cpp Vulkan, Pony V6 XL, and ComfyUI Wan 2.1 VACE · <a href="LICENSE">MIT License</a></sub>
+</div>
