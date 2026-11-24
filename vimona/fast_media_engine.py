@@ -181,7 +181,8 @@ def verify_video_temporal_consistency(video_path: Path) -> tuple[bool, float]:
         try:
             total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
             if total < 2:
-                return (total >= 1, 1.0)
+                ok_one, _ = cap.read()
+                return (bool(ok_one), 1.0 if ok_one else 0.0)
             prev_hist = None
             corrs: list[float] = []
             step = max(1, total // 12)

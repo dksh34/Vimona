@@ -102,10 +102,18 @@ def _fwd(src, dst):
         while True:
             buf = src.recv(65536)
             if not buf:
+                try:
+                    dst.shutdown(socket.SHUT_WR)
+                except OSError:
+                    pass
                 break
             dst.sendall(buf)
     except OSError:
-        pass
+        for s in (src, dst):
+            try:
+                s.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
     finally:
         for s in (src, dst):
             try:
@@ -124,6 +132,7 @@ while True:
         break
     try:
         upstream = socket.create_connection(("127.0.0.1", inner_port), timeout=3.0)
+        upstream.settimeout(None)
     except OSError:
         try:
             client.close()
@@ -239,10 +248,18 @@ class AirGappedProcess:
                 while True:
                     chunk = src.recv(65536)
                     if not chunk:
+                        try:
+                            dst.shutdown(socket.SHUT_WR)
+                        except OSError:
+                            pass
                         break
                     dst.sendall(chunk)
             except OSError:
-                pass
+                for sock in (src, dst):
+                    try:
+                        sock.shutdown(socket.SHUT_RDWR)
+                    except OSError:
+                        pass
             finally:
                 for sock in (src, dst):
                     try:

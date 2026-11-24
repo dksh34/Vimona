@@ -3128,7 +3128,7 @@ class VimonaWindow(Adw.ApplicationWindow):
                     dl_k = meta["downloads"]
                     dl_str = f"{dl_k // 1000}k dl" if dl_k >= 1000 else f"{dl_k} dl"
                     txt = f"{'Installed ✓ · ' if installed else ''}HF ♥ {meta['likes']} · {dl_str}"
-                    GLib.idle_add(lambda l=lbl, t=txt: (l.set_text(t), False)[1])
+                    GLib.idle_add(lambda l=lbl, t=txt: (l.set_text(t) if l.get_parent() is not None else None, False)[1])
 
             threading.Thread(target=_fetch_stats, daemon=True).start()
 

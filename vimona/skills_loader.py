@@ -264,6 +264,10 @@ def delete_custom_skill(spec: SkillSpec) -> bool:
         return False
     try:
         Path(spec.file_path).unlink(missing_ok=True)
+        state = _load_enabled_state()
+        if spec.id in state:
+            state.pop(spec.id, None)
+            _save_enabled_state(state)
         _SKILLS_CACHE.clear()
         return True
     except OSError:

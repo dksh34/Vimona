@@ -314,7 +314,9 @@ vimona/
 │   ├── demos/                    # 01..07 animated WebP & MP4 showcases
 │   └── *.png                     # High-res UI workspace snapshots
 └── vimona/
-    ├── app.py & window.py        # GTK4 + Libadwaita window & Lightbox UI
+    ├── app.py & window.py        # GTK4 + Libadwaita window, header controls & Lightbox UI
+    ├── widgets.py                # Composer, Gallery & Sequential Overnight Render Playlist
+    ├── hf_models.py              # Hardware-aware Hugging Face Hub catalog & downloader
     ├── controller.py             # Turn routing, SlideCommit, media handoff
     ├── memory_relay.py           # Mutual-exclusion RAM swap between LLM & ComfyUI
     ├── airgap.py                 # unshare -r -n namespace + AF_UNIX bridge
@@ -322,8 +324,7 @@ vimona/
     ├── fast_media_engine.py      # Pony V6 XL runner + 720p DSLR ffmpeg finish
     ├── safety_ml.py              # 93 KB offline NumPy text+vision SafeBlur ML
     ├── search_worker.py          # Ephemeral /dev/shm headless Firefox scraper
-    ├── playlist.py               # Sequential overnight render queue
-    ├── skills_loader.py          # .vimona-skill CRUD & top-3 router
+    ├── skills_loader.py & skills_manager.py # 469 skills, top-3 router & runtime context engine
     ├── perf_profile.py           # Quiet/Eco vs Turbo thermal throttling
     └── ram_manager.py            # Protected PID /proc RAM inspector
 ```
