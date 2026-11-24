@@ -204,16 +204,21 @@ class MemoryRelayManager:
 
             if not LLAMA_SERVER_BIN.is_file():
                 raise FileNotFoundError(f"llama-server not found at {LLAMA_SERVER_BIN}")
-            if not LLM_MODEL_PATH.is_file():
-                raise FileNotFoundError(f"LLM model not found at {LLM_MODEL_PATH}")
+            try:
+                from .hf_models import get_selected_model_path
+                active_llm_path = get_selected_model_path("text") or LLM_MODEL_PATH
+            except Exception:
+                active_llm_path = LLM_MODEL_PATH
+            if not active_llm_path.is_file():
+                raise FileNotFoundError(f"LLM model not found at {active_llm_path}")
 
             LOG_DIR.mkdir(parents=True, exist_ok=True)
             self._llama_port = _pick_free_port(18081)
-            self._set_owner("transition", "Starting text engine…", "Loading light-uncensored.gguf…")
+            self._set_owner("transition", "Starting text engine…", f"Loading {active_llm_path.name}…")
             cmd = [
                 str(LLAMA_SERVER_BIN),
                 "--model",
-                str(LLM_MODEL_PATH),
+                str(active_llm_path),
                 "--device",
                 "Vulkan0",
                 "--flash-attn",

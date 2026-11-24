@@ -2518,6 +2518,7 @@ class FloatingComposer(Gtk.Box):
         on_stop: Callable[[], None],
         on_batch_changed: Callable[[int], None] | None = None,
         on_queue: Callable[[str, str, int, int], None] | None = None,
+        on_skill_changed: Callable[[str], None] | None = None,
     ) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.add_css_class("composer-scrim")
@@ -2526,6 +2527,7 @@ class FloatingComposer(Gtk.Box):
         self._on_stop = on_stop
         self._on_batch_changed = on_batch_changed
         self._on_queue = on_queue
+        self._on_skill_changed = on_skill_changed
         self._is_busy = False
         self._locked_mode: str | None = None
         self._active_skill = AVAILABLE_SKILLS[0][0]
@@ -2596,6 +2598,7 @@ class FloatingComposer(Gtk.Box):
 
         text_overlay = Gtk.Overlay()
         self._scroll = Gtk.ScrolledWindow()
+        self._scroll.add_css_class("composer-scroll")
         self._scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self._scroll.set_propagate_natural_height(True)
         self._scroll.set_min_content_height(36)
@@ -3005,6 +3008,8 @@ class FloatingComposer(Gtk.Box):
     def set_active_skill(self, skill: str) -> None:
         self._active_skill = skill
         self._skill_lbl.set_text(skill)
+        if self._on_skill_changed is not None:
+            self._on_skill_changed(skill)
 
     def set_batch_count(self, count: int) -> None:
         self._batch_count = count
@@ -3186,27 +3191,22 @@ class FloatingComposer(Gtk.Box):
             else:
                 self._stop_btn.remove_css_class("active")
                 self._stop_btn.set_sensitive(False)
-                fg_stop = "#0B4757" if self._pill.has_css_class("aquarium-glass") else COLORS.text_muted
-                self._stop_icon.set_icon("stop", fg_stop)
+                self._stop_icon.set_icon("stop", COLORS.text_muted)
 
         if self._is_busy:
             if has_text:
-                fg = "#FFFFFF" if self._pill.has_css_class("aquarium-glass") else "#121212"
-                self._send_icon.set_icon("arrow-up", fg)
+                self._send_icon.set_icon("arrow-up", "#121212")
                 self._send_btn.set_tooltip_text("Queue message (Enter)")
             else:
                 self._send_btn.add_css_class("disabled")
-                fg = "#4A7B88" if self._pill.has_css_class("aquarium-glass") else COLORS.text_muted
-                self._send_icon.set_icon("arrow-up", fg)
+                self._send_icon.set_icon("arrow-up", COLORS.text_muted)
                 self._send_btn.set_tooltip_text("Type a message to queue, or click Stop")
         elif has_text:
-            fg = "#FFFFFF" if self._pill.has_css_class("aquarium-glass") else "#121212"
-            self._send_icon.set_icon("arrow-up", fg)
+            self._send_icon.set_icon("arrow-up", "#121212")
             self._send_btn.set_tooltip_text("Send (Enter)")
         else:
             self._send_btn.add_css_class("disabled")
-            fg = "#4A7B88" if self._pill.has_css_class("aquarium-glass") else COLORS.text_muted
-            self._send_icon.set_icon("arrow-up", fg)
+            self._send_icon.set_icon("arrow-up", COLORS.text_muted)
             self._send_btn.set_tooltip_text("Type a message to send")
 
     def _on_key_pressed(

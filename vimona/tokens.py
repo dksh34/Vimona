@@ -916,13 +916,114 @@ button.new-chat-mode-card:hover {{
 }}
 
 .chat-mode-lock-pill {{
-    font-size: 11px;
+    font-size: 11.5px;
     font-weight: 600;
     color: #93C5FD;
     background-color: rgba(59, 130, 246, 0.14);
-    border: 1px solid rgba(96, 165, 250, 0.30);
+    border: 1px solid rgba(96, 165, 250, 0.28);
     border-radius: 999px;
-    padding: 2px 9px;
+    padding: 3px 10px;
+    min-height: 26px;
+}}
+
+menubutton.header-pill-btn {{
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+}}
+
+menubutton.header-pill-btn > button {{
+    background-color: {c.bg_surface};
+    background-image: none;
+    border: 1px solid {c.border_subtle};
+    border-radius: 999px;
+    padding: 3px 10px;
+    min-height: 26px;
+    min-width: 0;
+    font-size: 11.5px;
+    font-weight: 550;
+    color: {c.text_secondary};
+    box-shadow: none;
+    transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+}}
+
+menubutton.header-pill-btn > button:hover {{
+    background-color: {c.bg_hover};
+    color: {c.text_primary};
+    border-color: {c.border_strong};
+}}
+
+menubutton.header-mode-btn > button {{
+    background-color: rgba(59, 130, 246, 0.12);
+    border-color: rgba(96, 165, 250, 0.28);
+    color: #BFDBFE;
+}}
+
+menubutton.header-mode-btn.mode-chat > button {{
+    background-color: rgba(255, 255, 255, 0.06);
+    border-color: {c.border_subtle};
+    color: {c.text_secondary};
+}}
+
+menubutton.header-mode-btn.mode-video > button {{
+    background-color: rgba(168, 85, 247, 0.14);
+    border-color: rgba(192, 132, 252, 0.30);
+    color: #E9D5FF;
+}}
+
+menubutton.header-mode-btn.mode-images > button {{
+    background-color: rgba(59, 130, 246, 0.14);
+    border-color: rgba(96, 165, 250, 0.30);
+    color: #BFDBFE;
+}}
+
+.hf-hw-banner {{
+    background-color: rgba(255, 255, 255, 0.045);
+    border: 1px solid {c.border_subtle};
+    border-radius: 9px;
+    padding: 6px 9px;
+    font-size: 11px;
+    color: {c.text_secondary};
+}}
+
+.hf-model-card {{
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid {c.border_subtle};
+    border-radius: 10px;
+    padding: 8px 10px;
+}}
+
+.hf-model-card.selected {{
+    background-color: rgba(59, 130, 246, 0.10);
+    border-color: rgba(96, 165, 250, 0.38);
+}}
+
+.hf-fit-best {{
+    font-size: 10px;
+    font-weight: 600;
+    color: #86EFAC;
+    background-color: rgba(34, 197, 94, 0.14);
+    border-radius: 999px;
+    padding: 1px 7px;
+}}
+
+.hf-fit-fits {{
+    font-size: 10px;
+    font-weight: 600;
+    color: #93C5FD;
+    background-color: rgba(59, 130, 246, 0.14);
+    border-radius: 999px;
+    padding: 1px 7px;
+}}
+
+.hf-fit-heavy {{
+    font-size: 10px;
+    font-weight: 600;
+    color: #FCD34D;
+    background-color: rgba(245, 158, 11, 0.14);
+    border-radius: 999px;
+    padding: 1px 7px;
 }}
 
 /* Collapsible Reasoning Accordion */
@@ -1420,26 +1521,26 @@ button.video-play-circle:hover {{
 }}
 
 .aquarium-tank {{
-    border-radius: 22px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    background-color: #7FD3E3;
-    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.45);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background-color: #0D1B26;
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.48);
 }}
 
 .aquarium-inner {{
-    padding: 26px 20px 12px 20px;
+    padding: 18px 18px 10px 18px;
 }}
 
 .aquarium-caption {{
-    font-size: 11.5px;
-    font-weight: 600;
-    letter-spacing: 0.25px;
-    color: #06303B;
-    background-color: rgba(238, 251, 255, 0.52);
-    border: 1px solid rgba(255, 255, 255, 0.55);
+    font-size: 11px;
+    font-weight: 550;
+    letter-spacing: 0.2px;
+    color: rgba(226, 232, 240, 0.86);
+    background-color: rgba(15, 23, 34, 0.68);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 999px;
     padding: 2px 11px;
-    margin-top: 9px;
+    margin-top: 8px;
 }}
 
 .composer-pill {{
@@ -1458,34 +1559,43 @@ button.video-play-circle:hover {{
 }}
 
 .composer-pill.aquarium-glass {{
-    background-color: rgba(255, 255, 255, 0.54);
-    border: 1px solid rgba(255, 255, 255, 0.72);
-    border-radius: 20px;
-    box-shadow: 0 10px 28px rgba(4, 34, 42, 0.16);
+    background-color: rgba(14, 19, 27, 0.80);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 18px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.36);
 }}
 
 .composer-pill.aquarium-glass.focused {{
-    background-color: rgba(255, 255, 255, 0.68);
-    border-color: rgba(255, 255, 255, 0.92);
+    background-color: rgba(18, 24, 34, 0.90);
+    border-color: rgba(255, 255, 255, 0.28);
 }}
 
-.composer-textview {{
+scrolledwindow.composer-scroll,
+scrolledwindow.composer-scroll > viewport,
+.composer-pill scrolledwindow,
+.composer-pill viewport,
+textview.composer-textview.view,
+textview.composer-textview,
+textview.composer-textview > text,
+textview.composer-textview text {{
     background-color: transparent;
+    background-image: none;
+    border: none;
+    box-shadow: none;
     color: {c.text_primary};
     font-family: {t.ui_sans};
     font-size: 14.5px;
     caret-color: {c.text_primary};
 }}
 
-.composer-textview text {{
+.composer-pill.aquarium-glass textview.composer-textview.view,
+.composer-pill.aquarium-glass textview.composer-textview,
+.composer-pill.aquarium-glass textview.composer-textview > text,
+.composer-pill.aquarium-glass textview.composer-textview text {{
     background-color: transparent;
-    color: {c.text_primary};
-}}
-
-.composer-pill.aquarium-glass .composer-textview,
-.composer-pill.aquarium-glass .composer-textview text {{
-    color: #06303B;
-    caret-color: #06303B;
+    background-image: none;
+    color: #F4F4F5;
+    caret-color: #F4F4F5;
 }}
 
 .composer-placeholder {{
@@ -1494,7 +1604,7 @@ button.video-play-circle:hover {{
 }}
 
 .composer-pill.aquarium-glass .composer-placeholder {{
-    color: rgba(11, 71, 87, 0.62);
+    color: rgba(203, 213, 225, 0.56);
 }}
 
 .composer-toolbar {{
@@ -1530,14 +1640,23 @@ menubutton.skill-chip > button:hover {{
 }}
 
 .composer-pill.aquarium-glass menubutton.skill-chip > button {{
-    border-color: rgba(11, 71, 87, 0.24);
-    color: #0B4757;
+    border-color: rgba(255, 255, 255, 0.14);
+    color: #E2E8F0;
 }}
 
 .composer-pill.aquarium-glass menubutton.skill-chip > button:hover {{
-    background-color: rgba(11, 71, 87, 0.08);
-    color: #06303B;
-    border-color: rgba(11, 71, 87, 0.42);
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #FFFFFF;
+    border-color: rgba(255, 255, 255, 0.26);
+}}
+
+menubutton.skill-chip > button:disabled,
+menubutton.skill-chip > button:disabled label,
+.composer-pill.aquarium-glass menubutton.skill-chip > button:disabled,
+.composer-pill.aquarium-glass menubutton.skill-chip > button:disabled label {{
+    opacity: 0.9;
+    color: #E2E8F0;
+    border-color: rgba(255, 255, 255, 0.16);
 }}
 
 .selector-group {{
@@ -1573,17 +1692,17 @@ button.selector-option.selected {{
 }}
 
 .composer-pill.aquarium-glass button.selector-option {{
-    color: rgba(11, 71, 87, 0.72);
+    color: rgba(203, 213, 225, 0.72);
 }}
 
 .composer-pill.aquarium-glass button.selector-option:hover {{
-    background-color: rgba(11, 71, 87, 0.08);
-    color: #06303B;
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #FFFFFF;
 }}
 
 .composer-pill.aquarium-glass button.selector-option.selected {{
-    background-color: rgba(11, 71, 87, 0.16);
-    color: #06303B;
+    background-color: rgba(255, 255, 255, 0.16);
+    color: #FFFFFF;
     font-weight: 600;
 }}
 
@@ -1595,7 +1714,7 @@ button.selector-option.selected {{
 }}
 
 .composer-pill.aquarium-glass .selector-prefix {{
-    color: rgba(11, 71, 87, 0.72);
+    color: rgba(203, 213, 225, 0.72);
 }}
 
 .toolbar-divider {{
@@ -1606,7 +1725,7 @@ button.selector-option.selected {{
 }}
 
 .composer-pill.aquarium-glass .toolbar-divider {{
-    background-color: rgba(11, 71, 87, 0.18);
+    background-color: rgba(255, 255, 255, 0.14);
 }}
 
 button.send-btn {{
@@ -1643,17 +1762,17 @@ button.send-btn.stop:hover {{
 }}
 
 .composer-pill.aquarium-glass button.send-btn {{
-    background-color: #0B4757;
-    color: #FFFFFF;
+    background-color: #F4F4F5;
+    color: #121212;
 }}
 
 .composer-pill.aquarium-glass button.send-btn:hover {{
-    background-color: #06303B;
+    background-color: #FFFFFF;
 }}
 
 .composer-pill.aquarium-glass button.send-btn.disabled {{
-    background-color: rgba(11, 71, 87, 0.14);
-    color: #4A7B88;
+    background-color: rgba(255, 255, 255, 0.12);
+    color: rgba(203, 213, 225, 0.50);
 }}
 
 .composer-pill.aquarium-glass button.send-btn.stop {{
@@ -1693,9 +1812,9 @@ button.composer-stop-btn.active:hover {{
 }}
 
 .composer-pill.aquarium-glass button.composer-stop-btn {{
-    background-color: rgba(11, 71, 87, 0.12);
-    border-color: rgba(11, 71, 87, 0.24);
-    color: #0B4757;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.16);
+    color: rgba(226, 232, 240, 0.78);
 }}
 
 .composer-pill.aquarium-glass button.composer-stop-btn.active {{

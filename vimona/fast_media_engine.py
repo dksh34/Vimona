@@ -54,6 +54,13 @@ LOG_DIR = Path("~/.local/share/vimona").expanduser()
 
 
 def resolve_pony_checkpoint() -> Path:
+    try:
+        from .hf_models import get_selected_model_path
+        custom = get_selected_model_path("image")
+        if custom is not None and custom.exists():
+            return custom.resolve()
+    except Exception:
+        pass
     if PONY_FULL_MODEL.is_file():
         return PONY_FULL_MODEL
     if PONY_UNET_MODEL.exists():

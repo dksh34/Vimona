@@ -32,6 +32,18 @@ from .ram_manager import (
     scan_all_processes_by_ram,
     terminate_unnecessary_processes,
 )
+from .hf_models import (
+    HardwareProfile,
+    HFModelSpec,
+    detect_hardware_profile,
+    download_hf_model,
+    evaluate_model_fit,
+    fetch_hf_repo_meta,
+    find_local_model_path,
+    get_models_for_category,
+    get_selected_model_id,
+    set_selected_model_id,
+)
 from .slide_commit import SlideCommitWidget
 from .safety_blur import SafeBlurBox, is_explicit_text
 from .skills_loader import load_all_skills
@@ -706,13 +718,53 @@ class VimonaWindow(Adw.ApplicationWindow):
             show_hover_toggle=True,
             require_slide_confirm=True,
         )
+        self._header_title_blur.set_valign(Gtk.Align.CENTER)
         start_box.append(self._header_title_blur)
 
-        self._header_mode_pill = Gtk.Label()
-        self._header_mode_pill.add_css_class("chat-mode-lock-pill")
-        self._header_mode_pill.set_valign(Gtk.Align.CENTER)
-        self._header_mode_pill.set_visible(False)
-        start_box.append(self._header_mode_pill)
+        self._header_mode_pill = Gtk.Label(label="Chat")
+        self._header_mode_btn = Gtk.MenuButton()
+        self._header_mode_btn.set_has_frame(False)
+        self._header_mode_btn.add_css_class("header-pill-btn")
+        self._header_mode_btn.add_css_class("header-mode-btn")
+        self._header_mode_btn.add_css_class("mode-chat")
+        self._header_mode_btn.set_valign(Gtk.Align.CENTER)
+        self._header_mode_btn.set_cursor_from_name("pointer")
+        self._header_mode_btn.set_tooltip_text("Switch active workspace mode (Chat, Images, or Video)")
+        hm_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        hm_row.append(self._header_mode_pill)
+        chev_m = Gtk.Label(label="▾")
+        chev_m.add_css_class("research-tab-url")
+        hm_row.append(chev_m)
+        self._header_mode_btn.set_child(hm_row)
+        self._header_mode_btn.set_popover(self._build_header_mode_popover())
+        start_box.append(self._header_mode_btn)
+
+        # Hardware-aware Hugging Face Model Selector Popup right beside Mode / Images pill
+        self._hw_profile: HardwareProfile = detect_hardware_profile()
+        self._hf_model_tab: str = "text"
+        self._hf_dl_cancel = threading.Event()
+        self._hf_dl_progress: dict[str, tuple[float, str]] = {}
+        self._hf_models_lbl = Gtk.Label(label="Models")
+        self._hf_models_btn = Gtk.MenuButton()
+        self._hf_models_btn.set_has_frame(False)
+        self._hf_models_btn.add_css_class("header-pill-btn")
+        self._hf_models_btn.add_css_class("header-models-btn")
+        self._hf_models_btn.set_valign(Gtk.Align.CENTER)
+        self._hf_models_btn.set_cursor_from_name("pointer")
+        self._hf_models_btn.set_tooltip_text(f"Hugging Face Models ({self._hw_profile.summary_label})")
+        hf_btn_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        hf_btn_row.append(SvgIcon("chip", size_px=12, color=COLORS.accent_primary))
+        hf_btn_row.append(self._hf_models_lbl)
+        chev_hf = Gtk.Label(label="▾")
+        chev_hf.add_css_class("research-tab-url")
+        hf_btn_row.append(chev_hf)
+        self._hf_models_btn.set_child(hf_btn_row)
+        self._hf_models_popover = Gtk.Popover()
+        self._hf_models_popover.set_has_arrow(False)
+        self._hf_models_popover.connect("notify::visible", self._on_hf_popover_shown)
+        self._hf_models_btn.set_popover(self._hf_models_popover)
+        self._sync_hf_models_button_label("Chat & Ideas")
+        start_box.append(self._hf_models_btn)
 
         self._header.pack_start(start_box)
 
@@ -728,18 +780,50 @@ class VimonaWindow(Adw.ApplicationWindow):
         self._ram_menu_btn.set_margin_end(6)
         self._header.pack_end(self._ram_menu_btn)
 
-        # Quiet / Eco vs. Turbo Hardware Performance Segmented Pill
+        # Unified Controls Dropdown (Quiet/Turbo, Skills, Select Chat, Alerts)
+        self._controls_menu_btn = Gtk.MenuButton()
+        self._controls_menu_btn.set_has_frame(False)
+        self._controls_menu_btn.add_css_class("header-pill-btn")
+        self._controls_menu_btn.set_valign(Gtk.Align.CENTER)
+        self._controls_menu_btn.set_cursor_from_name("pointer")
+        self._controls_menu_btn.set_tooltip_text("Workspace Controls: Performance, Skills, Select Chat & Alerts")
+        ctl_btn_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        ctl_btn_row.append(SvgIcon("grid", size_px=12, color=COLORS.text_secondary))
+        self._controls_summary_lbl = Gtk.Label(label="Controls")
+        ctl_btn_row.append(self._controls_summary_lbl)
+        chev_c = Gtk.Label(label="▾")
+        chev_c.add_css_class("research-tab-url")
+        ctl_btn_row.append(chev_c)
+        self._controls_menu_btn.set_child(ctl_btn_row)
+        self._controls_menu_btn.set_margin_end(6)
+
+        self._controls_popover = Gtk.Popover()
+        self._controls_popover.set_has_arrow(False)
+        ctl_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        ctl_box.set_size_request(280, -1)
+        ctl_box.set_margin_top(6)
+        ctl_box.set_margin_bottom(6)
+        ctl_box.set_margin_start(6)
+        ctl_box.set_margin_end(6)
+
+        perf_hdr = Gtk.Label(label="Hardware Profile")
+        perf_hdr.add_css_class("research-perm-note")
+        perf_hdr.set_xalign(0.0)
+        ctl_box.append(perf_hdr)
+
+        # Quiet / Eco vs. Turbo Hardware Performance Segmented Pill inside Controls dropdown
         self._perf_group = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=2)
         self._perf_group.add_css_class("perf-seg-group")
-        self._perf_group.set_valign(Gtk.Align.CENTER)
-        self._perf_group.set_margin_end(4)
+        self._perf_group.set_hexpand(True)
 
         self._perf_eco_btn = Gtk.Button()
         self._perf_eco_btn.set_has_frame(False)
         self._perf_eco_btn.add_css_class("perf-seg-btn")
+        self._perf_eco_btn.set_hexpand(True)
         self._perf_eco_btn.set_cursor_from_name("pointer")
         self._perf_eco_btn.set_tooltip_text("Quiet / Eco Mode: 50% CPU threads, low process niceness & 7s thermal cooldown")
         eco_b = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        eco_b.set_halign(Gtk.Align.CENTER)
         eco_b.append(SvgIcon("leaf", size_px=11, color="#6EE7B7"))
         eco_b.append(Gtk.Label(label="Quiet"))
         self._perf_eco_btn.set_child(eco_b)
@@ -749,55 +833,77 @@ class VimonaWindow(Adw.ApplicationWindow):
         self._perf_turbo_btn = Gtk.Button()
         self._perf_turbo_btn.set_has_frame(False)
         self._perf_turbo_btn.add_css_class("perf-seg-btn")
+        self._perf_turbo_btn.set_hexpand(True)
         self._perf_turbo_btn.set_cursor_from_name("pointer")
         self._perf_turbo_btn.set_tooltip_text("Turbo Mode: Full CPU cores, maximum Vulkan throughput & back-to-back batching")
         tur_b = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        tur_b.set_halign(Gtk.Align.CENTER)
         tur_b.append(SvgIcon("bolt", size_px=11, color="#FCD34D"))
         tur_b.append(Gtk.Label(label="Turbo"))
         self._perf_turbo_btn.set_child(tur_b)
         self._perf_turbo_btn.connect("clicked", lambda _b: self._set_perf_profile("turbo"))
         self._perf_group.append(self._perf_turbo_btn)
         self._sync_perf_toggle_ui(get_performance_mode())
-        self._header.pack_end(self._perf_group)
+        ctl_box.append(self._perf_group)
+
+        sep_ctl = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        ctl_box.append(sep_ctl)
 
         self._skills_btn = Gtk.Button()
         self._skills_btn.set_has_frame(False)
-        self._skills_btn.add_css_class("mini-action-btn")
+        self._skills_btn.add_css_class("popover-item")
         self._skills_btn.set_cursor_from_name("pointer")
         self._skills_btn.set_tooltip_text("Modular Skills Manager & .vimona-skill import/export")
-        skb = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
-        skb.append(SvgIcon("sparkles", size_px=12, color=COLORS.accent_primary))
+        skb = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        skb.append(SvgIcon("sparkles", size_px=13, color=COLORS.accent_primary))
         self._skills_lbl = Gtk.Label(label="Skills")
+        self._skills_lbl.set_hexpand(True)
+        self._skills_lbl.set_xalign(0.0)
         skb.append(self._skills_lbl)
         self._skills_btn.set_child(skb)
-        self._skills_btn.connect("clicked", lambda _b: self._skills_mgr.open())
-        self._header.pack_end(self._skills_btn)
+        self._skills_btn.connect("clicked", lambda _b: (self._controls_popover.popdown(), self._skills_mgr.open()))
+        ctl_box.append(self._skills_btn)
 
         self._select_chat_btn = Gtk.Button()
         self._select_chat_btn.set_has_frame(False)
-        self._select_chat_btn.add_css_class("mini-action-btn")
+        self._select_chat_btn.add_css_class("popover-item")
         self._select_chat_btn.set_cursor_from_name("pointer")
         self._select_chat_btn.set_tooltip_text("Select & copy across the whole chat (Ctrl+Shift+A)")
-        sc_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
-        sc_box.append(SvgIcon("copy", size_px=12, color=COLORS.text_secondary))
-        sc_box.append(Gtk.Label(label="Select chat"))
+        sc_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        sc_box.append(SvgIcon("copy", size_px=13, color=COLORS.text_secondary))
+        sc_lbl = Gtk.Label(label="Select chat")
+        sc_lbl.set_hexpand(True)
+        sc_lbl.set_xalign(0.0)
+        sc_box.append(sc_lbl)
+        sc_k = Gtk.Label(label="Ctrl+Shift+A")
+        sc_k.add_css_class("research-tab-url")
+        sc_box.append(sc_k)
         self._select_chat_btn.set_child(sc_box)
-        self._select_chat_btn.connect("clicked", lambda _b: self.open_chat_selector())
-        self._header.pack_end(self._select_chat_btn)
+        self._select_chat_btn.connect("clicked", lambda _b: (self._controls_popover.popdown(), self.open_chat_selector()))
+        ctl_box.append(self._select_chat_btn)
 
         self._notify_btn = Gtk.Button()
         self._notify_btn.set_has_frame(False)
-        self._notify_btn.add_css_class("mini-action-btn")
+        self._notify_btn.add_css_class("popover-item")
         self._notify_btn.set_cursor_from_name("pointer")
         self._notify_btn.set_tooltip_text("Desktop notifications when AI finishes (On)")
-        nb_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
-        self._notify_icon = SvgIcon("bell", size_px=12, color=COLORS.accent_primary)
+        nb_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        self._notify_icon = SvgIcon("bell", size_px=13, color=COLORS.accent_primary)
         self._notify_lbl = Gtk.Label(label="Alerts")
+        self._notify_lbl.set_hexpand(True)
+        self._notify_lbl.set_xalign(0.0)
+        self._notify_state_pill = Gtk.Label(label="On")
+        self._notify_state_pill.add_css_class("new-chat-lock-tag")
         nb_box.append(self._notify_icon)
         nb_box.append(self._notify_lbl)
+        nb_box.append(self._notify_state_pill)
         self._notify_btn.set_child(nb_box)
         self._notify_btn.connect("clicked", lambda _b: self._toggle_notifications())
-        self._header.pack_end(self._notify_btn)
+        ctl_box.append(self._notify_btn)
+
+        self._controls_popover.set_child(ctl_box)
+        self._controls_menu_btn.set_popover(self._controls_popover)
+        self._header.pack_end(self._controls_menu_btn)
 
         toolbar_view.add_top_bar(self._header)
 
@@ -920,6 +1026,7 @@ class VimonaWindow(Adw.ApplicationWindow):
             on_stop=self._on_stop_clicked,
             on_batch_changed=self._on_composer_batch_changed,
             on_queue=self._on_user_queue,
+            on_skill_changed=self._on_composer_skill_changed,
         )
         composer_stack.append(self._composer)
         dock_row.append(composer_stack)
@@ -1736,14 +1843,7 @@ class VimonaWindow(Adw.ApplicationWindow):
         )
         self._composer.set_active_skill(chat.active_skill)
         self._composer.set_locked_mode(chat.active_skill if chat.mode_locked else None)
-        if hasattr(self, "_header_mode_pill"):
-            if chat.mode_locked and chat.active_skill in ("Make Images", "Make Video"):
-                self._header_mode_pill.set_text(
-                    "Images Only" if chat.active_skill == "Make Images" else "Video Chat"
-                )
-                self._header_mode_pill.set_visible(True)
-            else:
-                self._header_mode_pill.set_visible(False)
+        self._sync_header_mode_and_models(chat.active_skill, locked=chat.mode_locked)
         self._composer.set_busy(False)
         self._composer.set_aquarium_mode(not bool(chat.turns), animate=False)
 
@@ -2792,14 +2892,13 @@ class VimonaWindow(Adw.ApplicationWindow):
             chat.active_skill = mode
             chat.mode_locked = True
             self._composer.set_locked_mode(mode)
-            self._header_mode_pill.set_text("Images Only" if mode == "Make Images" else "Video Chat")
-            self._header_mode_pill.set_visible(True)
+            self._sync_header_mode_and_models(mode, locked=True)
             self.show_toast(f"Chat locked to {mode}")
         else:
             chat.active_skill = "Chat & Ideas"
             chat.mode_locked = False
             self._composer.set_locked_mode(None)
-            self._header_mode_pill.set_visible(False)
+            self._sync_header_mode_and_models("Chat & Ideas", locked=False)
         save_chats(self._chats)
         if hasattr(self, "_composer"):
             self._composer.focus_input()
@@ -2832,12 +2931,273 @@ class VimonaWindow(Adw.ApplicationWindow):
         self._notifications_enabled = not self._notifications_enabled
         if self._notifications_enabled:
             self._notify_icon.set_icon("bell", COLORS.accent_primary)
+            if hasattr(self, "_notify_state_pill"):
+                self._notify_state_pill.set_text("On")
             self._notify_btn.set_tooltip_text("Desktop notifications when AI finishes (On)")
             self.show_toast("Completion notifications On")
         else:
             self._notify_icon.set_icon("bell-off", COLORS.text_muted)
+            if hasattr(self, "_notify_state_pill"):
+                self._notify_state_pill.set_text("Off")
             self._notify_btn.set_tooltip_text("Desktop notifications when AI finishes (Off)")
             self.show_toast("Completion notifications Off")
+
+    @staticmethod
+    def _skill_to_model_category(skill: str) -> str:
+        low = (skill or "").lower()
+        if "video" in low:
+            return "video"
+        if "image" in low:
+            return "image"
+        return "text"
+
+    def _on_composer_skill_changed(self, skill: str) -> None:
+        chat = getattr(self, "_active_chat", None)
+        locked = bool(chat.mode_locked) if chat is not None else False
+        if chat is not None and not locked:
+            chat.active_skill = skill
+        self._sync_header_mode_and_models(skill, locked=locked)
+
+    def _sync_header_mode_and_models(self, skill: str, locked: bool = False) -> None:
+        if hasattr(self, "_header_mode_pill") and hasattr(self, "_header_mode_btn"):
+            low = (skill or "").lower()
+            for cls in ("mode-chat", "mode-images", "mode-video"):
+                self._header_mode_btn.remove_css_class(cls)
+            if "video" in low:
+                self._header_mode_pill.set_text("Video")
+                self._header_mode_btn.add_css_class("mode-video")
+            elif "image" in low:
+                self._header_mode_pill.set_text("Images")
+                self._header_mode_btn.add_css_class("mode-images")
+            elif "search" in low or "web" in low:
+                self._header_mode_pill.set_text("Web")
+                self._header_mode_btn.add_css_class("mode-chat")
+            else:
+                self._header_mode_pill.set_text("Chat")
+                self._header_mode_btn.add_css_class("mode-chat")
+        self._sync_hf_models_button_label(skill)
+
+    def _sync_hf_models_button_label(self, skill: str) -> None:
+        if not hasattr(self, "_hf_models_lbl"):
+            return
+        cat = self._skill_to_model_category(skill)
+        self._hf_model_tab = cat
+        sel_id = get_selected_model_id(cat, hw=self._hw_profile)
+        models = get_models_for_category(cat, hw=self._hw_profile)
+        active = next((m for m in models if m.id == sel_id), models[0] if models else None)
+        if active is not None:
+            self._hf_models_lbl.set_text(active.name)
+        else:
+            self._hf_models_lbl.set_text("Models")
+        if hasattr(self, "_hf_models_popover") and self._hf_models_popover.get_visible():
+            self._rebuild_hf_models_popover(cat)
+
+    def _build_header_mode_popover(self) -> Gtk.Popover:
+        pop = Gtk.Popover()
+        pop.set_has_arrow(False)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        box.set_size_request(210, -1)
+        box.set_margin_top(4)
+        box.set_margin_bottom(4)
+        box.set_margin_start(4)
+        box.set_margin_end(4)
+
+        for lbl_txt, desc_txt, mode_val in (
+            ("Chat", "Text, code, & web refs", None),
+            ("Images", "Pony / SDXL keyframe studio", "Make Images"),
+            ("Video", "Wan 2.1 / ComfyUI motion", "Make Video"),
+        ):
+            b = Gtk.Button()
+            b.set_has_frame(False)
+            b.add_css_class("popover-item")
+            b.set_cursor_from_name("pointer")
+            vb = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
+            t = Gtk.Label(label=lbl_txt)
+            t.set_xalign(0.0)
+            d = Gtk.Label(label=desc_txt)
+            d.add_css_class("session-row-meta")
+            d.set_xalign(0.0)
+            vb.append(t)
+            vb.append(d)
+            b.set_child(vb)
+            b.connect("clicked", lambda _btn, mv=mode_val, p=pop: (p.popdown(), self.select_new_chat_mode(mv)))
+            box.append(b)
+        pop.set_child(box)
+        return pop
+
+    def _on_hf_popover_shown(self, pop: Gtk.Popover, _pspec: object) -> None:
+        if pop.get_visible():
+            cur_skill = self._composer._active_skill if hasattr(self, "_composer") else "Chat & Ideas"
+            tab = self._skill_to_model_category(cur_skill)
+            self._hf_model_tab = tab
+            self._rebuild_hf_models_popover(tab)
+
+    def _rebuild_hf_models_popover(self, category: str) -> None:
+        self._hf_model_tab = category
+        root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        root.set_size_request(410, 420)
+        root.set_margin_top(6)
+        root.set_margin_bottom(6)
+        root.set_margin_start(6)
+        root.set_margin_end(6)
+
+        # Header + Hardware summary banner
+        top = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        htitle = Gtk.Label(label="Hugging Face Models")
+        htitle.add_css_class("new-chat-dialog-title")
+        htitle.set_xalign(0.0)
+        htitle.set_hexpand(True)
+        top.append(htitle)
+        root.append(top)
+
+        hw_lbl = Gtk.Label(label=f"Detected: {self._hw_profile.summary_label}")
+        hw_lbl.add_css_class("hf-hw-banner")
+        hw_lbl.set_xalign(0.0)
+        hw_lbl.set_ellipsize(Pango.EllipsizeMode.END)
+        root.append(hw_lbl)
+
+        # Mode category tabs (automatically lands on Video for Video Chat, Image for Images, Text for Chat)
+        tabs = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        for cat_key, cat_title in (("text", "Text Models"), ("image", "Image Models"), ("video", "Video Models")):
+            tb = Gtk.Button(label=cat_title)
+            tb.set_has_frame(False)
+            tb.add_css_class("quick-select-chip")
+            if cat_key == category:
+                tb.add_css_class("selected")
+            tb.set_cursor_from_name("pointer")
+            tb.connect("clicked", lambda _b, c=cat_key: self._rebuild_hf_models_popover(c))
+            tabs.append(tb)
+        root.append(tabs)
+
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroll.set_vexpand(True)
+        scroll.set_hexpand(True)
+
+        cards = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        selected_id = get_selected_model_id(category, hw=self._hw_profile)
+        models = get_models_for_category(category, hw=self._hw_profile)
+
+        for spec in models:
+            card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+            card.add_css_class("hf-model-card")
+            if spec.id == selected_id:
+                card.add_css_class("selected")
+
+            r1 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+            nm = Gtk.Label(label=spec.name)
+            nm.add_css_class("research-tab-title")
+            nm.set_xalign(0.0)
+            nm.set_hexpand(True)
+            r1.append(nm)
+
+            fit_tier, fit_txt = evaluate_model_fit(spec, self._hw_profile)
+            fit_badge = Gtk.Label(label=fit_txt)
+            fit_badge.add_css_class(
+                "hf-fit-best" if fit_tier == "best_fit" else ("hf-fit-fits" if fit_tier == "fits" else "hf-fit-heavy")
+            )
+            r1.append(fit_badge)
+            card.append(r1)
+
+            meta_lbl = Gtk.Label(label=f"{spec.hf_repo} · {spec.quant}")
+            meta_lbl.add_css_class("research-tab-url")
+            meta_lbl.set_ellipsize(Pango.EllipsizeMode.END)
+            meta_lbl.set_xalign(0.0)
+            card.append(meta_lbl)
+
+            desc_lbl = Gtk.Label(label=spec.summary)
+            desc_lbl.add_css_class("research-perm-note")
+            desc_lbl.set_wrap(True)
+            desc_lbl.set_xalign(0.0)
+            card.append(desc_lbl)
+
+            act_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            local_p = find_local_model_path(spec)
+            dl_state = self._hf_dl_progress.get(spec.id)
+
+            hf_stat = Gtk.Label(label="Installed ✓" if local_p else "Hugging Face Hub")
+            hf_stat.add_css_class("research-tab-url")
+            hf_stat.set_hexpand(True)
+            hf_stat.set_xalign(0.0)
+            act_row.append(hf_stat)
+
+            # Query lightweight live Hugging Face API stats asynchronously
+            def _fetch_stats(repo=spec.hf_repo, lbl=hf_stat, installed=bool(local_p)) -> None:
+                meta = fetch_hf_repo_meta(repo)
+                if meta:
+                    dl_k = meta["downloads"]
+                    dl_str = f"{dl_k // 1000}k dl" if dl_k >= 1000 else f"{dl_k} dl"
+                    txt = f"{'Installed ✓ · ' if installed else ''}HF ♥ {meta['likes']} · {dl_str}"
+                    GLib.idle_add(lambda l=lbl, t=txt: (l.set_text(t), False)[1])
+
+            threading.Thread(target=_fetch_stats, daemon=True).start()
+
+            if dl_state is not None:
+                frac, dl_msg = dl_state
+                pb = Gtk.ProgressBar()
+                pb.set_fraction(frac)
+                pb.set_text(dl_msg)
+                pb.set_show_text(True)
+                pb.set_hexpand(True)
+                card.append(pb)
+            elif local_p is not None:
+                is_cur = spec.id == selected_id
+                btn = Gtk.Button(label="Active ✓" if is_cur else "Use Model")
+                btn.set_has_frame(False)
+                btn.add_css_class("mini-action-btn")
+                btn.set_cursor_from_name("pointer")
+                btn.set_sensitive(not is_cur)
+                btn.connect("clicked", lambda _b, s=spec: self._select_hf_model(s))
+                act_row.append(btn)
+            else:
+                btn = Gtk.Button(label=f"Get ({spec.size_gb:.1f} GB)")
+                btn.set_has_frame(False)
+                btn.add_css_class("ref-render-btn")
+                btn.set_cursor_from_name("pointer")
+                btn.connect("clicked", lambda _b, s=spec: self._download_and_select_hf_model(s))
+                act_row.append(btn)
+
+            card.append(act_row)
+            cards.append(card)
+
+        scroll.set_child(cards)
+        root.append(scroll)
+        self._hf_models_popover.set_child(root)
+
+    def _select_hf_model(self, spec: HFModelSpec) -> None:
+        set_selected_model_id(spec.category, spec.id)
+        cur_skill = self._composer._active_skill if hasattr(self, "_composer") else "Chat & Ideas"
+        self._sync_hf_models_button_label(cur_skill)
+        self._rebuild_hf_models_popover(spec.category)
+        self.show_toast(f"Selected {spec.name} ({spec.quant})")
+
+    def _download_and_select_hf_model(self, spec: HFModelSpec) -> None:
+        if spec.id in self._hf_dl_progress:
+            return
+        self._hf_dl_progress[spec.id] = (0.0, "Connecting to Hugging Face…")
+        self._rebuild_hf_models_popover(spec.category)
+
+        def _worker() -> None:
+            try:
+                def _prog(frac: float, msg: str) -> None:
+                    self._hf_dl_progress[spec.id] = (frac, msg)
+                    GLib.idle_add(lambda: (self._rebuild_hf_models_popover(spec.category), False)[1])
+
+                download_hf_model(spec, on_progress=_prog, cancel_event=self._hf_dl_cancel)
+                self._hf_dl_progress.pop(spec.id, None)
+                GLib.idle_add(lambda: (self._select_hf_model(spec), False)[1])
+            except Exception as exc:
+                self._hf_dl_progress.pop(spec.id, None)
+                err_txt = str(exc)
+                GLib.idle_add(
+                    lambda: (
+                        self._rebuild_hf_models_popover(spec.category),
+                        self.show_toast(f"HF download failed: {err_txt[:80]}"),
+                        False,
+                    )[2]
+                )
+
+        threading.Thread(target=_worker, daemon=True, name=f"hf-dl-{spec.id}").start()
 
     def focus_chat_by_id(self, chat_id: str) -> None:
         found = next((c for c in self._chats if c.id == chat_id), None)
