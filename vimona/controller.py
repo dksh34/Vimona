@@ -29,7 +29,11 @@ from .models import (
 )
 from .search_worker import run_ephemeral_research
 from .ram_manager import find_unnecessary_processes, terminate_unnecessary_processes
-from .skills_loader import build_system_prompt, collect_skill_media_patches
+from .skills_loader import (
+    build_system_prompt,
+    collect_skill_media_patches,
+    engineer_message_context,
+)
 
 if TYPE_CHECKING:
     from .window import VimonaWindow
@@ -538,9 +542,7 @@ class VimonaController:
             clip_seconds=clip_seconds,
             user_prompt=user_prompt,
         )
-        msgs: list[dict[str, str]] = [{"role": "system", "content": sys_prompt}]
-        msgs.extend(history[-16:])
-        return msgs
+        return engineer_message_context(sys_prompt, history)
 
     def _handle_direct_research(
         self,

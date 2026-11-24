@@ -49,14 +49,19 @@ Instead of crushing shared RAM by holding multiple models live, Vimona swaps the
       <h3>🧠 93 KB SafeBlur ML Gate</h3>
       Pure NumPy dual text + vision logistic model (<code>vimona/safety_ml.py</code>) scores prompts and video/image frames offline in milliseconds—staying unblurred for normal photography and cinema.
     </td>
-  <tr>
     <td width="50%" valign="top">
       <h3>⚡ Overnight Queue & Thermal Eco</h3>
       Batch multi-prompt image/video jobs cleanly with Auto-Clean RAM sweeps, plus a toggleable <strong>Quiet / Eco Mode</strong> (<code>50%</code> CPU threads, <code>nice/ionice</code>, <code>5–10s</code> cooldowns).
     </td>
+  </tr>
+  <tr>
     <td width="50%" valign="top">
-      <h3>🧩 169+ Expert Domain Skills</h3>
-      Packs for <code>Engineering</code>, <code>Writing &amp; Reasoning</code>, <code>Image</code>, <code>Video</code>, <code>Lighting</code>, <code>Camera</code>, &amp; <code>Web Research</code>—indexed locally with top-3 per-turn routing so the LLM stays sharp without context bloat.
+      <h3>🧩 269 Expert Domain &amp; Prompt Skills</h3>
+      Covers <code>Prompt Engineering</code>, <code>Context Engineering</code>, <code>Engineering</code>, <code>Writing &amp; Reasoning</code>, <code>Image</code>, <code>Video</code>, <code>Lighting</code>, <code>Camera</code>, &amp; <code>Web Research</code> with cached top-3 per-turn routing.
+    </td>
+    <td width="50%" valign="top">
+      <h3>🗂️ Runtime Context Engineering</h3>
+      Budget-aware context assembly pins active <code>[Previous Visual Prompt Spec]</code> and <code>[Zero-Trace Web Research]</code> anchors while compacting old turns cleanly inside the <code>4096</code>-token window.
     </td>
   </tr>
 </table>

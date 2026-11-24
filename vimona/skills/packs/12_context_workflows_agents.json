@@ -1,0 +1,178 @@
+[
+  {
+    "id": "ce_plan_execute_verify",
+    "name": "Plan -> Execute -> Verify Context Separation",
+    "category": "Context Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["workflow pattern", "agent architecture", "plan execute", "verify step"],
+    "system_instructions": "Decouple Planning context (high-level invariants & file list) cleanly from Execution diffs and final Verification checks—requiring observed command output before declaring any step complete."
+  },
+  {
+    "id": "ce_constraint_checklist",
+    "name": "Pinned Hard-Constraint Checklist",
+    "category": "Context Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["checklist", "requirements list", "all constraints", "dont miss"],
+    "system_instructions": "Extract explicit user constraints at turn start into a short pinned checklist and audit the final output line-by-line against every requirement before returning."
+  },
+  {
+    "id": "ce_domain_glossary_injection",
+    "name": "Exact Repo Symbol & Flag Grounding",
+    "category": "Context Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["symbol names", "file paths", "exact flags", "codebase terms"],
+    "system_instructions": "Include verified file paths, exact class/function names, and measured CLI flags in working context so responses cite real symbols verbatim instead of hallucinating plausible names."
+  },
+  {
+    "id": "ce_stale_state_invalidation",
+    "name": "Post-Edit Cache & Test Invalidation",
+    "category": "Context Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["stale cache", "re-read file", "after edit", "invalidation"],
+    "system_instructions": "Treat any prior line numbers, file hashes, or test passes as invalidated immediately after editing a file; re-read affected ranges and re-run checks before summarizing."
+  },
+  {
+    "id": "ce_subtask_context_slicing",
+    "name": "Targeted Range Slicing for Code Context",
+    "category": "Context Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["read slice", "large file", "code context", "token savings"],
+    "system_instructions": "Locate exact definitions via search first and load focused 80–150 line context windows rather than dumping entire 2000-line files into active prompt memory."
+  },
+  {
+    "id": "ce_error_stack_distillation",
+    "name": "Traceback Root-Frame Extraction",
+    "category": "Context Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["stack trace", "traceback context", "long log", "exception chain"],
+    "system_instructions": "Keep the exception message, chained `Caused by` line, and top project-code frames cleanly while folding noisy framework internals out of limited context windows."
+  },
+  {
+    "id": "ce_schema_first_tool_use",
+    "name": "Schema-First Parameter Context",
+    "category": "Context Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["tool schema", "mcp tool", "api params", "schema check"],
+    "system_instructions": "Load the exact tool schema/signature immediately prior to assembling tool-call arguments so required keys, enums, and nested types stay 100% compliant."
+  },
+  {
+    "id": "ce_batch_playlist_continuity",
+    "name": "Playlist Queue Continuity Context",
+    "category": "Context Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["playlist queue", "overnight batch", "batch render", "auto clean"],
+    "system_instructions": "Give every queued job self-contained prompt + mode + seed metadata plus isolated between-job RAM sweeps (`0.0 GB` LLM) so jobs 1..N stay deterministic overnight."
+  },
+  {
+    "id": "ce_user_preference_memory",
+    "name": "Cross-Turn User Constraint Persistence",
+    "category": "Context Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["remember preference", "user style", "follow instructions"],
+    "system_instructions": "Preserve explicit user preferences (`uncensored`, `concise`, `DSLR quality`, `no false SafeBlur`, `Eco vs Turbo`) consistently across all subsequent turns in the session."
+  },
+  {
+    "id": "ce_retrieval_query_rewrite",
+    "name": "Conversational Query Expansion",
+    "category": "Context Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["query rewrite", "search query", "expand query", "pronoun resolve"],
+    "system_instructions": "Resolve pronouns (`that error`, `it`, `same scene`) into explicit self-contained search terms before invoking skill routing or `/dev/shm` Firefox web lookup."
+  },
+  {
+    "id": "ce_contradiction_surfacing",
+    "name": "Explicit Gap & Contradiction Reporting",
+    "category": "Context Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["impossible task", "missing tool", "blocker", "gap"],
+    "system_instructions": "Surface missing OS compilers, blocked hosts, or conflicting source facts plainly instead of silently papering over gaps in context."
+  },
+  {
+    "id": "ce_cold_start_onboarding",
+    "name": "Entrypoint-First Repo Context Mapping",
+    "category": "Context Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["understand repo", "codebase overview", "explore codebase", "onboarding"],
+    "system_instructions": "Map unknown codebases via directory layout -> entrypoints -> data flow edges -> tests, storing a compact code map instead of scanning every leaf file."
+  },
+  {
+    "id": "ce_token_dense_bullet_memory",
+    "name": "Dense Context Note Formatting",
+    "category": "Context Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["memory notes", "context summary", "condense context"],
+    "system_instructions": "Represent session memory as tight key-value lines (`Active file -> line range -> invariant`) for maximum factual recall per context token."
+  },
+  {
+    "id": "ce_grounded_fact_ledger",
+    "name": "Observed-Only Fact Ledger",
+    "category": "Context Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["factual accuracy", "no guessing", "verified facts", "grounding"],
+    "system_instructions": "Separate directly observed file lines and tool outputs cleanly from hypotheses; never state inferred numbers, timings, or paths as verified observations."
+  },
+  {
+    "id": "ce_zero_hallucination_guard",
+    "name": "Strict Unprinted Field Guard",
+    "category": "Context Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["never lie", "hallucinate", "exact output", "test result"],
+    "system_instructions": "Report only checks actually run after the last edit with exact case names/statuses; explicitly disclose any skipped assertions, mocked paths, or platform limits."
+  },
+  {
+    "id": "ce_adaptive_thinking_budget",
+    "name": "Complexity-Matched Reasoning Allocation",
+    "category": "Context Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["reasoning budget", "thinking tokens", "fast response", "latency vs depth"],
+    "system_instructions": "Keep reasoning ultra-terse for deterministic lookups and allocate deeper multi-step verification only when architectural tradeoffs or subtle bugs actually demand it."
+  },
+  {
+    "id": "ce_parallel_research_synthesis",
+    "name": "Deduplicated Multi-Source Synthesis",
+    "category": "Context Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["merge results", "aggregate", "multiple sources", "dedupe"],
+    "system_instructions": "Deduplicate overlapping snippets across multiple research hits cleanly by canonical fact and retain only unique corroborating citations."
+  },
+  {
+    "id": "ce_diff_aware_review_context",
+    "name": "Diff-Scoped Review Context Framing",
+    "category": "Context Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["code review", "pr review", "git diff", "review patch"],
+    "system_instructions": "Focus review context on changed hunks plus immediate callers/callees and modified invariants rather than re-auditing untouched modules."
+  },
+  {
+    "id": "ce_runtime_telemetry_grounding",
+    "name": "Unified RAM & Thermal State Context",
+    "category": "Context Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["memory telemetry", "16gb ram", "thermal cap", "oom prevention"],
+    "system_instructions": "Condition multi-step inference plans on live memory telemetry and Eco/Turbo caps cleanly so LLM and ComfyUI never contend simultaneously for unified RAM."
+  },
+  {
+    "id": "ce_skill_composition_avoid_clash",
+    "name": "Orthogonal Skill Conflict Arbitrage",
+    "category": "Context Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["multiple skills", "skill clash", "priority", "override order"],
+    "system_instructions": "When multiple active skills contribute patches, merge non-overlapping `comfyui_node_overrides` safely giving custom user skills highest precedence over built-in defaults."
+  },
+  {
+    "id": "ce_prompt_history_windowing",
+    "name": "Pinned-Head Sliding Window Framing",
+    "category": "Context Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["sliding window", "chat history limit", "pinned messages"],
+    "system_instructions": "Pin essential system protocols + latest visual spec at head, summarize pruned turns succinctly if overflowed, and keep latest conversation turns intact at tail."
+  },
+  {
+    "id": "ce_end_of_turn_verification",
+    "name": "Pre-Response Context Audit",
+    "category": "Context Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["final check", "audit response", "double check answer"],
+    "system_instructions": "Verify before final emission that every asked deliverable is satisfied, markdown links match actual paths, and no fabricated placeholder paths slipped in."
+  }
+]

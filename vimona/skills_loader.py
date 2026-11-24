@@ -21,6 +21,8 @@ SKILL_CATEGORIES: tuple[str, ...] = (
     "Web Research",
     "Engineering",
     "Writing & Reasoning",
+    "Prompt Engineering",
+    "Context Engineering",
 )
 
 _SKILLS_CACHE: dict[tuple[Any, ...], list[Any]] = {}
@@ -135,6 +137,10 @@ def _normalize_category(cat: str) -> str:
         return "Lighting"
     if "cam" in low or "lens" in low:
         return "Camera"
+    if any(k in low for k in ("context", "rag", "kv", "memory", "chunk", "agent")):
+        return "Context Engineering"
+    if any(k in low for k in ("prompt", "few shot", "schema", "template", "tag")):
+        return "Prompt Engineering"
     if any(k in low for k in ("eng", "code", "dev", "sys", "linux", "ops", "sec", "sql")):
         return "Engineering"
     if any(k in low for k in ("writ", "reason", "math", "edit", "story", "docs", "logic")):
@@ -408,8 +414,16 @@ def _score_skill_match(
                 score += 3.2
                 kw_hits += 1
 
-    if kw_hits > 0 and "chat" in mode_low and cat_low in ("engineering", "writing & reasoning", "web research"):
+    if kw_hits > 0 and "chat" in mode_low and cat_low in (
+        "engineering",
+        "writing & reasoning",
+        "web research",
+        "prompt engineering",
+        "context engineering",
+    ):
         score += 1.0
+    elif kw_hits > 0 and ("image" in mode_low or "video" in mode_low) and cat_low == "prompt engineering":
+        score += 0.8
 
     for tok in re.findall(r"[a-z0-9]{4,}", spec.name.lower()):
         if tok in toks or tok in prompt_low:
@@ -523,3 +537,95 @@ def build_system_prompt(
     if skill_blocks:
         return f"{DIRECTOR_PREAMBLE}\n\n---\n\n{skill_blocks}{runtime_hint}"
     return f"{DIRECTOR_PREAMBLE}{runtime_hint}"
+
+
+def engineer_message_context(
+    system_prompt: str,
+    history: list[dict[str, str]],
+    max_ctx_chars: int = 11000,
+    keep_recent: int = 8,
+) -> list[dict[str, str]]:
+    """Context-engineer LLM messages to fit `--ctx-size 4096` without losing pinned state.
+
+    - Keeps static `system_prompt` first for KV prefix stability.
+    - When conversation fits inside `max_ctx_chars`, passes up to the latest 16 turns verbatim.
+    - When longer history overflows `max_ctx_chars`:
+      1. Pins the latest `[Previous Visual Prompt Spec]` and `[Zero-Trace Web Research]`
+         reference messages cleanly so multi-turn edits stay grounded.
+      2. Compacts pruned middle turns into one dense `[Compacted Context Memory]` system note.
+      3. Preserves the newest turns right up to remaining character headroom.
+    """
+    sys_msg = {"role": "system", "content": system_prompt}
+    clean_hist = [
+        {"role": str(m.get("role") or "user"), "content": str(m.get("content") or "")}
+        for m in history
+        if str(m.get("content") or "").strip()
+    ]
+    recent_slice = clean_hist[-16:]
+    total_chars = len(system_prompt) + sum(len(m["content"]) for m in recent_slice)
+    if total_chars <= max_ctx_chars:
+        return [sys_msg, *recent_slice]
+
+    budget = max(1200, max_ctx_chars - len(system_prompt))
+    tail: list[dict[str, str]] = []
+    tail_chars = 0
+    for msg in reversed(clean_hist):
+        c = msg["content"]
+        if len(tail) >= keep_recent and tail_chars + len(c) > int(budget * 0.68):
+            break
+        if tail and tail_chars + len(c) > int(budget * 0.78):
+            break
+        # Clamp individual monstrous user/paste messages only if larger than 80% of budget
+        if not tail and len(c) > int(budget * 0.82):
+            c = c[: int(budget * 0.82)] + "\n...[truncated for context headroom]"
+        tail.append({"role": msg["role"], "content": c})
+        tail_chars += len(c)
+    tail.reverse()
+
+    tail_start_idx = max(0, len(clean_hist) - len(tail))
+    older = clean_hist[:tail_start_idx]
+    pinned: list[dict[str, str]] = []
+    pinned_chars = 0
+    latest_spec = next(
+        (m for m in reversed(older) if "[Previous Visual Prompt Spec]" in m["content"]),
+        None,
+    )
+    latest_web = next(
+        (m for m in reversed(older) if "[Zero-Trace Web Research]" in m["content"]),
+        None,
+    )
+    for anchor in (latest_web, latest_spec):
+        if anchor is None:
+            continue
+        snippet = anchor["content"]
+        if len(snippet) > 1400:
+            snippet = snippet[:1360] + "\n...[condensed anchor]"
+        if tail_chars + pinned_chars + len(snippet) + 256 <= budget:
+            pinned.append({"role": anchor["role"], "content": snippet})
+            pinned_chars += len(snippet)
+
+    summary_turns = [m for m in older if m not in (latest_web, latest_spec)]
+    compact_lines: list[str] = []
+    rem_budget = max(0, budget - tail_chars - pinned_chars)
+    if summary_turns and rem_budget >= 180:
+        per_line = 120
+        for m in summary_turns[-6:]:
+            one_line = " ".join(m["content"].split())
+            if len(one_line) > per_line:
+                one_line = one_line[: per_line - 3] + "..."
+            entry = f"- {m['role']}: {one_line}"
+            if sum(len(x) + 1 for x in compact_lines) + len(entry) + 48 > rem_budget:
+                break
+            compact_lines.append(entry)
+
+    out: list[dict[str, str]] = [sys_msg]
+    if compact_lines:
+        out.append(
+            {
+                "role": "system",
+                "content": "[Compacted Context Memory]\n" + "\n".join(compact_lines),
+            }
+        )
+    out.extend(pinned)
+    out.extend(tail)
+    return out

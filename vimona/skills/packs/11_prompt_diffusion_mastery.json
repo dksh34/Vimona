@@ -1,0 +1,178 @@
+[
+  {
+    "id": "pe_lighting_geometry_syntax",
+    "name": "Explicit Lighting Geometry Prompting",
+    "category": "Prompt Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["lighting prompt", "key light", "fill ratio", "direction light"],
+    "system_instructions": "Encode light direction + color temperature + softness explicitly (`45-degree warm amber key from right, soft cool sky fill on left, crisp hair rim`) instead of generic `good lighting`."
+  },
+  {
+    "id": "pe_material_shader_language",
+    "name": "Surface Micro-Roughness Prompting",
+    "category": "Prompt Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["texture prompt", "material", "matte", "glossy", "patina", "metal"],
+    "system_instructions": "Name physically descriptive finish pairings (`brushed anodized titanium, damp irregular cobbles, raw coarse linen, subtle patina brass`) to prevent plastic uniform surfaces."
+  },
+  {
+    "id": "pe_spatial_depth_cues",
+    "name": "Three-Plane Depth Prompt Architecture",
+    "category": "Prompt Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["depth prompt", "foreground background", "cinematic depth", "layers"],
+    "system_instructions": "Define Foreground anchor (`softly defocused raindrop leaves`), Midground subject (`sharp illuminated traveler`), and Background horizon (`mist-veiled valley peaks`) in spatial order."
+  },
+  {
+    "id": "pe_camera_axis_grammar",
+    "name": "Viewer-Relative Axis Precision",
+    "category": "Prompt Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["camera angle prompt", "elevation", "facing", "left right"],
+    "system_instructions": "Specify exact viewer elevation, lens focal length, and gaze direction (`eye-level 50mm lens, subject angled 3/4 left looking right past camera`) so subjects face intended targets."
+  },
+  {
+    "id": "pe_color_harmony_palettes",
+    "name": "Controlled Cinema Color Palettes",
+    "category": "Prompt Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["color palette", "muted tones", "pastel", "monochromatic color"],
+    "system_instructions": "Anchor scenes around 1 dominant mood hue (`deep slate charcoal`), 1 warm practical accent (`amber tungsten`), and restrained neutral midtones rather than clashing rainbow neon clutter."
+  },
+  {
+    "id": "pe_expression_micro_nuance",
+    "name": "Restrained Micro-Expression Prompting",
+    "category": "Prompt Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["facial expression", "natural emotion", "subtle smile", "serious face"],
+    "system_instructions": "Replace exaggerated melodrama tokens with subtle physical cues (`relaxed brow, thoughtful parted lips, calm steady gaze, faint crease around eyes`) for photographic humanity."
+  },
+  {
+    "id": "pe_temporal_motion_curves",
+    "name": "Temporal Velocity & Ease Prompting",
+    "category": "Prompt Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["motion speed", "ease in", "slow acceleration", "camera speed"],
+    "system_instructions": "State explicit motion tempo (`unhurried steady glide`, `gradual deceleration into stillness`, `gentle breeze sway`) so diffusion video stays coherent and free of erratic jitter."
+  },
+  {
+    "id": "pe_subject_isolation_tokens",
+    "name": "Single-Focus Subject Decoupling",
+    "category": "Prompt Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["concept bleed", "two characters", "attribute bleed", "wrong color"],
+    "system_instructions": "Keep subject descriptors grouped cleanly with spatial separation (`tall knight on left in weathered iron; smalllantern boy on right in ochre wool`) to minimize attribute bleeding."
+  },
+  {
+    "id": "pe_aspect_ratio_framing",
+    "name": "Frame Geometry & Crop Language",
+    "category": "Prompt Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["widescreen crop", "portrait crop", "wide shot", "16:9", "vertical frame"],
+    "system_instructions": "Match shot scale terms cleanly to aspect (`full-bleed horizontal widescreen vista, generous sky headroom` vs `medium close-up portrait framing shoulders upward`)."
+  },
+  {
+    "id": "pe_weather_physics_tokens",
+    "name": "Unified Atmospheric Weather Cues",
+    "category": "Prompt Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["weather prompt", "humidity", "windy", "misty", "snowstorm"],
+    "system_instructions": "Propagate weather into every detail: wind bends grass and hair in one coherent direction; rain wets shoulders, hair strands, and pavement reflections consistently."
+  },
+  {
+    "id": "pe_stylistic_blend_control",
+    "name": "Clean Realism vs Illustration Locking",
+    "category": "Prompt Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["style mix", "semi realistic", "photorealistic prompt", "anime style prompt"],
+    "system_instructions": "Never mix contradictory render mediums (`photorealistic raw dslr` alongside `flat 2d cel vector`) unless intentionally bridged; keep medium tokens coherent end-to-end."
+  },
+  {
+    "id": "pe_crowd_density_framing",
+    "name": "Clean Crowd Layering Syntax",
+    "category": "Prompt Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["crowd prompt", "busy street", "festival", "background people"],
+    "system_instructions": "Anchor sharp focus explicitly on one central subject while keeping surrounding passersby `softly blurred in natural motion across deeper background distance`."
+  },
+  {
+    "id": "pe_reflection_refraction_cues",
+    "name": "Optical Reflection & Glass Clarity",
+    "category": "Prompt Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["glass reflection", "water reflection", "refraction", "chrome"],
+    "system_instructions": "Specify exact mirror surfaces (`still dark alpine lake reflecting dawn ridges, rain-beaded café pane reflecting glowing warm interior`) for crisp optical plausibility."
+  },
+  {
+    "id": "pe_architectural_scale_refs",
+    "name": "Scale Anchor Prompt Technique",
+    "category": "Prompt Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["huge structure", "giant cliff", "scale", "towering building"],
+    "system_instructions": "Include recognizable human-scale cues (`tiny silhouetted hiker on granite ledge, miniature streetlamp pool, birds banking past spire`) so colossal environments read immediately."
+  },
+  {
+    "id": "pe_wardrobe_layering_syntax",
+    "name": "Structured Wardrobe Ordering",
+    "category": "Prompt Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["outfit prompt", "clothing", "jacket dress", "tailoring"],
+    "system_instructions": "Describe clothing inner-to-outer and top-to-bottom (`charcoal knit turtleneck beneath oversized wet slate trench coat, leather belt, worn boots`) so garments layer believably."
+  },
+  {
+    "id": "pe_vehicle_angle_consistency",
+    "name": "Automotive Perspective Grounding",
+    "category": "Prompt Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["car prompt", "side profile", "rear three quarter", "headlights"],
+    "system_instructions": "Pair clean perspective view (`front three-quarter low angle`) with crisp surface spec (`matte satin slate body, amber DRL blades, tire sidewall planted cleanly in contact shadow`)."
+  },
+  {
+    "id": "pe_botanical_taxonomy_detail",
+    "name": "Specific Flora & Terrain Naming",
+    "category": "Prompt Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["nature prompt", "trees", "forest scene", "flowers", "landscape prompt"],
+    "system_instructions": "Replace generic `nature/trees` with specific forms (`windswept Scots pine, wet moss-draped basalt boulders, frosty alpine tussock grass`) for rich organic realism."
+  },
+  {
+    "id": "pe_prop_interaction_verbs",
+    "name": "Grounded Prop Contact Physics",
+    "category": "Prompt Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["holding object", "prop", "sword grip", "cup", "umbrella handle"],
+    "system_instructions": "Describe exact hand-object contact (`left hand gripping wooden umbrella handle calmly at shoulder height, rainwater beading down translucent canopy`) cleanly."
+  },
+  {
+    "id": "pe_cinematic_cut_continuity",
+    "name": "Multi-Shot Sequence Prompt Harmony",
+    "category": "Prompt Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["storyboard prompt", "next shot", "wide then closeup", "shot list"],
+    "system_instructions": "Carry color palette, light key angle, costume, and weather descriptors consistently across consecutive prompt shots (`Shot 1 wide -> Shot 2 OTS -> Shot 3 tight CU`)."
+  },
+  {
+    "id": "pe_i2v_anchor_fidelity",
+    "name": "Image-to-Video Anchor Fidelity",
+    "category": "Prompt Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["image to video", "animate image", "keep keyframe", "vace anchor"],
+    "system_instructions": "When writing Wan VACE motion prompts anchored on a keyframe image, reinforce keyframe lighting and subject traits briefly while dedicating most tokens to clear, smooth motion vectors."
+  },
+  {
+    "id": "pe_prompt_ablation_debug",
+    "name": "Prompt Token Ablation Debugging",
+    "category": "Prompt Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["prompt not working", "ignored token", "debug prompt", "overbaked"],
+    "system_instructions": "Fix muddy or overbaked diffusion prompts by stripping redundant synonyms (`ultra 8k masterpiece hyperrealistic unreal engine`), lowering conflicting weights, and restoring clean concrete nouns."
+  },
+  {
+    "id": "pe_comfy_node_param_bridge",
+    "name": "Prompt-to-Sampler Parameter Pairing",
+    "category": "Prompt Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["cfg", "steps", "shift", "sampler prompt", "causvid params"],
+    "system_instructions": "Align ComfyUI Wan 2.1 + CausVid parameters with prompt dynamics: keep `cfg=1.1–1.5`, `steps=6`, `shift=5.5–6.0`, and clean `640×368 -> 720p` scaling for crisp artifact-free cinema."
+  }
+]
