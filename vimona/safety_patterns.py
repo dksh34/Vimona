@@ -7,7 +7,7 @@ import re
 EXPLICIT_TEXT_PATTERN = re.compile(
     r"\b("
     r"nsfw|nsfl|porn|pornography|pornographic|hentai|erotic|erotica|erotically|"
-    r"xxx|nude|nudes|nudity|naked|topless|bottomless|uncensored sex|explicit|"
+    r"xxx|nude|nudes|nudity|naked|topless|bottomless|uncensored sex|explicit sexual|explicit nsfw|"
     r"sex|sexual|sexually|intercourse|orgasm|orgasms|climax|masturbat\w*|"
     r"blowjob|handjob|footjob|rimjob|titjob|boobjob|cunnilingus|fellatio|deepthroat|"
     r"penis|cock|dick|phallus|vagina|pussy|clit|clitoris|vulva|labia|anus|anal|"
@@ -18,10 +18,9 @@ EXPLICIT_TEXT_PATTERN = re.compile(
     r"stripper|striptease|lap dance|escort|prostitut\w*|milf|gilf|incest|taboo sex|"
     r"horny|aroused|spread legs|cameltoe|upskirt|underboob|sideboob|"
     r"gore|gory|behead\w*|decapitat\w*|dismember\w*|eviscerat\w*|entrails|mutilat\w*|bloodbath|"
-    r"blood\w*|carnage|corpse\w*|gruesome|visceral|"
-    r"battle\w*|warfare|warzone|combat|gunfight|shootout|casualt\w*|"
-    r"wound|wounds|wounded|injur\w*|stab\w*|massacre|slaughter|tortur\w*|"
-    r"violent|violence|murder\w*|execut\w*|suicide|self[- ]?harm"
+    r"bloodshed|bloody|carnage|corpse\w*|gruesome|visceral|"
+    r"battle\w*|warfare|warzone|gunfight|shootout|casualt\w*|"
+    r"massacre|slaughter|tortur\w*|murder\w*|self[- ]?harm"
     r")\b",
     re.IGNORECASE,
 )

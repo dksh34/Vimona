@@ -2328,7 +2328,7 @@ class VimonaWindow(Adw.ApplicationWindow):
                 on_quote=self._on_quote_selection,
             )
             r_text = " ".join([turn.reasoning.summary] + list(turn.reasoning.bullets))
-            if is_explicit_text(r_text) or is_explicit_text(resolved_hint):
+            if is_explicit_text(r_text):
                 bb = SafeBlurBox(
                     acc,
                     explicit=True,
@@ -2366,7 +2366,7 @@ class VimonaWindow(Adw.ApplicationWindow):
             prose_txt = " ".join(
                 [b.text for b in turn.prose if b.text] + [it for b in turn.prose for it in b.items]
             )
-            if is_explicit_text(prose_txt) or is_explicit_text(resolved_hint):
+            if is_explicit_text(prose_txt):
                 bb = SafeBlurBox(
                     prose_w,
                     explicit=True,

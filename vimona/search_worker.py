@@ -204,16 +204,18 @@ def analyze_image_bytes_in_ram(
     skin = (
         (cy > 68.0)
         & (cr_r > cr_g)
-        & ((cr_r - cr_b) > 18.0)
-        & (ccb >= 85.0)
-        & (ccb <= 124.0)
-        & (ccr >= 136.0)
-        & (ccr <= 168.0)
+        & ((cr_r - cr_g) > 12.0)
+        & ((cr_r - cr_b) > 22.0)
+        & (ccb >= 98.0)
+        & (ccb <= 122.0)
+        & (ccr >= 138.0)
+        & (ccr <= 162.0)
     )
     skin_ratio = float(np.mean(skin)) if core.size else 0.0
+    skin_uniform = skin_ratio >= 0.72 and float(np.std(cy[skin])) < 55.0
 
     combined_txt = f"{alt_text} {page_title} {query}"
-    is_explicit = is_explicit_text(combined_txt) or (skin_ratio >= 0.52)
+    is_explicit = is_explicit_text(combined_txt) or skin_uniform
 
     style_tokens = ", ".join(
         p for p in [lighting_mood, ", ".join(palette_tags[:3]), _clean_text(alt_text, 90)] if p

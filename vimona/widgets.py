@@ -572,7 +572,7 @@ class ThinkingLiveCard(Gtk.Box):
         buf = self._trace_tv.get_buffer()
         buf.set_text(txt)
         if hasattr(self, "_trace_blur"):
-            self._trace_blur.set_explicit(self._explicit_hint or is_explicit_text(txt))
+            self._trace_blur.set_explicit(is_explicit_text(txt))
         self._trace_box.set_visible(True)
         adj = self._trace_scroll.get_vadjustment()
         GLib.idle_add(lambda: (adj.set_value(max(0.0, adj.get_upper() - adj.get_page_size())), False)[1])
@@ -1402,8 +1402,8 @@ class ResearchCard(Gtk.Box):
                 pic.set_size_request(132, 92)
                 pic.set_overflow(Gtk.Overflow.HIDDEN)
 
-                explicit = ref.explicit or is_explicit_text(f"{ref.title} {ref.alt_text} {data.query}")
-                bb = SafeBlurBox(pic, explicit=explicit, safe_blur_enabled=True, blur_radius=42.0)
+                explicit = ref.explicit or is_explicit_text(f"{ref.title} {ref.alt_text}")
+                bb = SafeBlurBox(pic, explicit=explicit, safe_blur_enabled=True, blur_radius=26.0)
                 tile.append(bb)
 
                 if on_open_reference is not None:
@@ -1416,17 +1416,18 @@ class ResearchCard(Gtk.Box):
                     )
                     tile.add_controller(r_click)
 
-                meta_lbl = Gtk.Label(label=ref.lighting_mood or ref.title)
+                cap_txt = ref.lighting_mood or ref.title
+                meta_lbl = Gtk.Label(label=cap_txt)
                 meta_lbl.add_css_class("research-tab-url")
                 meta_lbl.set_ellipsize(Pango.EllipsizeMode.END)
                 meta_lbl.set_xalign(0.0)
-                if explicit:
+                if is_explicit_text(cap_txt):
                     tile.append(
                         SafeBlurBox(
                             meta_lbl,
                             explicit=True,
                             safe_blur_enabled=True,
-                            blur_radius=26.0,
+                            blur_radius=16.0,
                             compact=True,
                         )
                     )
@@ -1457,7 +1458,7 @@ class ResearchCard(Gtk.Box):
             takeaway.set_wrap(True)
             takeaway.set_xalign(0.0)
             row.append(takeaway)
-            tab_exp = is_explicit_text(f"{tab.title} {tab.url} {tab.takeaway} {data.query}")
+            tab_exp = is_explicit_text(f"{tab.title} {tab.url} {tab.takeaway}")
             if tab_exp:
                 self.append(
                     SafeBlurBox(
@@ -1551,7 +1552,7 @@ class ReferencePickerCard(Gtk.Box):
                 if idx == self._selected_idx:
                     tile.add_css_class("selected")
 
-                is_exp = ref.explicit or is_explicit_text(f"{ref.title} {ref.alt_text} {query}")
+                is_exp = ref.explicit or is_explicit_text(f"{ref.title} {ref.alt_text}")
                 bb_ref: SafeBlurBox | None = None
                 tex = _texture_from_ram_b64(ref.image_bytes_b64)
                 if tex is not None:
@@ -1559,7 +1560,7 @@ class ReferencePickerCard(Gtk.Box):
                     pic.set_content_fit(Gtk.ContentFit.COVER)
                     pic.set_size_request(-1, 132)
                     pic.set_overflow(Gtk.Overflow.HIDDEN)
-                    bb = SafeBlurBox(pic, explicit=is_exp, safe_blur_enabled=True, blur_radius=44.0)
+                    bb = SafeBlurBox(pic, explicit=is_exp, safe_blur_enabled=True, blur_radius=26.0)
                     bb_ref = bb
                     if on_open_reference is not None:
                         img_ov = Gtk.Overlay()
@@ -1584,17 +1585,18 @@ class ReferencePickerCard(Gtk.Box):
                     else:
                         tile.append(bb)
 
-                t_lbl = Gtk.Label(label=ref.title or f"Reference {idx + 1}")
+                t_title = ref.title or f"Reference {idx + 1}"
+                t_lbl = Gtk.Label(label=t_title)
                 t_lbl.add_css_class("research-tab-title")
                 t_lbl.set_ellipsize(Pango.EllipsizeMode.END)
                 t_lbl.set_xalign(0.0)
-                if is_exp:
+                if is_explicit_text(t_title):
                     tile.append(
                         SafeBlurBox(
                             t_lbl,
                             explicit=True,
                             safe_blur_enabled=True,
-                            blur_radius=26.0,
+                            blur_radius=16.0,
                             compact=True,
                         )
                     )
@@ -2257,28 +2259,6 @@ class VideoPlayerCard(Gtk.Box):
         self._center_play_btn.set_visible(False)
         expand_btn.set_visible(False)
 
-        def _apply_decoder(dec: VideoFrameDecoder) -> bool:
-            self._decoder = dec
-            if dec.is_ready:
-                self._total_frames = dec.frame_count
-            self._video_blur_box.set_explicit(
-                is_explicit_media(clip.video_path, self._prompt_hint, clip.title)
-            )
-            self._media_gate.set_content_widget(self._video_blur_box)
-            self._update_timecode()
-            self._scrubber.queue_draw()
-            return False
-
-        if min_placeholder_ms > 0:
-            def _bg_decode() -> None:
-                dec = VideoFrameDecoder(clip.video_path)
-                GLib.idle_add(_apply_decoder, dec)
-
-            threading.Thread(target=_bg_decode, daemon=True, name="vimona-vid-load").start()
-        else:
-            dec = VideoFrameDecoder(clip.video_path)
-            _apply_decoder(dec)
-
         ctrl = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         ctrl.add_css_class("video-controls-bar")
 
@@ -2358,6 +2338,28 @@ class VideoPlayerCard(Gtk.Box):
         self.append(ctrl)
         self._update_timecode()
         self.connect("unrealize", self._on_unrealize)
+
+        def _apply_decoder(dec: VideoFrameDecoder) -> bool:
+            self._decoder = dec
+            if dec.is_ready:
+                self._total_frames = dec.frame_count
+            self._video_blur_box.set_explicit(
+                is_explicit_media(clip.video_path, self._prompt_hint, clip.title)
+            )
+            self._media_gate.set_content_widget(self._video_blur_box)
+            self._update_timecode()
+            self._scrubber.queue_draw()
+            return False
+
+        if min_placeholder_ms > 0:
+            def _bg_decode() -> None:
+                dec = VideoFrameDecoder(clip.video_path)
+                GLib.idle_add(_apply_decoder, dec)
+
+            threading.Thread(target=_bg_decode, daemon=True, name="vimona-vid-load").start()
+        else:
+            dec = VideoFrameDecoder(clip.video_path)
+            _apply_decoder(dec)
 
     def set_safe_blur_enabled(self, enabled: bool) -> None:
         self._safe_blur_enabled = enabled

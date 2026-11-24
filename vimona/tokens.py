@@ -1984,12 +1984,13 @@ button.ram-cut-btn:hover {{
 
 /* Safe-Blur Preview Overlay & Hover Control */
 .safe-blur-scrim {{
-    background-color: rgba(12, 13, 17, 0.78);
+    background-color: rgba(20, 22, 28, 0.24);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 10px;
 }}
 
 .safe-blur-scrim-compact {{
-    background-color: rgba(13, 14, 19, 0.84);
+    background-color: rgba(20, 22, 28, 0.28);
     border-radius: 6px;
 }}
 

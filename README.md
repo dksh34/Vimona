@@ -4,7 +4,7 @@
 
 # Vimona
 
-**Local offline AI workspace for Linux — chat, zero-trace web reference pulling, Pony V6 XL images, and Wan 2.1 video orchestrated inside 16 GB unified RAM.**
+**Local offline AI workspace for Linux — chat, zero-trace `/dev/shm` web reference pulling, Pony V6 XL images, and Wan 2.1 video orchestrated inside 16 GB unified RAM.**
 
 <p>
   <img src="https://img.shields.io/badge/Fedora_43-Workstation-3c6eb4?style=flat-square&logo=fedora&logoColor=white" alt="Fedora 43" />
@@ -15,7 +15,7 @@
 </p>
 
 <p>
-  <a href="#preview">Preview</a> •
+  <a href="#video-walkthroughs">Video Walkthroughs</a> •
   <a href="#why-vimona">Why Vimona</a> •
   <a href="#architecture">Architecture</a> •
   <a href="#overnight-render-playlist">Render Playlist</a> •
@@ -29,19 +29,57 @@
 
 ---
 
-## Preview
+## Video Walkthroughs
+
+Every recording below was captured directly from the live GTK4 workspace (generation pauses cut cleanly so playback jumps straight from handoff to the finished local `Pony V6 XL` / `Wan 2.1` output).
 
 <table>
   <tr>
     <td width="50%" align="center">
-      <img src="assets/render-playlist-eco.png" alt="Render Playlist and Quiet/Eco Mode header toggle" />
+      <img src="assets/demos/01-studio-modes-thinking.webp" alt="Mode picker, live thinking trace, camera chips, and chat selector" />
       <br />
-      <sub><b>Overnight Render Playlist + Quiet / Eco Mode</b> — Ordered job cards, live RAM telemetry, auto-clean toggle, and thermal cooldown status.</sub>
+      <b>1. Studio Modes, Thinking Trace & Camera Chips</b>
+      <br />
+      <sub>Centered new-chat mode lock, streamed reasoning accordion, prompt tag breakdown, quick camera pills, and full conversation selector. (<a href="assets/demos/01-studio-modes-thinking.mp4">MP4</a>)</sub>
     </td>
     <td width="50%" align="center">
-      <img src="assets/skills-manager.png" alt="Modular Skills Manager modal in dark mode" />
+      <img src="assets/demos/02-ephemeral-research-lightbox.webp" alt="Ephemeral /dev/shm research, frosted Safe-Blur, and in-app Lightbox" />
       <br />
-      <sub><b>Modular Skills Manager</b> — Search, category filters, one-click switches, custom pack builder, and <code>.vimona-skill</code> import/export.</sub>
+      <b>2. <code>/dev/shm</code> Research, Safe-Blur & RAM Lightbox</b>
+      <br />
+      <sub>Slide-to-allow sandbox prompt, inline citations, frosted Gaussian Safe-Blur strictly on sensitive matches, and zoomed in-app Lightbox inspection. (<a href="assets/demos/02-ephemeral-research-lightbox.mp4">MP4</a>)</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="assets/demos/03-media-relay-gallery-safeblur.webp" alt="RAM relay handoff, 2x2 Pony keyframes, 24fps video player, and isolated Gallery" />
+      <br />
+      <b>3. 16 GB RAM Relay, Keyframes, Video & Gallery</b>
+      <br />
+      <sub>Gemma unloads to <code>0.0 GB</code>, air-gapped <code>Pony V6 XL</code> renders stream into the 2×2 grid alongside 24fps playback and the isolated in-app Gallery. (<a href="assets/demos/03-media-relay-gallery-safeblur.mp4">MP4</a>)</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="assets/demos/04-overnight-render-playlist.webp" alt="Overnight Render Playlist with reorder, cancel, memory hygiene, and Batch Complete notification" />
+      <br />
+      <b>4. Overnight Render Playlist & Hygiene</b>
+      <br />
+      <sub>Ordered image/video queue cards, up/down/cancel actions, <code>Auto-Clean RAM</code>, per-stage status pills, and a single privacy-safe <code>Batch Complete</code> alert. (<a href="assets/demos/04-overnight-render-playlist.mp4">MP4</a>)</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="assets/demos/05-skills-manager.webp" alt="Skills Manager filtering, search, custom pack creation, and enable toggle" />
+      <br />
+      <b>5. Modular <code>.vimona-skill</code> Manager</b>
+      <br />
+      <sub>Category filtering, live keyword search, custom pack builder with sampler overrides, import/export, and Top-3 enabled routing. (<a href="assets/demos/05-skills-manager.mp4">MP4</a>)</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="assets/demos/06-eco-turbo-ram-monitor.webp" alt="Quiet/Eco vs Turbo header pill, connected models strip, and RAM monitor popover" />
+      <br />
+      <b>6. Quiet / Eco vs. Turbo & RAM Monitor</b>
+      <br />
+      <sub>Live header profile toggle synced to footer telemetry, model readiness popover, and non-intrusive process RAM monitor. (<a href="assets/demos/06-eco-turbo-ram-monitor.mp4">MP4</a>)</sub>
     </td>
   </tr>
 </table>
@@ -50,29 +88,29 @@
 
 ## Why Vimona
 
-Running an uncensored text model, an SDXL checkpoint, and a video diffusion model at the same time on a 16 GB shared-memory laptop causes swap thrashing and OOM kills. Most local UIs leave every backend loaded and hope the OS survives.
+Running an uncensored LLM, an SDXL checkpoint, and a video model simultaneously on a 16 GB shared-memory laptop causes swap thrashing and OOM kills. Most local frontends leave every server running and let the kernel kill whichever process crosses the limit.
 
-Vimona treats memory like a baton pass:
+Vimona passes memory like a baton:
 
 <table>
   <tr>
     <td width="50%" valign="top">
       <h4>1. Zero-Overlap 16 GB RAM Relay</h4>
-      <p>Gemma (<code>llama-server</code> on <code>Vulkan0</code>) plans prompts and tool calls, then shuts down completely to <code>0.0 GB</code> before <code>sd-server</code> or ComfyUI boots. Once rendering finishes, the text engine reloads cleanly.</p>
+      <p>Gemma (<code>llama-server</code> on <code>Vulkan0</code>) plans prompts and tool calls, then shuts down completely to <code>0.0 GB</code> before <code>sd-server</code> or ComfyUI boots. Once rendering finishes, the text engine reloads automatically.</p>
     </td>
     <td width="50%" valign="top">
       <h4>2. Kernel Air-Gapped Inference</h4>
-      <p>Image and video backends run inside isolated Linux user + network namespaces (<code>unshare -r -n</code>) with zero WAN/LAN/DNS access, talking back to Vimona only through a private <code>AF_UNIX</code> socket in <code>/dev/shm</code>.</p>
+      <p>Image and video backends run inside isolated Linux user + network namespaces (<code>unshare -r -n</code>) with zero WAN/LAN/DNS access, communicating with Vimona solely across a private <code>AF_UNIX</code> socket bridge in <code>/dev/shm</code>.</p>
     </td>
   </tr>
   <tr>
     <td width="50%" valign="top">
       <h4>3. Volatile <code>/dev/shm</code> Web References</h4>
-      <p>When a turn needs real-world visual references, headless Firefox spins up inside RAM under <code>/dev/shm</code>, extracts results and candidate images in memory, and gets wiped with <code>scorched_earth_wipe()</code> before rendering starts.</p>
+      <p>When a prompt needs real-world visual references, headless Firefox runs directly inside RAM under <code>/dev/shm</code>, extracts context and images in memory, and gets destroyed via <code>scorched_earth_wipe()</code> before rendering starts.</p>
     </td>
     <td width="50%" valign="top">
-      <h4>4. Privacy & Safe-Blur by Default</h4>
-      <p>Sensitive prompts, live queries, thumbnails, and desktop notifications stay obfuscated until explicitly unlocked. Renders stay inside Vimona's isolated session gallery unless you save them manually.</p>
+      <h4>4. Targeted Frosted Safe-Blur</h4>
+      <p>Sensitive prompts, live queries, thumbnails, and desktop notification text get a translucent frosted blur overlay by default—only on content that actually matches sensitive rules—while finished renders stay inside Vimona's isolated gallery unless saved manually.</p>
     </td>
   </tr>
 </table>
@@ -81,7 +119,7 @@ Vimona treats memory like a baton pass:
 
 ## Architecture
 
-Every turn flows through [controller.py](vimona/controller.py) and hands memory exclusively to one engine at a time:
+Every turn routes through [controller.py](vimona/controller.py) and assigns system memory exclusively to one engine at a time:
 
 ```mermaid
 flowchart TD
@@ -95,7 +133,7 @@ flowchart TD
     NETNS -->|Images| PONY["sd-server · Pony V6 XL (DMD2 / Lightning)"]
     NETNS -->|Video| WAN["ComfyUI · Wan 2.1 VACE 1.3B + CausVid LoRA"]
     WAN --> FLOW["24fps ffmpeg Optical Flow + OpenCV Consistency Check"]
-    PONY --> GAL["Isolated Session Gallery (Safe-Blur Protected)"]
+    PONY --> GAL["Isolated Session Gallery (Frosted Safe-Blur)"]
     FLOW --> GAL
     GAL -->|End of batch| NOTIFY["Privacy-Safe Desktop Notification (Click to Raise)"]
 ```
@@ -116,23 +154,23 @@ flowchart TD
 
 ## Overnight Render Playlist
 
-Queue mixed image, video, and research prompts and walk away. Instead of flooding memory or spamming your desktop with 12 popups at 3 AM, Vimona executes the playlist deterministically:
+Queue mixed image, video, and research prompts cleanly without overloading memory or spamming notifications:
 
-1. **Ordered Job Cards** — Shows prompt snippet, Mode (`Image` / `Video`), target Model (`Pony V6 XL` / `Wan 2.1`), live status pill (`Queued` → `Air-Gapped Rendering` → `Consistency Check` → `Cooldown` → `Done`), and live progress bar + RAM telemetry.
-2. **Queue Controls** — Reorder queued cards (`↑` / `↓`), cancel individual jobs (`×`), toggle **`Auto-Clean RAM: On/Off`**, and switch **`Batch Alert: Single / Per job`**.
-3. **Between-Job Memory Hygiene** — Before each queued job starts, `prepare_between_job_hygiene()` forces the LLM offline (`0.0 GB`) and invokes the protected RAM sweeper (`ram_manager.py`) if memory pressure is high (never touching protected OS or active engine PIDs).
-4. **Automatic Video Verification** — Rendered video clips pass through `verify_video_temporal_consistency()` (OpenCV frame histogram correlation) before marking complete.
-5. **Single Privacy-Safe Batch Alert** — When `Batch Alert: Single` is active, per-job alerts are suppressed and a single native notification fires on completion (e.g., `Batch Complete · 5/5 renders saved to In-App Gallery · Total time: 4m 12s`), avoiding unblurred thumbnail leakage.
+1. **Ordered Job Cards** — Prompt snippet, Mode (`Image` / `Video` / `Research`), target Model (`Pony V6 XL` / `Wan 2.1`), live status pill (`Queued` → `Air-Gapped Rendering` → `Consistency Check` → `Cooldown` → `Done`), plus progress bar and RAM telemetry.
+2. **Queue Controls** — Reorder queued jobs (`↑` / `↓`), cancel individual items (`×`), toggle **`Auto-Clean RAM: On/Off`**, and switch **`Batch Alert: Single / Per job`**.
+3. **Between-Job Memory Hygiene** — Before each queued job runs, `prepare_between_job_hygiene()` ensures the Text engine is stopped (`0.0 GB`) and invokes the protected RAM sweeper (`ram_manager.py`) if memory pressure exceeds threshold.
+4. **Automatic Video Verification** — Rendered video clips pass through `verify_video_temporal_consistency()` (OpenCV frame histogram correlation) before marking done.
+5. **Single Privacy-Safe Batch Alert** — With `Batch Alert: Single`, per-job notifications stay muted during batch execution and one native `"Batch Complete"` notification fires when the playlist finishes (masking titles/thumbnails if any job was sensitive).
 
 ---
 
 ## Skills Manager & `.vimona-skill`
 
-Vimona routes system instructions and ComfyUI/sampler patches through modular skills instead of stuffing every prompt rule into Gemma's 4096-token context window.
+Instead of bloating Gemma's 4096-token context with every rule, Vimona loads modular skill packs dynamically:
 
-- **Top-K Dynamic Injection** — `select_active_skills()` indexes only `enabled: true` packs, scores triggers against your prompt and active chat mode, and injects at most the **top 2–3 matching skills**.
-- **Sampler & Override Patches** — Enabled matching skills can append to `negative_prompt` and patch ComfyUI / `sd-server` parameters (`cfg`, `sampler`, `flow_shift`, `booster`).
-- **Dark Mode UI** — Click **`Skills (N)`** in the header to search installed skills, filter by category (`Image`, `Video`, `Web Research`, `Lighting`, `Camera`), toggle packs on/off, create custom skills in-app, drag-and-drop or pick `.vimona-skill` files to import, and export packs cleanly for sharing.
+- **Top-K Dynamic Routing** — `select_active_skills()` indexes only `enabled: true` packs, ranks trigger keywords against your prompt and chat mode, and injects only the **top 2–3 matching skills**.
+- **Sampler & Override Patches** — Matching skills can append negative prompt patches and override `cfg`, `sampler`, `flow_shift`, or `booster` parameters on `sd-server` and ComfyUI Wan workflows.
+- **In-App Skills Manager** — Click **`Skills (N)`** in the header to search, filter by category (`Image`, `Video`, `Web Research`, `Lighting`, `Camera`), toggle packs on/off, author custom skills, drag-and-drop `.vimona-skill` files to import, or export packs to share.
 
 <details>
 <summary><b>Interactive <code>.vimona-skill</code> schema & sample pack (JSON or YAML)</b></summary>
@@ -158,7 +196,7 @@ Save this as `neon-rain.vimona-skill` and drop it onto the **Skills Manager** mo
 }
 ```
 
-User packs live in `~/.local/share/vimona/skills/` and toggle states persist in `~/.local/share/vimona/skills_state.json`.
+User packs persist in `~/.local/share/vimona/skills/` and toggle states persist in `~/.local/share/vimona/skills_state.json`.
 
 </details>
 
@@ -166,7 +204,7 @@ User packs live in `~/.local/share/vimona/skills/` and toggle states persist in 
 
 ## Quiet / Eco vs. Turbo Mode
 
-Use the header pill (**`Quiet`** leaf vs. **`Turbo`** bolt) to switch thermal behavior live without restarting the app. The footer telemetry strip reflects the active profile immediately.
+Switch thermal profiles live from the **`Quiet`** (leaf) / **`Turbo`** (bolt) pill in the header. Footer telemetry updates immediately.
 
 | Setting | Quiet / Eco Mode | Turbo Mode |
 | :--- | :--- | :--- |
@@ -180,19 +218,18 @@ Use the header pill (**`Quiet`** leaf vs. **`Turbo`** bolt) to switch thermal be
 
 ## Privacy, Storage & UX Details
 
-- **Centered New-Chat Mode Picker** — Opening a new chat (`Ctrl+N`) presents a centered overlay to lock the session to **Make Images**, **Make Video**, or unlocked **Chat & Web References**.
-- **Follow-Up Prompt Continuity** — Edits like `"change lighting to sunset"` or `"make it low angle"` merge prior established scene anchors with your update rather than drifting to a blank canvas.
-- **In-App RAM Reference Lightbox** — Clicking any fetched web image or rendered clip opens a full in-app inspector with zoom (`+`/`-`/`0`), panning, metadata drawer (`I`), and OpenCV frame-by-frame video scrubbing without writing browser history.
-- **Click-to-Raise Notifications** — Desktop notifications route back through DBus (`app.focus-chat`) / `--wait` action so clicking the toast unminimizes and focuses the exact chat.
+- **Centered New-Chat Mode Picker** — `Ctrl+N` opens a centered modal to lock the session to **Make Images**, **Make Video**, or unlocked **Chat & Web References**.
+- **Follow-Up Prompt Continuity** — Edits like `"change lighting to sunset"` or `"make it low angle"` merge prior established scene anchors with your update instead of drifting.
+- **Click-to-Raise Notifications** — Desktop notifications wire through DBus (`app.focus-chat`) / `--wait` so clicking the toast unminimizes and focuses that conversation.
 
 <details>
-<summary><b>Where Vimona stores files (and what it deliberately never saves)</b></summary>
+<summary><b>Where Vimona stores files (and what stays RAM-only)</b></summary>
 
 | Path | Contents | Behavior |
 | :--- | :--- | :--- |
-| `~/.local/share/vimona/chats.json` | Text conversation history & prompt metadata | Saved locally after turns; never includes bulk media |
+| `~/.local/share/vimona/chats.json` | Text conversation history & prompt metadata | Saved locally after turns; never writes bulk media |
 | `~/.local/share/vimona/skills/*.vimona-skill` | Custom & imported user skill packs | JSON packs managed via Skills Manager |
-| `~/.local/share/vimona/prefs.json` | Hardware profile (`eco` / `turbo`) | Applied live on toggle and restored at launch |
+| `~/.local/share/vimona/prefs.json` | Hardware profile (`eco` / `turbo`) | Applied live on toggle and restored on launch |
 | `/dev/shm/vimona_ephem_*` | Ephemeral Playwright Firefox profile | Wiped via `scorched_earth_wipe()` right after fetch |
 | `/tmp/vimona-session-media-*` | Session-only generated images & MP4 clips | Isolated from `~/Pictures` & `~/Downloads`; cleaned on exit |
 
@@ -208,18 +245,15 @@ Use the header pill (**`Quiet`** leaf vs. **`Turbo`** bolt) to switch thermal be
 ./launch-vimona.sh
 ```
 
-Or launch directly with Python:
+Or run via Python directly:
 
 ```bash
 python3 run_vimona.py
 ```
 
-Desktop menu integration is provided by `dev.vimona.Desktop.desktop` (`~/.local/bin/vimona` invokes `launch-vimona.sh`).
-
-### Verify Build & Modules
+### Verify Modules
 
 ```bash
-# Syntax check across all modules
 python3 -m py_compile vimona/*.py run_vimona.py
 ```
 
@@ -242,7 +276,7 @@ vimona/
 ├── perf_profile.py        # Quiet/Eco vs Turbo thread caps, nice/ionice wrapping, cooldown timer
 ├── ram_manager.py         # Protected PID tracking + non-intrusive InstalledAppsRamWindow sweeper
 ├── safety_patterns.py     # Sensitive keyword pattern detector for prompts, queries, and alerts
-├── safety_blur.py         # GPU Safe-Blur wrapper with click-to-reveal lock and slide-to-commit confirm
+├── safety_blur.py         # GPU frosted Safe-Blur wrapper with click-to-reveal and slide-to-commit confirm
 ├── media.py               # OpenCV VideoFrameDecoder + MP4 probe helpers
 ├── storage.py             # chats.json persistence + ephemeral session staging & exit cleanup
 ├── models.py              # Dataclasses (ChatSession, RenderPlaylistJob, PromptSpec, VideoClipSpec, etc.)

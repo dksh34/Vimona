@@ -73,13 +73,17 @@ def _check_media_pixels_explicit(file_path_str: str) -> bool:
     skin = (
         (y > 68.0)
         & (r > g)
-        & ((r - b) > 18.0)
-        & (cb >= 85.0)
-        & (cb <= 124.0)
-        & (cr >= 136.0)
-        & (cr <= 168.0)
+        & ((r - g) > 12.0)
+        & ((r - b) > 22.0)
+        & (cb >= 98.0)
+        & (cb <= 122.0)
+        & (cr >= 138.0)
+        & (cr <= 162.0)
     )
-    return float(np.mean(skin)) >= 0.52
+    skin_ratio = float(np.mean(skin))
+    if skin_ratio < 0.72:
+        return False
+    return float(np.std(y[skin])) < 55.0
 
 
 def is_explicit_media(file_path: str | None, prompt_hint: str = "", title: str = "") -> bool:
@@ -113,14 +117,17 @@ class _BlurLayer(Gtk.Box):
 
     def do_snapshot(self, snapshot: Gtk.Snapshot) -> None:
         if self._blurred and self._radius > 0.5:
-            min_r = 24.0 if self._compact else 44.0
-            eff_r = max(min_r, self._radius * 2.15)
-            inner_opacity = 0.22 if self._compact else 0.26
-            snapshot.push_blur(eff_r * 0.65)
+            # Frosted Gaussian blur: keeps underlying colors/shapes visible as real blur
+            # instead of collapsing dark backgrounds into a solid black box.
+            eff_r = (
+                min(13.0, max(8.0, self._radius * 0.34))
+                if self._compact
+                else min(24.0, max(14.0, self._radius * 0.52))
+            )
+            inner_opacity = 0.85 if self._compact else 0.88
             snapshot.push_blur(eff_r)
             snapshot.push_opacity(inner_opacity)
             self.snapshot_child(self._child, snapshot)
-            snapshot.pop()
             snapshot.pop()
             snapshot.pop()
         else:
