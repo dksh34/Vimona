@@ -761,6 +761,7 @@ class VimonaWindow(Adw.ApplicationWindow):
         hf_btn_row.append(chev_hf)
         self._hf_models_btn.set_child(hf_btn_row)
         self._hf_models_popover = Gtk.Popover()
+        self._hf_models_popover.add_css_class("hf-popover")
         self._hf_models_popover.set_has_arrow(False)
         self._hf_models_popover.connect("notify::visible", self._on_hf_popover_shown)
         self._hf_models_btn.set_popover(self._hf_models_popover)
@@ -3035,12 +3036,8 @@ class VimonaWindow(Adw.ApplicationWindow):
 
     def _rebuild_hf_models_popover(self, category: str) -> None:
         self._hf_model_tab = category
-        root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        root.set_size_request(410, 420)
-        root.set_margin_top(6)
-        root.set_margin_bottom(6)
-        root.set_margin_start(6)
-        root.set_margin_end(6)
+        root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        root.set_size_request(430, 440)
 
         # Header + Hardware summary banner
         top = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
@@ -3051,11 +3048,17 @@ class VimonaWindow(Adw.ApplicationWindow):
         top.append(htitle)
         root.append(top)
 
+        hw_banner = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=7)
+        hw_banner.add_css_class("hf-hw-banner")
+        hw_dot = Gtk.Label(label="●")
+        hw_dot.add_css_class("hf-hw-dot")
+        hw_banner.append(hw_dot)
         hw_lbl = Gtk.Label(label=f"Hardware Tuned · {self._hw_profile.summary_label}")
-        hw_lbl.add_css_class("hf-hw-banner")
         hw_lbl.set_xalign(0.0)
         hw_lbl.set_ellipsize(Pango.EllipsizeMode.END)
-        root.append(hw_lbl)
+        hw_lbl.set_hexpand(True)
+        hw_banner.append(hw_lbl)
+        root.append(hw_banner)
 
         # Mode category tabs (automatically lands on Video for Video Chat, Image for Images, Text for Chat)
         tabs = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
@@ -3075,7 +3078,8 @@ class VimonaWindow(Adw.ApplicationWindow):
         scroll.set_vexpand(True)
         scroll.set_hexpand(True)
 
-        cards = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        cards = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        cards.set_margin_end(6)
         selected_id = get_selected_model_id(category, hw=self._hw_profile)
         models = get_models_for_category(category, hw=self._hw_profile)
         total_in_cat = sum(1 for m in CURATED_HF_MODELS if m.category == category.lower())
@@ -3085,10 +3089,10 @@ class VimonaWindow(Adw.ApplicationWindow):
             flt_lbl = Gtk.Label(
                 label=(
                     f"Showing {len(models)} tuned {category} model{'s' if len(models) != 1 else ''} "
-                    f"for your hardware ({hidden_cnt} heavy/unsuited hidden)"
+                    f"({hidden_cnt} heavy/unsuited hidden)"
                 )
             )
-            flt_lbl.add_css_class("research-perm-note")
+            flt_lbl.add_css_class("hf-filter-note")
             flt_lbl.set_xalign(0.0)
             flt_lbl.set_ellipsize(Pango.EllipsizeMode.END)
             cards.append(flt_lbl)
@@ -3097,12 +3101,12 @@ class VimonaWindow(Adw.ApplicationWindow):
             empty_card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
             empty_card.add_css_class("hf-model-card")
             et = Gtk.Label(label=f"No {category} models match this hardware cleanly")
-            et.add_css_class("research-tab-title")
+            et.add_css_class("hf-model-title")
             et.set_xalign(0.0)
             ed = Gtk.Label(
                 label=f"Detected {self._hw_profile.summary_label} lacks sufficient GPU/RAM headroom for {category} weights."
             )
-            ed.add_css_class("research-perm-note")
+            ed.add_css_class("hf-desc-lbl")
             ed.set_wrap(True)
             ed.set_xalign(0.0)
             empty_card.append(et)
@@ -3110,14 +3114,14 @@ class VimonaWindow(Adw.ApplicationWindow):
             cards.append(empty_card)
 
         for spec in models:
-            card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+            card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
             card.add_css_class("hf-model-card")
             if spec.id == selected_id:
                 card.add_css_class("selected")
 
-            r1 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+            r1 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
             nm = Gtk.Label(label=spec.name)
-            nm.add_css_class("research-tab-title")
+            nm.add_css_class("hf-model-title")
             nm.set_xalign(0.0)
             nm.set_hexpand(True)
             r1.append(nm)
@@ -3131,25 +3135,27 @@ class VimonaWindow(Adw.ApplicationWindow):
             card.append(r1)
 
             meta_lbl = Gtk.Label(label=f"{spec.hf_repo} · {spec.quant}")
-            meta_lbl.add_css_class("research-tab-url")
+            meta_lbl.add_css_class("hf-repo-meta")
             meta_lbl.set_ellipsize(Pango.EllipsizeMode.END)
             meta_lbl.set_xalign(0.0)
             card.append(meta_lbl)
 
             desc_lbl = Gtk.Label(label=spec.summary)
-            desc_lbl.add_css_class("research-perm-note")
+            desc_lbl.add_css_class("hf-desc-lbl")
             desc_lbl.set_wrap(True)
             desc_lbl.set_xalign(0.0)
             card.append(desc_lbl)
 
             act_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            act_row.set_margin_top(2)
             local_p = find_local_model_path(spec)
             dl_state = self._hf_dl_progress.get(spec.id)
 
             hf_stat = Gtk.Label(label="Installed ✓" if local_p else "Hugging Face Hub")
-            hf_stat.add_css_class("research-tab-url")
+            hf_stat.add_css_class("hf-stat-lbl")
             hf_stat.set_hexpand(True)
             hf_stat.set_xalign(0.0)
+            hf_stat.set_valign(Gtk.Align.CENTER)
             act_row.append(hf_stat)
 
             # Query lightweight live Hugging Face API stats asynchronously
@@ -3157,8 +3163,8 @@ class VimonaWindow(Adw.ApplicationWindow):
                 meta = fetch_hf_repo_meta(repo)
                 if meta:
                     dl_k = meta["downloads"]
-                    dl_str = f"{dl_k // 1000}k dl" if dl_k >= 1000 else f"{dl_k} dl"
-                    txt = f"{'Installed ✓ · ' if installed else ''}HF ♥ {meta['likes']} · {dl_str}"
+                    dl_str = f"{dl_k // 1000}k downloads" if dl_k >= 1000 else f"{dl_k} downloads"
+                    txt = f"{'Installed · ' if installed else ''}♥ {meta['likes']} · {dl_str}"
                     GLib.idle_add(lambda l=lbl, t=txt: (l.set_text(t) if l.get_parent() is not None else None, False)[1])
 
             threading.Thread(target=_fetch_stats, daemon=True).start()
@@ -3173,18 +3179,25 @@ class VimonaWindow(Adw.ApplicationWindow):
                 card.append(pb)
             elif local_p is not None:
                 is_cur = spec.id == selected_id
-                btn = Gtk.Button(label="Active ✓" if is_cur else "Use Model")
-                btn.set_has_frame(False)
-                btn.add_css_class("mini-action-btn")
-                btn.set_cursor_from_name("pointer")
-                btn.set_sensitive(not is_cur)
-                btn.connect("clicked", lambda _b, s=spec: self._select_hf_model(s))
-                act_row.append(btn)
+                if is_cur:
+                    pill = Gtk.Label(label="Active ✓")
+                    pill.add_css_class("hf-active-pill")
+                    pill.set_valign(Gtk.Align.CENTER)
+                    act_row.append(pill)
+                else:
+                    btn = Gtk.Button(label="Use Model")
+                    btn.set_has_frame(False)
+                    btn.add_css_class("hf-use-btn")
+                    btn.set_cursor_from_name("pointer")
+                    btn.set_valign(Gtk.Align.CENTER)
+                    btn.connect("clicked", lambda _b, s=spec: self._select_hf_model(s))
+                    act_row.append(btn)
             else:
-                btn = Gtk.Button(label=f"Get ({spec.size_gb:.1f} GB)")
+                btn = Gtk.Button(label=f"Get · {spec.size_gb:.1f} GB")
                 btn.set_has_frame(False)
-                btn.add_css_class("ref-render-btn")
+                btn.add_css_class("hf-get-btn")
                 btn.set_cursor_from_name("pointer")
+                btn.set_valign(Gtk.Align.CENTER)
                 btn.connect("clicked", lambda _b, s=spec: self._download_and_select_hf_model(s))
                 act_row.append(btn)
 

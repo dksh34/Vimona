@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 from typing import Callable
 
 import gi
@@ -91,7 +92,7 @@ class SkillsManagerOverlay(Gtk.Revealer):
 
         self._import_btn = Gtk.Button(label="Import .vimona-skill")
         self._import_btn.set_has_frame(False)
-        self._import_btn.add_css_class("mini-action-btn")
+        self._import_btn.add_css_class("modal-pill-btn")
         self._import_btn.set_cursor_from_name("pointer")
         self._import_btn.set_tooltip_text("Import or drag-and-drop a .vimona-skill JSON/YAML file")
         self._import_btn.connect("clicked", lambda _b: self._prompt_import())
@@ -105,8 +106,10 @@ class SkillsManagerOverlay(Gtk.Revealer):
 
         close_b = Gtk.Button(label="×")
         close_b.set_has_frame(False)
-        close_b.add_css_class("mini-action-btn")
+        close_b.add_css_class("modal-close-btn")
+        close_b.set_valign(Gtk.Align.CENTER)
         close_b.set_cursor_from_name("pointer")
+        close_b.set_tooltip_text("Close (Esc)")
         close_b.connect("clicked", lambda _b: self.close())
         top.append(close_b)
         self._card.append(top)
@@ -130,16 +133,20 @@ class SkillsManagerOverlay(Gtk.Revealer):
 
         bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self._search_entry = Gtk.SearchEntry()
+        self._search_entry.add_css_class("vimona-search-entry")
         self._search_entry.set_placeholder_text("Search skills, triggers, authors…")
         self._search_entry.set_hexpand(True)
         self._search_entry.connect("search-changed", self._on_search_changed)
         bar.append(self._search_entry)
         page.append(bar)
 
-        cats_scroll = Gtk.ScrolledWindow()
-        cats_scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.NEVER)
-        cats_scroll.set_hexpand(True)
-        cats_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        cats_flow = Gtk.FlowBox()
+        cats_flow.set_selection_mode(Gtk.SelectionMode.NONE)
+        cats_flow.set_homogeneous(False)
+        cats_flow.set_column_spacing(6)
+        cats_flow.set_row_spacing(6)
+        cats_flow.set_min_children_per_line(4)
+        cats_flow.set_max_children_per_line(12)
         for cat in ("All", *SKILL_CATEGORIES):
             b = Gtk.Button(label=cat)
             b.set_has_frame(False)
@@ -149,9 +156,8 @@ class SkillsManagerOverlay(Gtk.Revealer):
             b.set_cursor_from_name("pointer")
             b.connect("clicked", lambda _btn, c=cat: self._set_category_filter(c))
             self._cat_btns[cat] = b
-            cats_row.append(b)
-        cats_scroll.set_child(cats_row)
-        page.append(cats_scroll)
+            cats_flow.append(b)
+        page.append(cats_flow)
 
         hint = Gtk.Label(
             label="Domain skill library indexed locally; only the top 2–3 matching skills are injected per turn for zero context bloat."
@@ -167,6 +173,7 @@ class SkillsManagerOverlay(Gtk.Revealer):
         scroll.set_hexpand(True)
 
         self._list_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        self._list_box.set_margin_end(6)
         scroll.set_child(self._list_box)
         page.append(scroll)
         return page
@@ -335,27 +342,36 @@ class SkillsManagerOverlay(Gtk.Revealer):
 
     def _build_skill_card(self, spec: SkillSpec) -> Gtk.Box:
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        card.add_css_class("research-tab-row")
+        card.add_css_class("skill-card")
 
         head = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         title = Gtk.Label(label=spec.name)
-        title.add_css_class("research-tab-title")
+        title.add_css_class("hf-model-title")
         title.set_xalign(0.0)
         head.append(title)
 
         cat_pill = Gtk.Label(label=spec.category)
-        cat_pill.add_css_class("ref-palette-pill")
+        cat_pill.add_css_class("skill-cat-pill")
+        cat_low = spec.category.lower()
+        if "image" in cat_low:
+            cat_pill.add_css_class("cat-image")
+        elif "video" in cat_low:
+            cat_pill.add_css_class("cat-video")
+        elif "camera" in cat_low or "lighting" in cat_low:
+            cat_pill.add_css_class("cat-camera")
+        elif "web" in cat_low:
+            cat_pill.add_css_class("cat-web")
         head.append(cat_pill)
 
         meta = Gtk.Label(label=f"v{spec.version} · {spec.author}")
-        meta.add_css_class("research-tab-url")
+        meta.add_css_class("skill-meta-lbl")
         meta.set_hexpand(True)
         meta.set_xalign(0.0)
         head.append(meta)
 
         exp_btn = Gtk.Button(label="Export")
         exp_btn.set_has_frame(False)
-        exp_btn.add_css_class("mini-action-btn")
+        exp_btn.add_css_class("skill-export-btn")
         exp_btn.set_cursor_from_name("pointer")
         exp_btn.set_tooltip_text("Export as shareable .vimona-skill file")
         exp_btn.connect("clicked", lambda _b, sp=spec: self._prompt_export(sp))
@@ -364,12 +380,13 @@ class SkillsManagerOverlay(Gtk.Revealer):
         if not spec.builtin:
             del_btn = Gtk.Button(label="Delete")
             del_btn.set_has_frame(False)
-            del_btn.add_css_class("mini-action-btn")
+            del_btn.add_css_class("skill-export-btn")
             del_btn.set_cursor_from_name("pointer")
             del_btn.connect("clicked", lambda _b, sp=spec: self._on_delete_skill(sp))
             head.append(del_btn)
 
         sw = Gtk.Switch()
+        sw.add_css_class("vimona-switch")
         sw.set_active(spec.enabled)
         sw.set_valign(Gtk.Align.CENTER)
         sw.connect(
@@ -380,17 +397,19 @@ class SkillsManagerOverlay(Gtk.Revealer):
         card.append(head)
 
         if spec.trigger_keywords:
-            trig = Gtk.Label(label="Triggers: " + ", ".join(spec.trigger_keywords[:8]))
-            trig.add_css_class("research-tab-url")
+            trig = Gtk.Label(label="Triggers · " + ", ".join(spec.trigger_keywords[:8]))
+            trig.add_css_class("skill-triggers-lbl")
             trig.set_ellipsize(Pango.EllipsizeMode.END)
             trig.set_xalign(0.0)
             card.append(trig)
 
-        preview_txt = " ".join(spec.system_instructions.splitlines())[:170].strip()
-        if len(spec.system_instructions) > 170:
+        clean_body = re.sub(r"(?:^|\s)#+\s*", " ", " ".join(spec.system_instructions.splitlines()))
+        clean_body = re.sub(r"\s{2,}", " ", clean_body).strip()
+        preview_txt = clean_body[:175].strip()
+        if len(clean_body) > 175:
             preview_txt += "…"
         desc = Gtk.Label(label=preview_txt)
-        desc.add_css_class("handoff-sub")
+        desc.add_css_class("skill-summary-lbl")
         desc.set_wrap(True)
         desc.set_xalign(0.0)
         card.append(desc)

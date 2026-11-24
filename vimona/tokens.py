@@ -100,13 +100,24 @@ def build_stylesheet() -> str:
 window,
 .vimona-window,
 .vimona-canvas,
-.gallery-view,
-scrolledwindow,
-viewport {{
+.gallery-view {{
     background-color: {c.bg_canvas};
     color: {c.text_primary};
     font-family: {t.ui_sans};
     font-size: 14px;
+}}
+
+scrolledwindow,
+viewport {{
+    background-color: transparent;
+    color: {c.text_primary};
+}}
+
+.vimona-canvas scrolledwindow,
+.vimona-canvas viewport,
+.gallery-view scrolledwindow,
+.gallery-view viewport {{
+    background-color: {c.bg_canvas};
 }}
 
 /* Clean HeaderBar */
@@ -869,17 +880,181 @@ textview.thinking-trace-tv text {{
 }}
 
 .new-chat-mode-dialog {{
-    background-color: #16181E;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 20px;
-    padding: 24px;
-    box-shadow: 0 28px 64px rgba(0, 0, 0, 0.78);
+    background-color: #17191F;
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-radius: 22px;
+    padding: 22px 24px;
+    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.85);
 }}
 
 .new-chat-dialog-title {{
     font-size: 17px;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    color: {c.text_primary};
+}}
+
+button.modal-pill-btn {{
+    background-color: rgba(255, 255, 255, 0.055);
+    background-image: none;
+    border: 1px solid {c.border_default};
+    border-radius: 999px;
+    padding: 0 14px;
+    min-height: 34px;
+    font-size: 12.5px;
+    font-weight: 550;
+    color: {c.text_primary};
+    box-shadow: none;
+    transition: background-color 140ms ease, border-color 140ms ease;
+}}
+
+button.modal-pill-btn:hover {{
+    background-color: rgba(255, 255, 255, 0.10);
+    border-color: {c.border_strong};
+}}
+
+button.modal-close-btn {{
+    background-color: rgba(255, 255, 255, 0.05);
+    background-image: none;
+    border: 1px solid {c.border_subtle};
+    border-radius: 999px;
+    min-width: 32px;
+    min-height: 32px;
+    padding: 0;
+    font-size: 15px;
+    font-weight: 500;
+    color: {c.text_secondary};
+    box-shadow: none;
+    transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+}}
+
+button.modal-close-btn:hover {{
+    background-color: rgba(255, 255, 255, 0.11);
+    border-color: {c.border_strong};
+    color: {c.text_primary};
+}}
+
+entry.vimona-search-entry,
+.new-chat-mode-dialog entry {{
+    background-color: rgba(255, 255, 255, 0.045);
+    background-image: none;
+    border: 1px solid {c.border_default};
+    border-radius: 12px;
+    min-height: 38px;
+    padding: 0 12px;
+    color: {c.text_primary};
+    font-size: 13px;
+    box-shadow: none;
+    transition: border-color 150ms ease, background-color 150ms ease;
+}}
+
+entry.vimona-search-entry:focus-within,
+.new-chat-mode-dialog entry:focus-within,
+entry.vimona-search-entry:focus,
+.new-chat-mode-dialog entry:focus {{
+    background-color: rgba(255, 255, 255, 0.065);
+    border-color: rgba(96, 165, 250, 0.55);
+}}
+
+switch.vimona-switch {{
+    background-color: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 999px;
+    min-width: 38px;
+    min-height: 21px;
+    box-shadow: none;
+    transition: background-color 150ms ease, border-color 150ms ease;
+}}
+
+switch.vimona-switch:checked {{
+    background-color: #2563EB;
+    border-color: rgba(96, 165, 250, 0.65);
+}}
+
+switch.vimona-switch slider {{
+    background-color: #F3F4F6;
+    border-radius: 999px;
+    min-width: 15px;
+    min-height: 15px;
+    margin: 2px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}}
+
+.skill-card {{
+    background-color: rgba(255, 255, 255, 0.032);
+    border: 1px solid {c.border_subtle};
+    border-radius: 14px;
+    padding: 12px 14px;
+    transition: background-color 140ms ease, border-color 140ms ease;
+}}
+
+.skill-card:hover {{
+    background-color: rgba(255, 255, 255, 0.052);
+    border-color: rgba(255, 255, 255, 0.14);
+}}
+
+.skill-cat-pill {{
+    font-size: 10.5px;
     font-weight: 600;
-    letter-spacing: -0.015em;
+    color: {c.text_secondary};
+    background-color: rgba(255, 255, 255, 0.075);
+    border-radius: 999px;
+    padding: 2px 9px;
+}}
+
+.skill-cat-pill.cat-image {{
+    color: #93C5FD;
+    background-color: rgba(59, 130, 246, 0.15);
+}}
+
+.skill-cat-pill.cat-video {{
+    color: #D8B4FE;
+    background-color: rgba(168, 85, 247, 0.16);
+}}
+
+.skill-cat-pill.cat-camera,
+.skill-cat-pill.cat-lighting {{
+    color: #FCD34D;
+    background-color: rgba(245, 158, 11, 0.14);
+}}
+
+.skill-cat-pill.cat-web {{
+    color: #6EE7B7;
+    background-color: rgba(16, 185, 129, 0.14);
+}}
+
+.skill-meta-lbl {{
+    font-size: 11.5px;
+    color: {c.text_muted};
+}}
+
+.skill-triggers-lbl {{
+    font-size: 11px;
+    color: #8B95A5;
+}}
+
+.skill-summary-lbl {{
+    font-size: 12.5px;
+    color: rgba(237, 237, 237, 0.78);
+}}
+
+button.skill-export-btn {{
+    background-color: rgba(255, 255, 255, 0.06);
+    background-image: none;
+    border: 1px solid {c.border_subtle};
+    border-radius: 999px;
+    padding: 2px 10px;
+    min-height: 24px;
+    font-size: 11px;
+    font-weight: 550;
+    color: {c.text_secondary};
+    box-shadow: none;
+    transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+}}
+
+button.skill-export-btn:hover {{
+    background-color: rgba(255, 255, 255, 0.12);
+    border-color: {c.border_strong};
     color: {c.text_primary};
 }}
 
@@ -938,10 +1113,10 @@ menubutton.header-pill-btn > button {{
     background-image: none;
     border: 1px solid {c.border_subtle};
     border-radius: 999px;
-    padding: 3px 10px;
-    min-height: 26px;
+    padding: 4px 12px;
+    min-height: 28px;
     min-width: 0;
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 550;
     color: {c.text_secondary};
     box-shadow: none;
@@ -978,52 +1153,150 @@ menubutton.header-mode-btn.mode-images > button {{
     color: #BFDBFE;
 }}
 
+popover.hf-popover > contents {{
+    background-color: #191B21;
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-radius: 18px;
+    padding: 14px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.72);
+}}
+
 .hf-hw-banner {{
-    background-color: rgba(255, 255, 255, 0.045);
-    border: 1px solid {c.border_subtle};
-    border-radius: 9px;
-    padding: 6px 9px;
-    font-size: 11px;
-    color: {c.text_secondary};
+    background-color: rgba(34, 197, 94, 0.075);
+    border: 1px solid rgba(74, 222, 128, 0.22);
+    border-radius: 11px;
+    padding: 7px 11px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: #D1FAE5;
+}}
+
+.hf-hw-dot {{
+    color: #4ADE80;
+    font-size: 10px;
+}}
+
+.hf-filter-note {{
+    font-size: 11.5px;
+    color: {c.text_muted};
+    margin-bottom: 2px;
 }}
 
 .hf-model-card {{
-    background-color: rgba(255, 255, 255, 0.03);
+    background-color: rgba(255, 255, 255, 0.032);
     border: 1px solid {c.border_subtle};
-    border-radius: 10px;
-    padding: 8px 10px;
+    border-radius: 14px;
+    padding: 11px 13px;
+    transition: background-color 140ms ease, border-color 140ms ease;
+}}
+
+.hf-model-card:hover {{
+    background-color: rgba(255, 255, 255, 0.052);
+    border-color: rgba(255, 255, 255, 0.15);
 }}
 
 .hf-model-card.selected {{
     background-color: rgba(59, 130, 246, 0.10);
-    border-color: rgba(96, 165, 250, 0.38);
+    border-color: rgba(96, 165, 250, 0.45);
+}}
+
+.hf-model-title {{
+    font-size: 13.5px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: {c.text_primary};
+}}
+
+.hf-repo-meta {{
+    font-size: 11.5px;
+    color: {c.text_muted};
+}}
+
+.hf-desc-lbl {{
+    font-size: 12.5px;
+    color: rgba(237, 237, 237, 0.78);
+}}
+
+.hf-stat-lbl {{
+    font-size: 11.5px;
+    color: #9CA3AF;
+}}
+
+.hf-active-pill {{
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #86EFAC;
+    background-color: rgba(34, 197, 94, 0.16);
+    border: 1px solid rgba(74, 222, 128, 0.34);
+    border-radius: 999px;
+    padding: 4px 12px;
+}}
+
+button.hf-use-btn {{
+    background-color: rgba(255, 255, 255, 0.075);
+    background-image: none;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    padding: 0 13px;
+    min-height: 28px;
+    font-size: 12px;
+    font-weight: 600;
+    color: {c.text_primary};
+    box-shadow: none;
+    transition: background-color 140ms ease, border-color 140ms ease;
+}}
+
+button.hf-use-btn:hover {{
+    background-color: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.28);
+}}
+
+button.hf-get-btn {{
+    background-color: #2563EB;
+    background-image: none;
+    border: 1px solid rgba(96, 165, 250, 0.45);
+    border-radius: 999px;
+    padding: 0 13px;
+    min-height: 28px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #F8FAFC;
+    box-shadow: none;
+    transition: background-color 140ms ease;
+}}
+
+button.hf-get-btn:hover {{
+    background-color: #1D4ED8;
 }}
 
 .hf-fit-best {{
-    font-size: 10px;
+    font-size: 10.5px;
     font-weight: 600;
     color: #86EFAC;
     background-color: rgba(34, 197, 94, 0.14);
+    border: 1px solid rgba(74, 222, 128, 0.25);
     border-radius: 999px;
-    padding: 1px 7px;
+    padding: 2px 8px;
 }}
 
 .hf-fit-fits {{
-    font-size: 10px;
+    font-size: 10.5px;
     font-weight: 600;
     color: #93C5FD;
     background-color: rgba(59, 130, 246, 0.14);
+    border: 1px solid rgba(96, 165, 250, 0.25);
     border-radius: 999px;
-    padding: 1px 7px;
+    padding: 2px 8px;
 }}
 
 .hf-fit-heavy {{
-    font-size: 10px;
+    font-size: 10.5px;
     font-weight: 600;
     color: #FCD34D;
     background-color: rgba(245, 158, 11, 0.14);
+    border: 1px solid rgba(245, 158, 11, 0.25);
     border-radius: 999px;
-    padding: 1px 7px;
+    padding: 2px 8px;
 }}
 
 /* Collapsible Reasoning Accordion */
@@ -1940,11 +2213,11 @@ button.lightbox-pill-btn.active {{
 
 /* Popovers */
 popover > contents {{
-    background-color: {c.bg_popover};
-    border: 1px solid {c.border_strong};
-    border-radius: 12px;
-    padding: 6px;
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.44);
+    background-color: #1D1F25;
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-radius: 15px;
+    padding: 8px;
+    box-shadow: 0 18px 46px rgba(0, 0, 0, 0.62);
 }}
 
 button.popover-item {{
