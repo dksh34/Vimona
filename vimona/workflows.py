@@ -193,8 +193,8 @@ def build_wan_vace_window_workflow(
     neg = negative_prompt.strip() or DEFAULT_NEGATIVE_WAN
     valid_frames = max(5, ((int(frames) - 1) // 4) * 4 + 1)
     has_causvid = use_fast_lora and (LORAS_DIR / WAN_CAUSVID_LORA).is_file()
-    flow_shift = float(ov.get("flow_shift") or 8.0)
-    cfg_val = float(ov.get("cfg")) if ov.get("cfg") is not None else (1.0 if has_causvid else 5.0)
+    flow_shift = float(ov.get("flow_shift") or 6.0)
+    cfg_val = float(ov.get("cfg")) if ov.get("cfg") is not None else (1.2 if has_causvid else 5.0)
     sampler_name = str(ov.get("sampler") or "uni_pc")
 
     model_src: list[Any] = ["15", 0] if has_causvid else ["2", 0]
@@ -270,7 +270,7 @@ def build_wan_vace_window_workflow(
                 "negative": ["8", 1],
                 "latent_image": ["8", 2],
                 "seed": actual_seed,
-                "steps": 5 if has_causvid else 10,
+                "steps": 6 if has_causvid else 12,
                 "cfg": cfg_val,
                 "sampler_name": sampler_name,
                 "scheduler": "simple",
@@ -313,7 +313,7 @@ def build_wan_vace_window_workflow(
             "inputs": {
                 "model": ["2", 0],
                 "lora_name": WAN_CAUSVID_LORA,
-                "strength_model": 0.60,
+                "strength_model": 0.45,
             },
         }
 

@@ -668,10 +668,10 @@ class MemoryRelayManager:
                         motion_prompt=beat_text,
                         reference_image_name=anchor_name,
                         control_start_image_name=control_start_name,
-                        width=480,
-                        height=272,
+                        width=640,
+                        height=368,
                         frames=17,
-                        fps=8,
+                        fps=10,
                         filename_prefix=f"vimona_win_{run_tag}_{w_idx:02d}",
                         overrides=node_overrides,
                     )

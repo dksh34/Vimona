@@ -147,9 +147,9 @@ def _apply_dslr_finish(src_png: Path) -> None:
 
 def _pick_h264_codec_args() -> list[tuple[str, list[str]]]:
     return [
-        ("libopenh264", ["-b:v", "3200k"]),
-        ("libx264", ["-preset", "fast", "-crf", "18"]),
-        ("mpeg4", ["-q:v", "3"]),
+        ("libopenh264", ["-b:v", "6500k", "-maxrate", "8500k"]),
+        ("libx264", ["-preset", "slow", "-crf", "16"]),
+        ("mpeg4", ["-q:v", "2"]),
     ]
 
 
@@ -202,11 +202,12 @@ def interpolate_video_to_24fps(src_video: Path, dst_mp4: Path, target_fps: int =
     dst_mp4.parent.mkdir(parents=True, exist_ok=True)
     thread_cap = str(get_worker_thread_cap())
     worker_env = get_worker_env()
-    # Try optical-flow motion interpolation first, fall back cleanly to frame blend
+    # Try optical-flow motion interpolation first + crisp 720p optical DSLR grade
+    tail_filter = "scale=1280:720:flags=lanczos,unsharp=5:5:0.75:3:3:0.0,eq=contrast=1.03:saturation=0.96"
     for vf in (
-        f"minterpolate=fps={target_fps}:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1",
-        f"minterpolate=fps={target_fps}:mi_mode=blend",
-        f"fps={target_fps}",
+        f"minterpolate=fps={target_fps}:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1,{tail_filter}",
+        f"minterpolate=fps={target_fps}:mi_mode=blend,{tail_filter}",
+        f"fps={target_fps},{tail_filter}",
     ):
         for codec, extra in _pick_h264_codec_args():
             proc: subprocess.Popen[Any] | None = None

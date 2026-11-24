@@ -25,8 +25,8 @@ import numpy as np
 WEIGHTS_PATH = Path(__file__).resolve().with_name("safety_ml_weights.npz")
 
 TEXT_DIM = 1024
-TEXT_THRESHOLD = 0.78
-VISION_THRESHOLD = 0.86
+TEXT_THRESHOLD = 0.88
+VISION_THRESHOLD = 0.92
 
 _WORD_RE = re.compile(r"[a-z0-9]+")
 
@@ -283,12 +283,10 @@ class SafeBlurMLEngine:
         threshold: float = VISION_THRESHOLD,
     ) -> tuple[bool, float]:
         t_prob = self.score_text(context_text) if context_text else 0.0
-        if t_prob >= 0.88:
+        if t_prob >= TEXT_THRESHOLD:
             return (True, max(t_prob, self.score_image_rgb(rgb)))
         v_prob = self.score_image_rgb(rgb)
-        if context_text and t_prob >= 0.68 and v_prob >= 0.55:
-            return (True, max(t_prob, v_prob))
-        return (v_prob >= threshold, max(v_prob, t_prob * 0.7))
+        return (v_prob >= threshold, v_prob)
 
     @lru_cache(maxsize=256)
     def classify_file(
