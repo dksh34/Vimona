@@ -53,6 +53,11 @@ rm -rf "${APP_DIR}/usr/share/vimona/vimona/__pycache__" \
 cp -a "${REPO_DIR}/run_vimona.py" "${APP_DIR}/usr/share/vimona/run_vimona.py"
 cp -a "${REPO_DIR}/dev.vimona.Desktop.svg" "${APP_DIR}/dev.vimona.Desktop.svg"
 cp -a "${REPO_DIR}/dev.vimona.Desktop.svg" "${APP_DIR}/.DirIcon"
+if [[ -f "${REPO_DIR}/assets/brand/vimona-icon-256.png" ]]; then
+    mkdir -p "${APP_DIR}/usr/share/icons/hicolor/256x256/apps"
+    cp -a "${REPO_DIR}/assets/brand/vimona-icon-256.png" "${APP_DIR}/usr/share/icons/hicolor/256x256/apps/dev.vimona.Desktop.png"
+    cp -a "${REPO_DIR}/assets/brand/vimona-icon-256.png" "${APP_DIR}/dev.vimona.Desktop.png"
+fi
 cp -a "${REPO_DIR}/LICENSE" "${APP_DIR}/LICENSE"
 
 # Clean desktop entry inside AppDir
@@ -238,9 +243,15 @@ if [[ "\${1:-}" == "--install-desktop" ]]; then
     cp -f "\$(readlink -f "\$0")" "\${SELF_DEST}"
     chmod +x "\${SELF_DEST}"
     cp -f "\${APP_DIR}/dev.vimona.Desktop.svg" "\${ICONS_DIR}/dev.vimona.Desktop.svg"
-    sed "s|^Exec=.*|Exec=\${SELF_DEST}|; s|^Icon=.*|Icon=\${ICONS_DIR}/dev.vimona.Desktop.svg|" \
+    PNG_ICONS_DIR="\${XDG_DATA_HOME:-\$HOME/.local/share}/icons/hicolor/256x256/apps"
+    mkdir -p "\${PNG_ICONS_DIR}"
+    if [[ -f "\${APP_DIR}/dev.vimona.Desktop.png" ]]; then
+        cp -f "\${APP_DIR}/dev.vimona.Desktop.png" "\${PNG_ICONS_DIR}/dev.vimona.Desktop.png"
+    fi
+    sed "s|^Exec=.*|Exec=\${SELF_DEST}|; s|^Icon=.*|Icon=dev.vimona.Desktop|" \
         "\${APP_DIR}/dev.vimona.Desktop.desktop" > "\${APPS_DIR}/dev.vimona.Desktop.desktop"
     command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "\${APPS_DIR}" || true
+    command -v gtk4-update-icon-cache >/dev/null 2>&1 && gtk4-update-icon-cache -f -t "\${XDG_DATA_HOME:-\$HOME/.local/share}/icons/hicolor" 2>/dev/null || true
     echo "Installed standalone app launcher: \${SELF_DEST}"
     exit 0
 fi

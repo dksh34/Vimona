@@ -127,7 +127,12 @@ install_app_files() {
     ln -sf "${APP_HOME}/launch-vimona.sh" "${BIN_DIR}/vimona"
 
     cp -a "${REPO_DIR}/dev.vimona.Desktop.svg" "${ICONS_DIR}/dev.vimona.Desktop.svg"
-    sed "s|^Exec=.*|Exec=${BIN_DIR}/vimona|; s|^Icon=.*|Icon=${ICONS_DIR}/dev.vimona.Desktop.svg|" \
+    PNG_ICON_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/256x256/apps"
+    mkdir -p "${PNG_ICON_DIR}"
+    if [[ -f "${REPO_DIR}/assets/brand/vimona-icon-256.png" ]]; then
+        cp -a "${REPO_DIR}/assets/brand/vimona-icon-256.png" "${PNG_ICON_DIR}/dev.vimona.Desktop.png"
+    fi
+    sed "s|^Exec=.*|Exec=${BIN_DIR}/vimona|; s|^Icon=.*|Icon=dev.vimona.Desktop|" \
         "${REPO_DIR}/dev.vimona.Desktop.desktop" > "${APPS_DIR}/dev.vimona.Desktop.desktop"
 
     if command -v update-desktop-database >/dev/null 2>&1; then

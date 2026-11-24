@@ -1,6 +1,89 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#141414"/>
-  <rect x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="none" stroke="#2e2e2e" stroke-width="1.5"/>
-  <polygon points="31,51 48,15 55,15 36,51" fill="#7a7a7a"/>
-  <polygon points="9,15 18,15 36,51 27,51" fill="#ededed"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Vimona Desktop Icon">
+  <defs>
+    <!-- Anodized brushed obsidian chassis -->
+    <linearGradient id="chassis-bg" x1="18%" y1="0%" x2="82%" y2="100%">
+      <stop offset="0%" stop-color="#282B34"/>
+      <stop offset="42%" stop-color="#15171D"/>
+      <stop offset="100%" stop-color="#0B0C10"/>
+    </linearGradient>
+
+    <!-- Cool titanium top-down ambient sheen -->
+    <radialGradient id="top-sheen" cx="50%" cy="18%" r="62%">
+      <stop offset="0%" stop-color="#93C5FD" stop-opacity="0.16"/>
+      <stop offset="55%" stop-color="#64748B" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Brushed steel outer bezel rim -->
+    <linearGradient id="bezel-rim" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.46"/>
+      <stop offset="28%" stop-color="#CBD5E1" stop-opacity="0.18"/>
+      <stop offset="72%" stop-color="#475569" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.22"/>
+    </linearGradient>
+
+    <!-- Subtle inner machined groove -->
+    <linearGradient id="inner-groove" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.45"/>
+    </linearGradient>
+
+    <!-- Left V Blade: bright liquid brushed titanium -->
+    <linearGradient id="blade-left" x1="12%" y1="0%" x2="88%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="32%" stop-color="#ECEFF5"/>
+      <stop offset="70%" stop-color="#BFC7D6"/>
+      <stop offset="100%" stop-color="#919BAE"/>
+    </linearGradient>
+
+    <!-- Left Blade bright chamfer highlight -->
+    <linearGradient id="blade-left-spec" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95"/>
+      <stop offset="55%" stop-color="#E2E8F0" stop-opacity="0.40"/>
+      <stop offset="100%" stop-color="#94A3B8" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Right V Blade: deep machined gunmetal steel -->
+    <linearGradient id="blade-right" x1="15%" y1="0%" x2="85%" y2="100%">
+      <stop offset="0%" stop-color="#9BA5B8"/>
+      <stop offset="40%" stop-color="#6B7487"/>
+      <stop offset="82%" stop-color="#454C5C"/>
+      <stop offset="100%" stop-color="#2E3340"/>
+    </linearGradient>
+
+    <!-- Crisp folded shadow between blades -->
+    <linearGradient id="fold-shadow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#050608" stop-opacity="0.65"/>
+      <stop offset="100%" stop-color="#050608" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Drop shadow beneath metallic V -->
+    <filter id="v-drop" x="-18%" y="-18%" width="136%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#000000" flood-opacity="0.72"/>
+    </filter>
+  </defs>
+
+  <!-- Rounded Squircle Chassis (fits both Linux hicolor & Windows tile cleanly) -->
+  <rect x="10" y="10" width="236" height="236" rx="54" fill="url(#chassis-bg)"/>
+  <rect x="10" y="10" width="236" height="236" rx="54" fill="url(#top-sheen)"/>
+  <rect x="19" y="19" width="218" height="218" rx="46" fill="none" stroke="url(#inner-groove)" stroke-width="1.5"/>
+  <rect x="10.75" y="10.75" width="234.5" height="234.5" rx="53.25" fill="none" stroke="url(#bezel-rim)" stroke-width="2.2"/>
+
+  <!-- Sculpted Metallic V Emblem -->
+  <g filter="url(#v-drop)">
+    <!-- Right Gunmetal Blade -->
+    <polygon points="124,200 176,62 214,62 146,204" fill="url(#blade-right)"/>
+    <!-- Right blade top rim specular -->
+    <polyline points="176,62.8 213.5,62.8" fill="none" stroke="#CBD5E1" stroke-opacity="0.55" stroke-width="1.8"/>
+
+    <!-- Recessed fold shadow at apex overlap -->
+    <polygon points="124,200 137,166 151,193 146,204" fill="url(#fold-shadow)"/>
+
+    <!-- Left Brushed Silver Blade -->
+    <polygon points="42,62 84,62 136,188 124,204 108,204" fill="url(#blade-left)"/>
+    <!-- Left inner facet bevel -->
+    <polygon points="42,62 51,62 114,204 108,204" fill="url(#blade-left-spec)"/>
+    <!-- Sharp silver top edge highlight -->
+    <polyline points="42.5,63 84,63 135.5,187.5" fill="none" stroke="#FFFFFF" stroke-opacity="0.90" stroke-width="1.5"/>
+  </g>
 </svg>
