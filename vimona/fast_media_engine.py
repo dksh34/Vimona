@@ -299,6 +299,13 @@ class FastVulkanImageServer:
             LOG_DIR.mkdir(parents=True, exist_ok=True)
             self._port = _pick_free_port(18234)
             inner_port = _pick_free_port(18235)
+            try:
+                from .hf_models import detect_hardware_profile
+                hw = detect_hardware_profile()
+            except Exception:
+                hw = None
+            cores = hw.cpu_cores if hw is not None else (os.cpu_count() or 4)
+            threads = str(max(2, cores - 2 if cores > 4 else cores))
             cmd = [
                 str(SD_SERVER_BIN),
                 "--listen-ip",
@@ -312,9 +319,15 @@ class FastVulkanImageServer:
                 "--force-sdxl-vae-conv-scale",
                 "--lora-model-dir",
                 str(LORAS_DIR),
+                "--threads",
+                threads,
                 "--flash-attn",
-                "on",
+                "off" if (hw is not None and hw.backend == "cpu") else "on",
             ]
+            if hw is None or hw.unified_memory or hw.gpu_pool_gb < 12.0:
+                cmd.append("--vae-tiling")
+            if hw is not None and hw.gpu_pool_gb < 5.5:
+                cmd.append("--offload-to-cpu")
             log_fh = open(LOG_DIR / "sd-server.log", "w", encoding="utf-8")
             self._ag_proc = launch_airgapped_http_service(
                 cmd=cmd,

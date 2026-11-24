@@ -205,30 +205,33 @@ class MemoryRelayManager:
             if not LLAMA_SERVER_BIN.is_file():
                 raise FileNotFoundError(f"llama-server not found at {LLAMA_SERVER_BIN}")
             try:
-                from .hf_models import get_selected_model_path
+                from .hf_models import detect_hardware_profile, get_selected_model_path
                 active_llm_path = get_selected_model_path("text") or LLM_MODEL_PATH
+                hw = detect_hardware_profile()
             except Exception:
                 active_llm_path = LLM_MODEL_PATH
+                hw = None
             if not active_llm_path.is_file():
                 raise FileNotFoundError(f"LLM model not found at {active_llm_path}")
 
             LOG_DIR.mkdir(parents=True, exist_ok=True)
             self._llama_port = _pick_free_port(18081)
             self._set_owner("transition", "Starting text engine…", f"Loading {active_llm_path.name}…")
+            cores = hw.cpu_cores if hw is not None else (os.cpu_count() or 4)
+            threads = str(max(2, min(cores - 2, 12) if cores > 4 else cores))
+            tier = hw.tier if hw is not None else "balanced"
+            backend = hw.backend if hw is not None else "vulkan"
+            ctx_size = "2048" if tier == "low" else ("8192" if tier == "workstation" else "4096")
             cmd = [
                 str(LLAMA_SERVER_BIN),
                 "--model",
                 str(active_llm_path),
-                "--device",
-                "Vulkan0",
-                "--flash-attn",
-                "on",
+                "--threads",
+                threads,
                 "--load-mode",
                 "none",
                 "--ctx-size",
-                "4096",
-                "--n-gpu-layers",
-                "99",
+                ctx_size,
                 "--reasoning-budget",
                 "96",
                 "--host",
@@ -236,6 +239,12 @@ class MemoryRelayManager:
                 "--port",
                 str(self._llama_port),
             ]
+            if backend == "vulkan":
+                cmd.extend(["--device", "Vulkan0", "--flash-attn", "on", "--n-gpu-layers", "99"])
+            elif backend == "cuda":
+                cmd.extend(["--flash-attn", "on", "--n-gpu-layers", "99"])
+            else:
+                cmd.extend(["--n-gpu-layers", "0"])
             log_fh = open(LOG_DIR / "llama-server.log", "w", encoding="utf-8")
             self._llama_proc = subprocess.Popen(
                 cmd,

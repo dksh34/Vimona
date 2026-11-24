@@ -33,6 +33,7 @@ from .ram_manager import (
     terminate_unnecessary_processes,
 )
 from .hf_models import (
+    CURATED_HF_MODELS,
     HardwareProfile,
     HFModelSpec,
     detect_hardware_profile,
@@ -3050,7 +3051,7 @@ class VimonaWindow(Adw.ApplicationWindow):
         top.append(htitle)
         root.append(top)
 
-        hw_lbl = Gtk.Label(label=f"Detected: {self._hw_profile.summary_label}")
+        hw_lbl = Gtk.Label(label=f"Hardware Tuned · {self._hw_profile.summary_label}")
         hw_lbl.add_css_class("hf-hw-banner")
         hw_lbl.set_xalign(0.0)
         hw_lbl.set_ellipsize(Pango.EllipsizeMode.END)
@@ -3077,6 +3078,36 @@ class VimonaWindow(Adw.ApplicationWindow):
         cards = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         selected_id = get_selected_model_id(category, hw=self._hw_profile)
         models = get_models_for_category(category, hw=self._hw_profile)
+        total_in_cat = sum(1 for m in CURATED_HF_MODELS if m.category == category.lower())
+        hidden_cnt = max(0, total_in_cat - len(models))
+
+        if hidden_cnt > 0:
+            flt_lbl = Gtk.Label(
+                label=(
+                    f"Showing {len(models)} tuned {category} model{'s' if len(models) != 1 else ''} "
+                    f"for your hardware ({hidden_cnt} heavy/unsuited hidden)"
+                )
+            )
+            flt_lbl.add_css_class("research-perm-note")
+            flt_lbl.set_xalign(0.0)
+            flt_lbl.set_ellipsize(Pango.EllipsizeMode.END)
+            cards.append(flt_lbl)
+
+        if not models:
+            empty_card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+            empty_card.add_css_class("hf-model-card")
+            et = Gtk.Label(label=f"No {category} models match this hardware cleanly")
+            et.add_css_class("research-tab-title")
+            et.set_xalign(0.0)
+            ed = Gtk.Label(
+                label=f"Detected {self._hw_profile.summary_label} lacks sufficient GPU/RAM headroom for {category} weights."
+            )
+            ed.add_css_class("research-perm-note")
+            ed.set_wrap(True)
+            ed.set_xalign(0.0)
+            empty_card.append(et)
+            empty_card.append(ed)
+            cards.append(empty_card)
 
         for spec in models:
             card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
