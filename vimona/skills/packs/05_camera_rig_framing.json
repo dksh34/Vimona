@@ -1,0 +1,178 @@
+[
+  {
+    "id": "cam_anamorphic_239",
+    "name": "2.39:1 Anamorphic Squeeze & Flare",
+    "category": "Camera",
+    "author": "Vimona Core",
+    "trigger_keywords": ["anamorphic", "widescreen", "cinemascope", "oval bokeh", "horizontal flare", "panavision"],
+    "system_instructions": "Use `2.39:1 Panavision anamorphic lens, subtle blue horizontal optical flare, crisp oval specular bokeh, mild barrel breathing at edges` while keeping the center facial anatomy razor true."
+  },
+  {
+    "id": "cam_low_hero_angle",
+    "name": "24mm Low-Angle Monumental Hero",
+    "category": "Camera",
+    "author": "Vimona Core",
+    "trigger_keywords": ["low angle", "worm eye", "monumental", "imposing", "towering", "hero shot"],
+    "system_instructions": "Place lens low near waist/knee level looking upward (`24mm wide low-angle shot`), magnifying vertical architecture and shoulders against dramatic upper clouds or neon eaves."
+  },
+  {
+    "id": "cam_dutch_tension",
+    "name": "Intentional Dutch Horizon Cant",
+    "category": "Camera",
+    "author": "Vimona Core",
+    "trigger_keywords": ["dutch tilt", "canted", "unease", "thriller", "disorienting"],
+    "system_instructions": "Apply subtle `15-degree Dutch horizon tilt` aligned diagonally with staircase rails or rooftops to evoke kinetic urgency and psychological tension without making faces illegible."
+  },
+  {
+    "id": "cam_over_shoulder",
+    "name": "Tight Over-The-Shoulder Tension",
+    "category": "Camera",
+    "author": "Vimona Core",
+    "trigger_keywords": ["over the shoulder", "ots", "standoff", "conversation frame", "confrontation"],
+    "system_instructions": "Anchor one softly defocused foreground shoulder/ear along the left/right border (`over-the-shoulder two-shot, 50mm f/2.0`) aiming cleanly toward the opposing subject's eyes."
+  },
+  {
+    "id": "cam_leading_lines",
+    "name": "Geometric Leading Lines Convergence",
+    "category": "Camera",
+    "author": "Vimona Core",
+    "trigger_keywords": ["leading lines", "hallway", "bridge", "railroad", "corridor", "perspective"],
+    "system_instructions": "Align curb lines, ceiling ribs, bridge suspension cables, or riverbanks asymmetrically straight toward the focal subject on the third intersection."
+  },
+  {
+    "id": "cam_rule_of_thirds",
+    "name": "Asymmetric Gaze Space & Balance",
+    "category": "Camera",
+    "author": "Vimona Core",
+    "trigger_keywords": ["rule of thirds", "composition", "cinematic framing", "negative space"],
+    "system_instructions": "Anchor subject cleanly on the left or right vertical third leaving generous open lead space in the direction of gaze or travel rather than centering by default."
+  },
+  {
+    "id": "cam_symmetrical_kubrick",
+    "name": "One-Point Architectural Symmetry",
+    "category": "Camera",
+    "author": "Vimona Core",
+    "trigger_keywords": ["symmetry", "centered", "one point perspective", "kubrick", "wes anderson"],
+    "system_instructions": "Lock camera plumb along the exact geometric axis (`strict one-point center perspective, level horizon, mirrored flanking columns`), amplifying formal stillness."
+  },
+  {
+    "id": "cam_handheld_verite",
+    "name": "Handheld Verite Documentary",
+    "category": "Camera",
+    "author": "Vimona Core",
+    "trigger_keywords": ["handheld", "documentary", "verite", "raw camera", "shoulder rig"],
+    "system_instructions": "Simulate shoulder-rig immediacy (`handheld 35mm cinema rig, subtle organic breathing, slight foreground obstruction`) placing viewer directly inside the crowd or cockpit."
+  },
+  {
+    "id": "cam_steadicam_oner",
+    "name": "Floating Steadicam Follow",
+    "category": "Camera",
+    "author": "Vimona Core",
+    "trigger_keywords": ["steadicam", "follow shot", "corridor", "tracking back", "continuous"],
+    "system_instructions": "Maintain fluid floating eye-level separation ahead of or behind moving actors (`smooth Steadicam glide tracking through doorways`) keeping horizon crisp across spatial transitions."
+  },
+  {
+    "id": "cam_fpv_drone_dive",
+    "name": "Banked Aerial Drone Sweep",
+    "category": "Camera",
+    "author": "Vimona Core",
+    "trigger_keywords": ["drone", "aerial glide", "fpv", "mountain flyover", "ridge push"],
+    "system_instructions": "Use `slow steady aerial gimbal forward push, horizon locked, smooth ridge parallax` with crisp foreground peaks drifting cleanly past sunlit distant valleys."
+  },
+  {
+    "id": "cam_orbital_arc",
+    "name": "180° Parallax Arc Around Subject",
+    "category": "Camera",
+    "author": "Vimona Core",
+    "trigger_keywords": ["orbit", "arc shot", "circle around", "360", "rotate camera"],
+    "system_instructions": "Sweep laterally in a tight smooth circular arc keeping the hero anchored dead-center while background architecture and flares counter-scroll continuously."
+  },
+  {
+    "id": "cam_dolly_push_in",
+    "name": "Deliberate Slow Dolly Push-In",
+    "category": "Camera",
+    "author": "Vimona Core",
+    "trigger_keywords": ["dolly", "push in", "zoom in slow", "creep", "reveal face"],
+    "system_instructions": "Execute steady straight-track dolly progression from medium-wide toward tight close-up (`gradual 35mm dolly push-in`), building emotional focus smoothly without zoom flattening."
+  },
+  {
+    "id": "cam_whip_pan_transition",
+    "name": "Kinetic Whip-Pan Energy",
+    "category": "Camera",
+    "author": "Vimona Core",
+    "trigger_keywords": ["whip pan", "fast pan", "swish", "snap turn"],
+    "system_instructions": "Reserve rapid horizontal pan streak blur strictly for snappy transitional mid-beats settling cleanly into sharp locked framing on impact or reveal."
+  },
+  {
+    "id": "cam_crane_reveal",
+    "name": "Rising Jib Horizon Reveal",
+    "category": "Camera",
+    "author": "Vimona Core",
+    "trigger_keywords": ["crane shot", "jib", "rise up", "rooftop reveal", "cliff reveal"],
+    "system_instructions": "Begin tight behind a foreground rock, wall, or battlement and smoothly elevate the boom upward to unveil a vast sunlit canyon, fleet, or skyline beyond."
+  },
+  {
+    "id": "cam_rack_focus_shift",
+    "name": "Shallow Rack-Focus Plane Pull",
+    "category": "Camera",
+    "author": "Vimona Core",
+    "trigger_keywords": ["rack focus", "focus pull", "bokeh shift", "foreground blur"],
+    "system_instructions": "Stage a clear near foreground prop (`raindrop window glass, lantern, hilt`) against a distant background subject so shifting focal planes reads cinematically crisp."
+  },
+  {
+    "id": "cam_telephoto_compression",
+    "name": "200mm Telephoto Spatial Compression",
+    "category": "Camera",
+    "author": "Vimona Core",
+    "trigger_keywords": ["telephoto", "200mm", "135mm", "compressed background", "giant sun", "giant moon"],
+    "system_instructions": "Shoot via `200mm f/2.8 telephoto`: compress distant bridges, rising harvest moons, or mountain tiers closely behind the subject with creamy out-of-focus foreground haze."
+  },
+  {
+    "id": "cam_14mm_ultrawide",
+    "name": "14mm Ultrawide Environmental Span",
+    "category": "Camera",
+    "author": "Vimona Core",
+    "trigger_keywords": ["ultrawide", "14mm", "fisheye", "vast cave", "dome"],
+    "system_instructions": "Anchor strong nearby floor texture (cracked ice, cobbles, dashboard) inches from `14mm ultrawide glass` pulling the viewer into sweeping overhead ceilings or canyons."
+  },
+  {
+    "id": "cam_snorricam_chest",
+    "name": "Chest-Locked Subject Mount",
+    "category": "Camera",
+    "author": "Vimona Core",
+    "trigger_keywords": ["snorricam", "chest rig", "running face", "intense sprint"],
+    "system_instructions": "Lock subject torso and panicked expression rigidly in foreground center while neon corridors or alley walls streak backward with wide `20mm` motion distortion."
+  },
+  {
+    "id": "cam_mirror_reflection",
+    "name": "Optical Mirror & Glass Double-Frame",
+    "category": "Camera",
+    "author": "Vimona Core",
+    "trigger_keywords": ["mirror", "reflection", "shop window", "car mirror", "glass"],
+    "system_instructions": "Compose nested spatial reflections through rainy train windows, brass mirrors, or wet marble floors showing dual perspectives cleanly in one frame."
+  },
+  {
+    "id": "cam_silhouette_doorway",
+    "name": "Architectural Frame-Within-Frame",
+    "category": "Camera",
+    "author": "Vimona Core",
+    "trigger_keywords": ["doorway", "archway", "window frame", "portal", "framing"],
+    "system_instructions": "Shoot through darker interior archways, torii gates, or cockpit canopies (`natural vignette frame-within-frame`) isolating the lit hero against deep foreground silhouettes."
+  },
+  {
+    "id": "cam_birdseye_godview",
+    "name": "90° Overhead Tableau",
+    "category": "Camera",
+    "author": "Vimona Core",
+    "trigger_keywords": ["overhead", "top view", "flatlay", "staircase spiral"],
+    "system_instructions": "Place lens dead vertical (`90-degree top-down god's-eye angle`) highlighting graphic spiral staircases, umbrella canopies in rain, or footprints in fresh snow."
+  },
+  {
+    "id": "cam_locked_tripod_tableau",
+    "name": "Locked Tripod Wide Tableau",
+    "category": "Camera",
+    "author": "Vimona Core",
+    "trigger_keywords": ["static camera", "tripod", "wide tableau", "still shot", "still frame"],
+    "system_instructions": "Lock camera solidly on a tripod so architectural geometry holds dead still while subtle life—wind, steam, flickering signs, or walking figures—ripples naturally through frame."
+  }
+]

@@ -1,0 +1,199 @@
+[
+  {
+    "id": "img_35mm_street_realism",
+    "name": "35mm Documentary Street Photography",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["street", "documentary", "candid", "alley", "crowd", "crosswalk", "urban", "tokyo", "city"],
+    "system_instructions": "Compose candid 35mm documentary frames: include authentic environmental clutter (wet pavement, crosswalk paint, shop awnings, bicycles, weathered brick), off-guard natural posture, and 35mm `f/2.8` balanced depth.",
+    "negative_prompt_patch": "plastic airbrushed skin, studio backdrop, stiff fashion pose"
+  },
+  {
+    "id": "img_85mm_editorial_portrait",
+    "name": "85mm f/1.4 Editorial Portrait",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["portrait", "headshot", "face", "close-up", "editorial", "model", "eyes", "person"],
+    "system_instructions": "Anchor portraits on `85mm prime lens, f/1.4, shallow depth of field`, natural iris catchlights, micro-skin pores, asymmetric collar/fabric drape, and gentle background bokeh falloff.",
+    "negative_prompt_patch": "waxy skin, over-smoothed face, symmetrical mannequin stare"
+  },
+  {
+    "id": "img_50mm_natural_eye",
+    "name": "50mm Standard Human Perspective",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["50mm", "natural", "everyday", "realistic photo", "lifestyle", "medium shot"],
+    "system_instructions": "Keep perspective distortion neutral via `50mm prime lens, f/2.0`, natural eye-level horizon, candid posture, and truthful daylight falloff matching human vision."
+  },
+  {
+    "id": "img_macro_tactile",
+    "name": "100mm Macro Micro-Texture",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["macro", "closeup", "texture", "detail", "fabric", "insect", "watch", "droplet", "eye"],
+    "system_instructions": "Specify `100mm macro lens, razor-thin focal plane`, tactile surface relief (brushed brass micro-scratches, weave fibers, water surface tension), and soft specular highlights."
+  },
+  {
+    "id": "img_medium_format_hasselblad",
+    "name": "Medium-Format Tonal Roll-Off",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["hasselblad", "medium format", "luxury", "campaign", "dslr", "crisp", "ultra detailed"],
+    "system_instructions": "Use medium-format optical character: `80mm f/2.8 medium format sensor, subtle highlight roll-off, rich shadow gradations, razor micro-contrast`, completely free of harsh digital oversharpening halos.",
+    "negative_prompt_patch": "hdr halo, oversaturated cartoon, cheap smartphone sharpening"
+  },
+  {
+    "id": "img_kodak_portra_400",
+    "name": "Kodak Portra 400 Film Character",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["film", "analog", "portra", "kodak", "35mm film", "vintage", "grain", "nostalgic"],
+    "system_instructions": "Infuse natural analog film rendering: `Kodak Portra 400 film stock, subtle organic silver halide grain, gentle green-tinted shadows, creamy highlight halation, truthful skin warmth`."
+  },
+  {
+    "id": "img_cinestill_800t",
+    "name": "CineStill 800T Neon Night Film",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["cinestill", "night street", "neon", "diner", "gas station", "tungsten", "wet night"],
+    "system_instructions": "Apply `CineStill 800T tungsten balanced film`: cool cyan ambient shadows paired with warm sodium/tungsten shop windows and crisp red halation rims around bright bulbs."
+  },
+  {
+    "id": "img_ilford_hp5_bw",
+    "name": "Ilford HP5 Monochrome Silver",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["black and white", "monochrome", "bw", "noir photo", "silver", "ilford"],
+    "system_instructions": "Compose high-discipline monochrome: `Ilford HP5 Plus 400, rich Zone III–VII silver tones, sculptural side contrast, gritty silver grain, crisp highlight separation`."
+  },
+  {
+    "id": "img_architectural_tilt",
+    "name": "Architectural Perspective Control",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["architecture", "building", "facade", "skyscraper", "cathedral", "tower", "bridge", "interior"],
+    "system_instructions": "Specify `24mm tilt-shift architectural lens, perfectly plumb verticals`, honest concrete/stone/glass material physics, interior light warmth balancing sky exposure."
+  },
+  {
+    "id": "img_product_packshot",
+    "name": "Commercial Product & Glass Studio",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["product", "bottle", "perfume", "watch", "headphones", "device", "commercial", "studio shot"],
+    "system_instructions": "Define clean strip-softbox gradient reflections along bevels and glass curves, matte pedestal surface, crisp edge rim, and uncluttered negative space."
+  },
+  {
+    "id": "img_culinary_editorial",
+    "name": "Editorial Food & Culinary Depth",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["food", "ramen", "coffee", "espresso", "dish", "kitchen", "bakery", "cocktail", "plate"],
+    "system_instructions": "Frame at 45° hero angle with diffused window backlight revealing rising steam, glistening oil/sauce speculars, rustic ceramic glaze, and shallow `85mm f/2.0` background falloff."
+  },
+  {
+    "id": "img_fashion_lookbook",
+    "name": "Editorial Fashion & Fabric Physics",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["fashion", "runway", "coat", "dress", "jacket", "editorial lookbook", "outfit"],
+    "system_instructions": "Emphasize garment construction: wool weight, silk specular crease, leather patina, asymmetry in stance, intentional wind lift, and clean editorial color harmony."
+  },
+  {
+    "id": "img_automotive_rig",
+    "name": "Rolling Rig Automotive Stills",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["car", "coupe", "supercar", "porsche", "motorcycle", "vehicle", "road", "drift"],
+    "system_instructions": "Keep exact wheel symmetry, ground contact shadow weight, coherent horizon reflections across body panels, spinning spoke motion blur via rolling shutter rig, and disciplined 35mm three-quarter framing."
+  },
+  {
+    "id": "img_landscape_hyperfocal",
+    "name": "Hyperfocal Alpine & Coastal Vistas",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["mountain", "alpine", "landscape", "lake", "glacier", "valley", "coast", "cliff", "peak", "sunrise"],
+    "system_instructions": "Compose with `24mm wide angle, f/11 hyperfocal crispness` spanning textured foreground rock/snow, middle-ground mist separation, and sunlit serrated mountain peaks."
+  },
+  {
+    "id": "img_aerial_topdown",
+    "name": "Top-Down Drone Terrain Geometry",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["aerial", "drone", "top down", "birdseye", "island", "river delta", "highway"],
+    "system_instructions": "Frame straight-down nadir or 60° oblique drone altitude highlighting graphic terrain patterns, winding road switchbacks, wave foam striations, and crisp solar shadows."
+  },
+  {
+    "id": "img_anatomy_hands_posture",
+    "name": "Grounded Anatomy & Hand Mechanics",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["hands", "fingers", "holding", "standing", "sitting", "martial", "warrior", "pose"],
+    "system_instructions": "Keep hands occupied naturally (gripping rail, resting in coat pocket, holding hilt or mug), specify grounded foot weight distribution and spine curve so limbs never float awkwardly.",
+    "negative_prompt_patch": "extra fingers, fused fingers, mutated hands, floating feet"
+  },
+  {
+    "id": "img_skin_microdetail",
+    "name": "Subsurface Skin & Eye Realism",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["photorealistic", "skin", "freckles", "realistic woman", "realistic man", "raw photo"],
+    "system_instructions": "Request `subtle skin pores, fine freckles, natural subsurface light scattering around ears/knuckles, moist corneal catchlight, stray flyaway hairs` so faces read photographic rather than rendered.",
+    "negative_prompt_patch": "plastic skin, porcelain doll, 3d cgi render, smooth airbrush"
+  },
+  {
+    "id": "img_wet_asphalt_specular",
+    "name": "Rain-Slick Asphalt & Puddle Mirror",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["rain", "puddle", "wet street", "asphalt", "storm", "umbrella", "drenched"],
+    "system_instructions": "Render damp granite cobblestones and oily asphalt reflections splitting warm storefront lights across ripples, wet shoulder fabric darkening, and airborne rain mist."
+  },
+  {
+    "id": "img_interior_arch_digest",
+    "name": "Architectural Interior Balance",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["room", "living room", "cabin", "apartment", "library", "cafe", "loft", "bedroom"],
+    "system_instructions": "Balance cool daylight pouring from tall windows against warm interior oak/linen bounce and glowing brass reading lamps; show tactile wood grain and realistic shadow grounding under furniture."
+  },
+  {
+    "id": "img_underwater_caustics",
+    "name": "Submerged Caustics & Water Clarity",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["underwater", "ocean depth", "diving", "reef", "pool", "submerged"],
+    "system_instructions": "Describe volumetric turquoise water attenuation by depth, undulating solar caustic ribbons dancing over stone/sand, fine floating plankton particles, and wet hair buoyancy."
+  },
+  {
+    "id": "img_anime_keyframe_cel",
+    "name": "Theatrical Feature Anime Cel",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["anime", "cel shaded", "sakuga", "studio anime", "manga color", "cyberpunk anime"],
+    "system_instructions": "Combine `source_anime, theatrical anime film keyframe, clean variable-weight lineart, painted watercolor background plates, crisp multi-step cel shading and luminous rim highlights`."
+  },
+  {
+    "id": "img_cyberpunk_industrial",
+    "name": "Industrial Cyberpunk Materiality",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["cyberpunk", "sci-fi city", "hologram", "android", "bionic", "megacity", "alleyway"],
+    "system_instructions": "Ground sci-fi imagery in worn utility: scuffed anodized metal, bundled conduit cables, condensation vents, backlit kanji/hangul signage, and optical lens grime rather than sterile neon grids."
+  },
+  {
+    "id": "img_dark_fantasy_oil",
+    "name": "Classical Dark Fantasy Realism",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["fantasy", "knight", "castle", "dragon", "sword", "ruins", "gothic", "medieval"],
+    "system_instructions": "Anchor fantasy in tangible craft: hammered steel dents, mud-caked cloaks, woven mail rings, damp mossy stonework, storm overcast, and monumental environmental scale."
+  },
+  {
+    "id": "img_scifi_hard_surface",
+    "name": "Hard-Surface Spacecraft & Mechs",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["spaceship", "astronaut", "orbit", "cockpit", "station", "mech", "mars"],
+    "system_instructions": "Emphasize NASA/industrial realism: thermal gold Kapton foil, micro-panel seams, stenciled safety markings, harsh unfiltered directional solar key in vacuum, and clean perspective lines."
+  }
+]

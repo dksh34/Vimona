@@ -1,0 +1,194 @@
+[
+  {
+    "id": "eng_python_async",
+    "name": "Python Asyncio & Concurrency",
+    "category": "Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["asyncio", "async", "await", "coroutine", "thread", "threading", "lock", "deadlock", "event loop", "concurrent", "python"],
+    "system_instructions": "Prefer structured concurrency (`asyncio.TaskGroup` or bounded `ThreadPoolExecutor`), explicit cancellation propagation, and lock-free message queues (`queue.Queue`/`asyncio.Queue`). Never block an event loop or GTK main loop with synchronous I/O or `time.sleep`; marshal UI mutations cleanly onto the main thread (`GLib.idle_add`)."
+  },
+  {
+    "id": "eng_python_typing",
+    "name": "Python 3.11+ Type Discipline",
+    "category": "Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["typing", "type hint", "dataclass", "protocol", "mypy", "pyright", "pydantic", "schema", "python"],
+    "system_instructions": "Use `from __future__ import annotations`, modern union syntax (`X | None`), `@dataclass(slots=True)` for hot value objects, `Protocol` for structural interfaces, and narrow `try/except` around boundary conversions. Avoid `Any` except at untyped FFI boundaries."
+  },
+  {
+    "id": "eng_gtk4_libadwaita",
+    "name": "GTK4 & Libadwaita Native UI",
+    "category": "Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["gtk", "gtk4", "adw", "libadwaita", "pygobject", "widget", "css", "revealer", "glib", "gobject"],
+    "system_instructions": "Target GTK4 idioms: `set_child`/`append`/`remove` instead of deprecated GTK3 `add`/`show_all`; bind CSS via `Gtk.CssProvider` at `STYLE_PROVIDER_PRIORITY_APPLICATION`; run slow work off the main thread and update UI via `GLib.idle_add` returning `GLib.SOURCE_REMOVE`."
+  },
+  {
+    "id": "eng_sql_query_tuning",
+    "name": "SQL Indexing & Query Plans",
+    "category": "Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["sql", "postgres", "sqlite", "index", "query", "join", "n+1", "migration", "database", "schema", "explain"],
+    "system_instructions": "Design composite indexes matching equality columns before range/sort columns; eliminate N+1 loops using set-based `JOIN` or `WHERE id IN (...)` batching; inspect `EXPLAIN ANALYZE` for sequential scans on large tables; wrap schema mutations in explicit transactions with parameterized queries only."
+  },
+  {
+    "id": "eng_root_cause_debug",
+    "name": "Root-Cause Debugging Protocol",
+    "category": "Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["bug", "debug", "traceback", "crash", "error", "exception", "failing", "broken", "fix", "hang", "freeze"],
+    "system_instructions": "Reproduce before patching: pinpoint the exact state transition or invariant violation causing the symptom rather than masking exceptions. Check lifecycle order, stale caches, race conditions, and boundary inputs (`None`, empty, Unicode, max size), and confirm the fix with a regression check."
+  },
+  {
+    "id": "eng_api_contract_design",
+    "name": "REST & RPC Contract Craft",
+    "category": "Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["api", "rest", "endpoint", "http", "json", "fastapi", "webhook", "idempotent", "pagination", "rate limit"],
+    "system_instructions": "Enforce strict request/response schemas, cursor-based pagination for growing datasets, `Idempotency-Key` support on mutating retries, consistent structured error envelopes with machine-readable codes, and explicit timeouts on every upstream call."
+  },
+  {
+    "id": "eng_linux_namespaces",
+    "name": "Linux Namespaces, /proc & IPC",
+    "category": "Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["linux", "unshare", "namespace", "proc", "/dev/shm", "af_unix", "socket", "cgroup", "fedora", "kernel", "pid"],
+    "system_instructions": "Use `/proc/<pid>/status` and `cgroup` inspection safely with `FileNotFoundError`/`ProcessLookupError` tolerance for exiting PIDs. For local air-gapping, prefer `unshare -r -n` + loopback `AF_UNIX` bridges and always clean up process groups cleanly (`SIGTERM` -> grace window -> `SIGKILL`)."
+  },
+  {
+    "id": "eng_systemd_ops",
+    "name": "systemd Services & Journald",
+    "category": "Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["systemd", "systemctl", "journalctl", "service", "daemon", "unit", "socket", "timer"],
+    "system_instructions": "Write minimal hardened `.service` units (`Restart=on-failure`, `ProtectSystem=strict`, `NoNewPrivileges=yes`), inspect failures via `journalctl -u <unit> -n 80 --no-pager`, and prefer user-scoped `--user` units over root services whenever possible."
+  },
+  {
+    "id": "eng_git_hygiene",
+    "name": "Git Bisect, Rebase & Recovery",
+    "category": "Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["git", "commit", "rebase", "merge", "conflict", "bisect", "reflog", "branch", "cherry-pick"],
+    "system_instructions": "Keep commits atomic and buildable; use `git bisect run` to isolate regressions fast; recover lost commits cleanly with `git reflog`; never force-push shared history or rewrite commits someone else depends on without explicit confirmation."
+  },
+  {
+    "id": "eng_security_audit",
+    "name": "Application Security & Threat Model",
+    "category": "Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["security", "vulnerability", "xss", "sqli", "ssrf", "csrf", "auth", "token", "owasp", "sanitize", "exploit"],
+    "system_instructions": "Audit trust boundaries ruthlessly: parameterize SQL, pass `subprocess` arg lists (`shell=False`), validate path traversal (`resolve().is_relative_to()`), reject private/link-local targets on SSRF surfaces, store secrets outside git/logs, and verify server-side authorization on every action."
+  },
+  {
+    "id": "eng_crypto_hygiene",
+    "name": "Applied Cryptography Standards",
+    "category": "Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["encrypt", "decrypt", "hash", "hmac", "aes", "chacha", "argon2", "pbkdf2", "tls", "jwt", "signature"],
+    "system_instructions": "Never roll custom primitives: use AEAD (`AES-256-GCM` or `ChaCha20-Poly1305`) with unique nonces, `Argon2id` for passwords, `HKDF` for key expansion, `hmac.compare_digest` for constant-time token verification, and `secrets` instead of `random`."
+  },
+  {
+    "id": "eng_rust_ownership",
+    "name": "Idiomatic Rust & Borrow Checker",
+    "category": "Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["rust", "cargo", "borrow", "lifetime", "tokio", "Arc", "Mutex", "Result", "Option", "clippy"],
+    "system_instructions": "Model invariants in the type system, propagate errors cleanly with `Result<T, E>` and `?` (avoid `.unwrap()` outside tests), prefer borrowing (`&str`, `&[T]`) over unnecessary `.clone()`, and eliminate lock contention by shrinking critical sections."
+  },
+  {
+    "id": "eng_c_memory_safety",
+    "name": "Defensive C POSIX Engineering",
+    "category": "Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["c", "c++", "gcc", "clang", "malloc", "pointer", "segfault", "valgrind", "asan", "posix", "elf"],
+    "system_instructions": "Always check return values of `malloc`/`snprintf`/`readlink`, size buffers for null terminators and `PATH_MAX` margins cleanly, avoid `strcpy`/`sprintf`, compile with `-Wall -Wextra -Werror=format-security`, and verify memory safety under AddressSanitizer (`-fsanitize=address,undefined`)."
+  },
+  {
+    "id": "eng_bash_strict",
+    "name": "Hardened Bash & POSIX Scripting",
+    "category": "Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["bash", "shell", "sh", "script", "awk", "sed", "grep", "curl", "tar", "installers"],
+    "system_instructions": "Start bash scripts with `set -euo pipefail`, double-quote every variable expansion (`\"$var\"`), avoid parsing `ls`, use `mktemp` + `trap` cleanup for temporary directories, and syntax-verify with `bash -n` (and `shellcheck` principles)."
+  },
+  {
+    "id": "eng_perf_profiling",
+    "name": "Performance Optimization & Hot Paths",
+    "category": "Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["optimize", "performance", "slow", "latency", "throughput", "benchmark", "cache", "bottleneck", "fps", "ram"],
+    "system_instructions": "Measure before optimizing: identify the dominant term (I/O, allocations, $O(N^2)$ scans, lock waits, or repeated disk reads). Replace quadratic lookups with hash/set indexing, hoist invariants out of loops, and memoize read-heavy state via mtime checks."
+  },
+  {
+    "id": "eng_memory_leaks",
+    "name": "Memory Leaks & Resource Lifecycles",
+    "category": "Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["leak", "oom", "memory", "vram", "gc", "cleanup", "close", "handle", "fd"],
+    "system_instructions": "Pair every allocation, file descriptor, mmap, or subprocess with a `with`/context manager or `try/finally` teardown. Clear weak/strong callback references (especially GObject signal handlers and timer IDs) when closing views or windows."
+  },
+  {
+    "id": "eng_testing_architecture",
+    "name": "Deterministic Verification & Tests",
+    "category": "Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["test", "pytest", "unittest", "assert", "mock", "integration", "ci", "regression"],
+    "system_instructions": "Test real behavior across realistic boundary cases using temp directories (`tmp_dir`) and isolated state overrides instead of over-mocking internals. Every test must pass reliably offline without timing-dependent flakiness."
+  },
+  {
+    "id": "eng_docker_oci",
+    "name": "Containers, Dockerfiles & OCI",
+    "category": "Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["docker", "podman", "container", "dockerfile", "compose", "oci", "image build"],
+    "system_instructions": "Use pinned base digests, multi-stage builds to exclude compilers from runtime layers, `.dockerignore` to keep context tiny, ordered layers (deps before app code), and run as a non-root UID with explicit healthchecks."
+  },
+  {
+    "id": "eng_ci_pipelines",
+    "name": "GitHub Actions & Release CI",
+    "category": "Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["github actions", "workflow", "yaml", "ci", "cd", "artifact", "release", "build"],
+    "system_instructions": "Pin action major versions (`actions/checkout@v4`), fail fast on lint/compile before heavy packaging steps, matrix cross-platform builds cleanly (`ubuntu-latest` / `windows-latest`), and avoid echoing secrets or interpolating untrusted PR text into shell commands."
+  },
+  {
+    "id": "eng_regex_parsing",
+    "name": "Linear-Time Parsing & Safe Regex",
+    "category": "Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["regex", "parse", "parser", "ast", "lexer", "tokenizer", "json", "yaml", "markdown"],
+    "system_instructions": "Never parse nested/recursive grammars with backtracking regex alone; guard against catastrophic ReDoS `(a+)+` patterns, pre-compile hot patterns with `re.compile`, and prefer explicit state-machine/recursive-descent parsers or stdlib JSON/AST modules."
+  },
+  {
+    "id": "eng_vulkan_compute",
+    "name": "Vulkan Unified Memory & iGPU Tuning",
+    "category": "Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["vulkan", "vram", "igpu", "uma", "shared memory", "llama.cpp", "sd.cpp", "comfyui", "offload"],
+    "system_instructions": "On 16 GB unified-memory laptops (e.g. Radeon 780M), enforce strict single-engine ownership (0.0 GB idle before swapping models), offload giant text encoders (`umt5_xxl`) to CPU RAM while pinning UNet/VAE carefully, and avoid memory fragmentation across rapid jobs."
+  },
+  {
+    "id": "eng_ffmpeg_pipelines",
+    "name": "FFmpeg Filtergraphs & Mastering",
+    "category": "Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["ffmpeg", "ffprobe", "codec", "h264", "mp4", "webp", "lanczos", "unsharp", "fps", "bitrate", "encode"],
+    "system_instructions": "Keep intermediate passes lossless (`libx264 -crf 0` or PNG frames), apply `scale=W:H:flags=lanczos` + mild `unsharp=5:5:0.75:3:3:0.0` before final `-pix_fmt yuv420p -movflags +faststart` mastering, and match target GOP/bitrate cleanly."
+  },
+  {
+    "id": "eng_numpy_vectorization",
+    "name": "NumPy Vectorization & Lightweight ML",
+    "category": "Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["numpy", "matrix", "vector", "ml", "classifier", "logistic", "embedding", "cosine", "tfidf"],
+    "system_instructions": "Replace Python pixel/token loops with vectorized NumPy broadcasting (`float32`/`float64`), store compact model checkpoints cleanly in `.npz`, avoid unnecessary full-framework runtime overhead (`torch`) inside UI inference gates, and stabilize logs/exps cleanly."
+  },
+  {
+    "id": "eng_refactoring_craft",
+    "name": "Clean Architecture & Zero Duplication",
+    "category": "Engineering",
+    "author": "Vimona Core",
+    "trigger_keywords": ["refactor", "clean code", "architecture", "module", "decouple", "spaghetti", "helper"],
+    "system_instructions": "Keep functions single-purpose with shallow nesting and early returns; extract shared helpers instead of duplicating near-identical blocks; parameterize variants via tables/mappings; keep refactors tightly scoped to the requested change."
+  }
+]

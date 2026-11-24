@@ -1,0 +1,100 @@
+[
+  {
+    "id": "pony_token_hierarchy",
+    "name": "Pony V6 XL Token Ordering",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["pony", "sdxl", "keyframe", "quality tags", "prompt format"],
+    "system_instructions": "Lead Pony V6 XL prompts cleanly with `score_9, score_8_up, score_7_up, score_6_up`, choose `source_realistic` for DSLR photography or `source_anime` for cel art, then place concrete subject, pose, lens, and light tokens in descending priority.",
+    "negative_prompt_patch": "score_4, score_3, score_2, score_1, watermark, text signature"
+  },
+  {
+    "id": "pony_character_lock",
+    "name": "Multi-Turn Character Continuity Lock",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["same character", "keep outfit", "continuity", "follow up", "change scene"],
+    "system_instructions": "On follow-ups ('put her in snow', 'make him turn left'), carry forward exact eye color, hair cut, scar/jewelry, and key jacket/armor tags verbatim before swapping setting/lighting/camera tokens."
+  },
+  {
+    "id": "pony_east_asian_street",
+    "name": "Authentic East Asian Alley Craft",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["tokyo", "shinjuku", "osaka", "seoul", "izakaya", "lantern", "konbini"],
+    "system_instructions": "Include overhead utility powerlines, vending machine cool spill light, damp tiled narrow pavement, warm paper chochin lanterns, and compact kei-truck/scooter scale."
+  },
+  {
+    "id": "pony_european_cobblestone",
+    "name": "European Old-Town Cobblestone",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["paris", "prague", "london", "rome", "cobblestone", "cafe terrace", "europe"],
+    "system_instructions": "Render damp irregular granite cobbles, patinated green copper mansard roofs, wrought-iron balcony railings, and warm brass interior bistro glow."
+  },
+  {
+    "id": "pony_brutalist_concrete",
+    "name": "Monolithic Brutalist Geometry",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["brutalist", "concrete", "monolith", "bunker", "modernist", "museum wall"],
+    "system_instructions": "Capture timber-formwork board textures poured in raw concrete, stark geometric skylight cuts across walls, minimal moss streaks, and solitary human scale figure."
+  },
+  {
+    "id": "pony_mecha_weathering",
+    "name": "Weathered Mecha & Mechanical Craft",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["robot", "mecha", "exosuit", "cybernetic", "titanium", "hangar"],
+    "system_instructions": "Specify micro-scratched matte olive/slate armor paint, hydraulic fluid grime near joints, riveted maintenance hatches, amber caution stencils, and massive gantry cranes overhead."
+  },
+  {
+    "id": "pony_period_costume",
+    "name": "Period Textile & Armor Grounding",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["samurai", "viking", "victorian", "renaissance", "cloak", "leather armor"],
+    "system_instructions": "Describe authentic construction: hand-stitched linen seams, tarnished brass buckles, oiled suede mud splash at hem, layered wool weight, and true period tailoring."
+  },
+  {
+    "id": "pony_minimalist_bauhaus",
+    "name": "Tactile Bauhaus & Nordic Minimal",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["bauhaus", "nordic design", "oak", "travertine", "minimalist room"],
+    "system_instructions": "Highlight honest tactile craft: travertine stone pore grain, warm oiled white oak joints, bouclé wool upholstery, brushed aluminum, and clean directional daylight shadows."
+  },
+  {
+    "id": "pony_botanical_conservatory",
+    "name": "Victorian Iron Glasshouse & Flora",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["greenhouse", "botanical", "forest", "moss", "fern", "jungle", "garden"],
+    "system_instructions": "Fill frame with translucent backlit fern fronds, moisture droplets beading on misted iron glass panes, rich dark peat soil, and multi-plane botanical depth."
+  },
+  {
+    "id": "pony_workshop_atelier",
+    "name": "Master Craftsman Workshop Bench",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["workshop", "studio", "workbench", "watchmaker", "blacksmith", "painter"],
+    "system_instructions": "Stage tactile hand tools (`brass vernier calipers, wood planes, oil rags, glass jars, pencil shavings`) warmed by an articulated gooseneck task lamp."
+  },
+  {
+    "id": "pony_matte_paint_vista",
+    "name": "Epic Matte-Painting Scale",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["epic scale", "citadel", "canyon", "cliffside city", "monument", "vista"],
+    "system_instructions": "Use tiny atmospheric human/caravan scale anchors, flock silhouettes, waterfall mist trails, and distinct blue-haze depth separation so structures feel kilometers tall."
+  },
+  {
+    "id": "pony_zero_artifact_neg",
+    "name": "Surgical Negative Hygiene",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["clean render", "no artifacts", "sharp", "fix hands", "fix face"],
+    "system_instructions": "Keep negative prompts targeted against anatomical deformation and compression clutter without over-penalizing organic film grain, bokeh, or expressive shadows.",
+    "negative_prompt_patch": "deformed iris, cross-eyed, extra digits, fused fingers, jpeg artifacts, signature"
+  }
+]

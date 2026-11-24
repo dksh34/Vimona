@@ -1,0 +1,114 @@
+[
+  {
+    "id": "web_source_triangulation",
+    "name": "Multi-Source Fact Triangulation",
+    "category": "Web Research",
+    "author": "Vimona Core",
+    "trigger_keywords": ["verify", "fact check", "cross check", "sources", "true or false", "accurate"],
+    "system_instructions": "Never rely on a single scraped blog snippet for critical facts: compare primary specifications, official documentation, and independent engineering reports, surfacing any discrepancy explicitly."
+  },
+  {
+    "id": "web_primary_docs_first",
+    "name": "Official Specs & Primary Docs First",
+    "category": "Web Research",
+    "author": "Vimona Core",
+    "trigger_keywords": ["docs", "documentation", "manual", "rfc", "release notes", "specification", "changelog"],
+    "system_instructions": "Weight official project repositories, vendor datasheets, man pages, and RFCs far above SEO aggregator tutorials when synthesizing API flags, limits, or CLI syntax."
+  },
+  {
+    "id": "web_visual_ref_curation",
+    "name": "Visual Reference Token Distillation",
+    "category": "Web Research",
+    "author": "Vimona Core",
+    "trigger_keywords": ["reference image", "look up style", "real car", "real outfit", "architecture ref", "aesthetic ref"],
+    "system_instructions": "Translate inspected `/dev/shm` visual references into concrete material tokens: exact body panel curves, era-correct signage typography, fabric weave, color temperature, and lens framing."
+  },
+  {
+    "id": "web_date_recency_audit",
+    "name": "Recency & Deprecation Check",
+    "category": "Web Research",
+    "author": "Vimona Core",
+    "trigger_keywords": ["latest", "current", "2025", "2026", "deprecated", "new version", "recent"],
+    "system_instructions": "Always surface explicit publication/release dates and software version numbers found in retrieved pages so stale 2021 tutorials aren't presented as current defaults."
+  },
+  {
+    "id": "web_fact_vs_opinion",
+    "name": "Separate Telemetry From Opinion",
+    "category": "Web Research",
+    "author": "Vimona Core",
+    "trigger_keywords": ["review", "worth it", "opinion", "consensus", "controversy"],
+    "system_instructions": "Distinguish measurable benchmarks/facts cleanly from community sentiment and identify conflict-of-interest promotional claims clearly."
+  },
+  {
+    "id": "web_url_inspection",
+    "name": "Single-Page Content Distillation",
+    "category": "Web Research",
+    "author": "Vimona Core",
+    "trigger_keywords": ["http", "https", "url", "webpage", "read page", "link"],
+    "system_instructions": "Extract core thesis, hard parameters, dates, and code snippets directly from retrieved DOM text cleanly while discarding navigation bars, cookie banners, and ad chrome."
+  },
+  {
+    "id": "web_code_example_verify",
+    "name": "Flag & Signature Verification",
+    "category": "Web Research",
+    "author": "Vimona Core",
+    "trigger_keywords": ["cli flag", "api signature", "library version", "import error"],
+    "system_instructions": "Verify exact CLI flags, function signatures, and package names strictly against fetched documentation snippets; never hallucinate unprinted flags."
+  },
+  {
+    "id": "web_benchmark_scrutiny",
+    "name": "Benchmark Methodology Audit",
+    "category": "Web Research",
+    "author": "Vimona Core",
+    "trigger_keywords": ["benchmark", "fps", "speed comparison", "gpu", "cpu", "tokens"],
+    "system_instructions": "Inspect quantization level (`Q4_K_M` vs `FP16`), resolution, step counts, VRAM/UMA capacity, and hardware SKU alongside reported throughput numbers."
+  },
+  {
+    "id": "web_zero_hallucination_cite",
+    "name": "Strict Retrieval Attribution",
+    "category": "Web Research",
+    "author": "Vimona Core",
+    "trigger_keywords": ["cite", "citation", "source link", "evidence", "proof online"],
+    "system_instructions": "Cite only URLs, quotes, and numbers actually observed inside the `/dev/shm` sandbox output of the current session; explicitly state when a claim lacked direct verification."
+  },
+  {
+    "id": "web_product_comparison",
+    "name": "Spec-vs-Spec Hardware & Tool Grid",
+    "category": "Web Research",
+    "author": "Vimona Core",
+    "trigger_keywords": ["compare hardware", "specs", "best gpu", "laptop", "router", "monitor"],
+    "system_instructions": "Normalize researched candidates into a concise table matching architecture, power draw, memory bandwidth, price tier, and known firmware caveats."
+  },
+  {
+    "id": "web_error_message_triage",
+    "name": "Upstream Bug & Error Tracing",
+    "category": "Web Research",
+    "author": "Vimona Core",
+    "trigger_keywords": ["github issue", "stack overflow", "traceback search", "error online"],
+    "system_instructions": "Match exact error strings, OS/distro version, and driver series when researching known workarounds, favoring confirmed maintainer fixes over blind flag cargo-culting."
+  },
+  {
+    "id": "web_historical_context",
+    "name": "Historical & Cultural Authenticity",
+    "category": "Web Research",
+    "author": "Vimona Core",
+    "trigger_keywords": ["1980s", "1990s", "historical", "period", "vintage", "decade", "uniform"],
+    "system_instructions": "Ground retro scenes in researched period specifics: authentic electronics silhouettes, typeface styles, vehicle taillights, streetlamps, and fabric cuts of that exact decade."
+  },
+  {
+    "id": "web_academic_synthesis",
+    "name": "Paper Hypothesis & Metrics Digest",
+    "category": "Web Research",
+    "author": "Vimona Core",
+    "trigger_keywords": ["paper", "arxiv", "research", "study", "ablation", "abstract"],
+    "system_instructions": "Summarize papers cleanly into Core Mechanism, Dataset/Eval Setup, Key Ablation Gains, and Practical Limitations/Compute Cost."
+  },
+  {
+    "id": "web_ephemeral_hygiene",
+    "name": "RAM-Only Privacy & Wipe Discipline",
+    "category": "Web Research",
+    "author": "Vimona Core",
+    "trigger_keywords": ["privacy", "incognito", "zero trace", "burn", "anonymous search"],
+    "system_instructions": "Never persist cookies, browser history, or cache onto SSD; pull minimal bytes strictly in `/dev/shm`, wipe cleanly via `scorched_earth_wipe()`, and inspect safely behind SafeBlur."
+  }
+]

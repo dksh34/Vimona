@@ -1,0 +1,194 @@
+[
+  {
+    "id": "vid_wan_causvid_tuning",
+    "name": "Wan 2.1 VACE + CausVid Pacing",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["wan", "comfyui", "video", "clip", "animate", "vace", "causvid", "seconds"],
+    "system_instructions": "For Wan 2.1 VACE 1.3B + CausVid 6-step rendering, specify ONE clear primary camera vector plus 1–2 physically grounded secondary motions (mist drift, cape flutter, light shimmer) rather than cramming chaotic multi-scene cuts into 4s windows."
+  },
+  {
+    "id": "vid_temporal_anchor_lock",
+    "name": "Cross-Window Identity & Anchor Lock",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["consistent", "smooth video", "morph", "flicker", "continuity", "sliding window"],
+    "system_instructions": "Keep clothing silhouette, face angle range, lighting color temperature, and background landmarks explicit across sliding window descriptions so end-frame -> next-window anchors do not drift."
+  },
+  {
+    "id": "vid_cloth_hair_inertia",
+    "name": "Fabric & Hair Secondary Inertia",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["hair", "cape", "coat", "dress", "wind", "silk", "cloth"],
+    "system_instructions": "Describe delayed physical follow-through: coat hem billowing backward after footsteps, loose hair strands lifting smoothly in crosswind, subtle sleeve creasing under shoulder swing."
+  },
+  {
+    "id": "vid_slow_motion_120fps",
+    "name": "High-Shutter Slow-Motion Physics",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["slow motion", "slowmo", "120fps", "splash", "shatter", "suspended"],
+    "system_instructions": "Anchor slow-motion prompts on `120fps slow motion, crisp short shutter, suspended micro-droplets rotating slowly through air`, avoiding smeared low-shutter trails."
+  },
+  {
+    "id": "vid_ocean_wave_physics",
+    "name": "Ocean Swell & Crest Curl Motion",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["ocean", "waves", "sea", "surf", "shore", "tide", "beach"],
+    "system_instructions": "Describe forward swell propagation smoothly folding into translucent turquoise lip, white crest spray aerosolizing into coastal wind, and receding foam lacing wet sand."
+  },
+  {
+    "id": "vid_rain_streak_splashes",
+    "name": "Rain Streaks & Puddle Impact Ripples",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["falling rain", "downpour", "rain video", "thunderstorm", "puddle ripple"],
+    "system_instructions": "Keep diagonal falling rain streaks varied by depth plane, add tiny concentric crown splashes erupting over lit puddles, and subtle umbrella runoff streams."
+  },
+  {
+    "id": "vid_fire_smoke_convection",
+    "name": "Buoyant Flame & Turbulent Plume",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["flame", "smoke", "torch", "explosion", "sparks", "campfire video"],
+    "system_instructions": "Drive upward buoyant thermal acceleration: golden yellow flame base tapering into curling orange tongues and billowing semi-translucent smoke catching warm underside illumination."
+  },
+  {
+    "id": "vid_dust_motes_drift",
+    "name": "Illuminated Sunbeam Dust Drift",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["dust", "pollen", "sunbeam", "quiet room", "forest beam"],
+    "system_instructions": "Add slow eddy-like floating dust motes catching tight golden shafts of sunlight across still interior air to give static environments unmistakable living depth."
+  },
+  {
+    "id": "vid_vehicle_suspension",
+    "name": "Grounded Vehicle Pitch & Tire Spin",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["driving", "car video", "racing", "motorcycle", "train", "wheels"],
+    "system_instructions": "Keep rubber tires touching clean ground shadows constantly while emphasizing subtle suspension body roll, spinning spoke blur, road reflection streaming past fenders, and steady camera chase spacing."
+  },
+  {
+    "id": "vid_character_walk_weight",
+    "name": "Natural Walk Cycle & Weight Shift",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["walking", "stroll", "stepping", "pacing", "crossing street"],
+    "system_instructions": "Describe heel-to-toe weight transfer, natural gentle hip and shoulder counter-swing, confident relaxed arm cadence, and steady eye direction along travel vector."
+  },
+  {
+    "id": "vid_martial_strike_arc",
+    "name": "Martial Anticipation & Follow-Through",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["fight", "combat", "sword", "punch", "kick", "duel", "parry"],
+    "system_instructions": "Break action cleanly into coiling anticipation, crisp directional blade/fist arc, dust/spark impact recoil, and balanced end-stance hold so Wan renders clear silhouette readability."
+  },
+  {
+    "id": "vid_facial_microexpression",
+    "name": "Subtle Breath, Blink & Gaze Shift",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["blinking", "breathing", "turning head", "smiling", "gaze", "close up video"],
+    "system_instructions": "Keep facial motion restrained and organic: calm chest rise on inhale, unhurried natural eyelid blink, subtle corner-of-mouth shift, and gentle head turn holding eye sharpness."
+  },
+  {
+    "id": "vid_aerial_mist_timelapse",
+    "name": "Alpine Mist & Dawn Cloud Glide",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["mist", "clouds", "peaks", "alpine", "sunrise video", "glacier"],
+    "system_instructions": "Combine slow unwavering forward drone glide with silky valley mist cascading over rock saddles and warm sunrise light slowly brightening sharp granite and snow crests."
+  },
+  {
+    "id": "vid_crowd_ambient_life",
+    "name": "Layered Crowd Depth & Parallax",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["crowd", "market", "bazaar", "pedestrians", "station crowd"],
+    "system_instructions": "Keep a softly defocused foreground passerby occasionally crossing edge of frame while hero remains anchored sharp and distant pedestrians stroll unhurriedly across background light."
+  },
+  {
+    "id": "vid_snowfall_parallax",
+    "name": "Depth-Layered Wind Snowfall",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["snow", "snowing", "blizzard", "winter", "flakes"],
+    "system_instructions": "Layer large soft defocused foreground snowflakes crossing fast against thousands of tiny crisp mid-ground flakes illuminated inside warm streetlamp cones."
+  },
+  {
+    "id": "vid_neon_sign_flicker",
+    "name": "Practical Neon Pulse & Wet Glow",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["neon sign", "flickering", "alley night", "shop sign"],
+    "system_instructions": "Use subtle realistic voltage hum pulses in overhead glass signage synced with wet concrete reflection shimmer while keeping camera trajectory calm."
+  },
+  {
+    "id": "vid_timelapse_cloud_light",
+    "name": "Accelerated Sunlight & Cloud Shadows",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["timelapse", "shadows moving", "clouds racing", "sunset timelapse"],
+    "system_instructions": "Keep foreground architecture or ridgeline tripod-locked while fast-drifting cloud shadows sweep rhythmically over slopes and sky shifts amber to violet."
+  },
+  {
+    "id": "vid_pouring_liquid",
+    "name": "Laminar Liquid Pour & Swirl",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["pouring", "coffee pour", "wine", "waterfall", "stream"],
+    "system_instructions": "Focus on glossy continuous amber/crystal liquid ribbon curling smoothly into vessel, micro-bubbles forming along surface foam, and gentle steam tendrils lifting upward."
+  },
+  {
+    "id": "vid_leaves_turbulence",
+    "name": "Wind Gust & Drifting Foliage",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["leaves", "cherry blossom", "autumn", "petals", "trees wind"],
+    "system_instructions": "Sway branch tips organically in unified gust waves while detached sakura petals or golden autumn leaves spiral gracefully across backlit depth."
+  },
+  {
+    "id": "vid_camera_parallax_clean",
+    "name": "Clean Parallax Without Texture Boil",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["smooth pan", "glide", "parallax", "clean motion"],
+    "system_instructions": "Avoid frantic multi-axis camera spinning; keep horizontal/forward velocity smooth and predictable so Wan preserves crisp wood, stone, and foliage micro-detail."
+  },
+  {
+    "id": "vid_cut_pacing_4s",
+    "name": "4-Second Action Beat Architecture",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["multi window", "8s", "16s", "24s", "sequence", "beat"],
+    "system_instructions": "Write self-contained 4-second physical verbs per window (`enters doorway -> pauses -> turns under rain`) with explicit entry and exit states linking adjacent clips seamlessly."
+  },
+  {
+    "id": "vid_dslr_sharpness",
+    "name": "DSLR Edge Crispness Over Smooth Blur",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["dslr", "crisp video", "sharp video", "cinema video", "high detail video"],
+    "system_instructions": "Describe crisp tactile micro-surfaces (`granite facets, wool fibers, clean optical contrast, natural film dynamic range`), preventing muddy temporal over-smoothing."
+  },
+  {
+    "id": "vid_train_window_transit",
+    "name": "Train Window Motion Contrast",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["train", "subway ride", "car interior", "window view"],
+    "system_instructions": "Hold passenger cabin seat and glass condensation tranquil inside frame while coastal cliffs or city lights streak horizontally outside the pane."
+  },
+  {
+    "id": "vid_zero_g_drift",
+    "name": "Zero-Gravity Momentum & Drift",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["zero gravity", "floating", "spacewalk", "astronaut", "weightless"],
+    "system_instructions": "Convey frictionless conservation of momentum: slow gentle body rotation, floating tether slack, loose droplets, and harsh unfiltered directional sunlight against pitch black void."
+  }
+]

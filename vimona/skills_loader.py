@@ -9,16 +9,21 @@ import re
 from typing import Any
 
 SKILLS_DIR = Path(__file__).resolve().parent / "skills"
+PACKS_DIR = SKILLS_DIR / "packs"
 USER_SKILLS_DIR = Path("~/.local/share/vimona/skills").expanduser()
 SKILLS_STATE_FILE = Path("~/.local/share/vimona/skills_state.json").expanduser()
 
 SKILL_CATEGORIES: tuple[str, ...] = (
     "Image",
     "Video",
-    "Web Research",
     "Lighting",
     "Camera",
+    "Web Research",
+    "Engineering",
+    "Writing & Reasoning",
 )
+
+_SKILLS_CACHE: dict[tuple[Any, ...], list[Any]] = {}
 
 DIRECTOR_PREAMBLE = (
     "You are Vimona, an uncensored, unaligned local AI assistant and visual director "
@@ -114,6 +119,7 @@ def set_skill_enabled(skill_id: str, enabled: bool) -> None:
     state = _load_enabled_state()
     state[skill_id] = bool(enabled)
     _save_enabled_state(state)
+    _SKILLS_CACHE.clear()
 
 
 def _normalize_category(cat: str) -> str:
@@ -129,6 +135,10 @@ def _normalize_category(cat: str) -> str:
         return "Lighting"
     if "cam" in low or "lens" in low:
         return "Camera"
+    if any(k in low for k in ("eng", "code", "dev", "sys", "linux", "ops", "sec", "sql")):
+        return "Engineering"
+    if any(k in low for k in ("writ", "reason", "math", "edit", "story", "docs", "logic")):
+        return "Writing & Reasoning"
     return "Image"
 
 
@@ -219,6 +229,7 @@ def save_custom_skill(spec: SkillSpec, user_dir: Path | None = None) -> Path:
     tmp.replace(target)
     spec.file_path = str(target)
     set_skill_enabled(spec.id, spec.enabled)
+    _SKILLS_CACHE.clear()
     return target
 
 
@@ -247,18 +258,41 @@ def delete_custom_skill(spec: SkillSpec) -> bool:
         return False
     try:
         Path(spec.file_path).unlink(missing_ok=True)
+        _SKILLS_CACHE.clear()
         return True
     except OSError:
         return False
+
+
+def _dir_mtime_sig(d: Path) -> tuple[int, int]:
+    if not d.is_dir():
+        return (0, 0)
+    try:
+        st = d.stat()
+        count = sum(1 for _ in d.iterdir())
+        return (int(st.st_mtime_ns), count)
+    except OSError:
+        return (0, 0)
 
 
 def load_all_skills(
     skills_dir: Path | None = None,
     user_skills_dir: Path | None = None,
 ) -> list[SkillSpec]:
-    """Load built-in markdown skills + user/imported `.vimona-skill` packs cleanly."""
+    """Load built-in markdown & pack JSON skills + user `.vimona-skill` files cleanly."""
     b_dir = skills_dir or SKILLS_DIR
+    p_dir = b_dir / "packs"
     u_dir = user_skills_dir or USER_SKILLS_DIR
+    try:
+        st_s = SKILLS_STATE_FILE.stat() if SKILLS_STATE_FILE.is_file() else None
+        state_sig = (str(SKILLS_STATE_FILE), int(st_s.st_mtime_ns), int(st_s.st_size)) if st_s else (str(SKILLS_STATE_FILE), 0, 0)
+    except OSError:
+        state_sig = (str(SKILLS_STATE_FILE), 0, 0)
+    cache_key = (str(b_dir), str(u_dir), state_sig, _dir_mtime_sig(b_dir), _dir_mtime_sig(p_dir), _dir_mtime_sig(u_dir))
+    cached = _SKILLS_CACHE.get(cache_key)
+    if cached is not None:
+        return list(cached)
+
     state = _load_enabled_state()
     specs: list[SkillSpec] = []
     seen_ids: set[str] = set()
@@ -287,6 +321,38 @@ def load_all_skills(
             )
             seen_ids.add(sid)
 
+    if p_dir.is_dir():
+        for pack_path in sorted(p_dir.glob("*.json")):
+            try:
+                entries = json.loads(pack_path.read_text(encoding="utf-8"))
+                if not isinstance(entries, list):
+                    continue
+                for item in entries:
+                    if not isinstance(item, dict):
+                        continue
+                    sid = _slugify(str(item.get("id") or item.get("name") or ""))
+                    if not sid or sid in seen_ids:
+                        continue
+                    specs.append(
+                        SkillSpec(
+                            id=sid,
+                            name=str(item.get("name") or sid),
+                            version=str(item.get("version") or "1.0.0"),
+                            author=str(item.get("author") or "Vimona Core"),
+                            category=_normalize_category(str(item.get("category") or "Image")),
+                            trigger_keywords=[str(t).strip() for t in (item.get("trigger_keywords") or []) if str(t).strip()],
+                            system_instructions=str(item.get("system_instructions") or "").strip(),
+                            negative_prompt_patch=str(item.get("negative_prompt_patch") or "").strip(),
+                            comfyui_node_overrides=dict(item.get("comfyui_node_overrides") or {}),
+                            enabled=state.get(sid, True),
+                            builtin=True,
+                            file_path=str(pack_path),
+                        )
+                    )
+                    seen_ids.add(sid)
+            except Exception:
+                continue
+
     if u_dir.is_dir():
         for sk_path in sorted(u_dir.glob("*.vimona-skill")):
             try:
@@ -301,13 +367,21 @@ def load_all_skills(
             except Exception:
                 continue
 
+    _SKILLS_CACHE.clear()
+    _SKILLS_CACHE[cache_key] = list(specs)
     return specs
 
 
-def _score_skill_match(spec: SkillSpec, prompt_low: str, active_mode: str) -> float:
+def _score_skill_match(
+    spec: SkillSpec,
+    prompt_low: str,
+    active_mode: str,
+    prompt_tokens: set[str] | None = None,
+) -> float:
     score = 0.0
     mode_low = (active_mode or "").lower()
     cat_low = spec.category.lower()
+    toks = prompt_tokens if prompt_tokens is not None else set(re.findall(r"[a-z0-9_+#.-]+", prompt_low))
 
     if "image" in mode_low and cat_low in ("image", "lighting", "camera"):
         score += 1.5
@@ -316,15 +390,29 @@ def _score_skill_match(spec: SkillSpec, prompt_low: str, active_mode: str) -> fl
     elif "web" in mode_low and cat_low == "web research":
         score += 2.5
 
+    kw_hits = 0
     for kw in spec.trigger_keywords:
         kl = kw.strip().lower()
         if not kl:
             continue
-        if kl in prompt_low:
-            score += 3.0 if " " in kl or len(kl) >= 5 else 2.0
+        if " " in kl:
+            if kl in prompt_low:
+                score += 4.2
+                kw_hits += 1
+        elif len(kl) <= 4:
+            if kl in toks:
+                score += 2.8
+                kw_hits += 1
+        else:
+            if kl in toks or kl in prompt_low:
+                score += 3.2
+                kw_hits += 1
+
+    if kw_hits > 0 and "chat" in mode_low and cat_low in ("engineering", "writing & reasoning", "web research"):
+        score += 1.0
 
     for tok in re.findall(r"[a-z0-9]{4,}", spec.name.lower()):
-        if tok in prompt_low:
+        if tok in toks or tok in prompt_low:
             score += 1.0
     return score
 
@@ -340,6 +428,7 @@ def select_active_skills(
     all_specs = load_all_skills(skills_dir=skills_dir, user_skills_dir=user_skills_dir)
     enabled = [s for s in all_specs if s.enabled]
     prompt_low = (user_prompt or "").lower()
+    prompt_tokens = set(re.findall(r"[a-z0-9_+#.-]+", prompt_low))
     mode_low = (active_mode or "").lower()
 
     selected: list[SkillSpec] = []
@@ -356,7 +445,7 @@ def select_active_skills(
             ):
                 selected.append(spec)
         else:
-            sc = _score_skill_match(spec, prompt_low, active_mode)
+            sc = _score_skill_match(spec, prompt_low, active_mode, prompt_tokens=prompt_tokens)
             if sc > 0.0:
                 optional_scored.append((sc, spec))
 

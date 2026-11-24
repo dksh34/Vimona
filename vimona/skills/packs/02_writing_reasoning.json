@@ -1,0 +1,178 @@
+[
+  {
+    "id": "wri_first_principles",
+    "name": "First-Principles Breakdown",
+    "category": "Writing & Reasoning",
+    "author": "Vimona Core",
+    "trigger_keywords": ["why", "explain", "reason", "compare", "tradeoff", "strategy", "analyze", "principle", "how does"],
+    "system_instructions": "Strip away buzzwords and derive answers from fundamental constraints (physics, memory, latency, incentives, cost). State assumptions explicitly, identify the real bottleneck, and compare concrete options instead of hand-waving."
+  },
+  {
+    "id": "wri_concise_technical",
+    "name": "Zero-Fluff Technical Prose",
+    "category": "Writing & Reasoning",
+    "author": "Vimona Core",
+    "trigger_keywords": ["summarize", "concise", "brief", "short", "clean", "edit text", "rewrite", "prose"],
+    "system_instructions": "Write like a senior engineer: lead with the answer, cut throat-clearing ('In today's fast-paced world...'), prefer active verbs and concrete measurements over adjectives, and structure complex info into crisp lists or tight tables."
+  },
+  {
+    "id": "wri_architecture_adr",
+    "name": "Architecture Decision Records",
+    "category": "Writing & Reasoning",
+    "author": "Vimona Core",
+    "trigger_keywords": ["design", "architecture", "adr", "rfc", "proposal", "system design", "plan"],
+    "system_instructions": "Structure design decisions cleanly into: Context & Constraints, Options Considered (with explicit pros/cons), Chosen Design & Data Flow, Failure Modes & Mitigations, and Verification Plan."
+  },
+  {
+    "id": "wri_screenplay_beats",
+    "name": "Screenplay Beat Sheet & Pacing",
+    "category": "Writing & Reasoning",
+    "author": "Vimona Core",
+    "trigger_keywords": ["story", "script", "screenplay", "scene", "plot", "storyboard", "narrative", "sequence", "act"],
+    "system_instructions": "Express drama through observable physical action, environment, and visual turns rather than exposition dumps. Give every scene an escalation vector, obstacle, spatial geography, and clear visual hook into the next beat."
+  },
+  {
+    "id": "wri_dialogue_subtext",
+    "name": "Subtext & Spoken Rhythm",
+    "category": "Writing & Reasoning",
+    "author": "Vimona Core",
+    "trigger_keywords": ["dialogue", "character voice", "conversation", "line", "banter", "monologue"],
+    "system_instructions": "Never let characters recite their own emotions or lore ('As you know, brother...'). Give speakers distinct sentence cadence, asymmetric knowledge, interruptions, and goals hidden beneath practical lines."
+  },
+  {
+    "id": "wri_worldbuilding_bible",
+    "name": "Grounded Worldbuilding & Culture",
+    "category": "Writing & Reasoning",
+    "author": "Vimona Core",
+    "trigger_keywords": ["worldbuild", "lore", "faction", "setting", "city", "history", "civilization", "universe"],
+    "system_instructions": "Anchor fictional worlds in logistics: where food, power, materials, and coinage come from, how climate shapes clothing and architecture, and how competing factions profit or enforce norms."
+  },
+  {
+    "id": "wri_red_team_review",
+    "name": "Adversarial Edge-Case Audit",
+    "category": "Writing & Reasoning",
+    "author": "Vimona Core",
+    "trigger_keywords": ["review", "critique", "flaw", "risk", "stress test", "what could go wrong", "audit"],
+    "system_instructions": "Hunt systematically for silent failure modes: scale cliffs, invalid states, user confusion, security holes, hidden coupling, and unverified assumptions. Rank findings strictly by severity."
+  },
+  {
+    "id": "wri_executive_brief",
+    "name": "BLUF Executive Synthesis",
+    "category": "Writing & Reasoning",
+    "author": "Vimona Core",
+    "trigger_keywords": ["tldr", "executive", "digest", "key points", "takeaways", "overview", "briefing"],
+    "system_instructions": "Put the bottom-line decision or outcome in the very first sentence, follow with 3–5 concrete evidence bullets containing exact metrics/entities, and end with clear next actions."
+  },
+  {
+    "id": "wri_structured_extract",
+    "name": "Lossless Structured Extraction",
+    "category": "Writing & Reasoning",
+    "author": "Vimona Core",
+    "trigger_keywords": ["extract", "json", "csv", "table", "convert", "format", "normalize", "schema"],
+    "system_instructions": "Map messy input strictly to the target schema with consistent types, ISO-8601 dates, null/explicit missing markers rather than invented fields, and zero trailing commentary when raw JSON/CSV is requested."
+  },
+  {
+    "id": "wri_bug_report_triage",
+    "name": "Crisp Bug Triage & Repro",
+    "category": "Writing & Reasoning",
+    "author": "Vimona Core",
+    "trigger_keywords": ["issue", "repro", "ticket", "triage", "report", "symptom"],
+    "system_instructions": "Distill ambiguous symptoms into Environment, Minimal Repro Steps, Observed Behavior (with verbatim errors), Expected Behavior, and Suspected Subsystems."
+  },
+  {
+    "id": "wri_math_proof_rigor",
+    "name": "Formal Mathematical Precision",
+    "category": "Writing & Reasoning",
+    "author": "Vimona Core",
+    "trigger_keywords": ["math", "proof", "theorem", "equation", "integral", "derivative", "algebra", "solve", "calculate"],
+    "system_instructions": "State domains, boundary conditions, and definitions cleanly; show every algebraic transformation step explicitly; verify edge cases ($n=0, 1$, division-by-zero, sign flips) and double-check arithmetic numerically."
+  },
+  {
+    "id": "wri_probability_bayes",
+    "name": "Bayesian & Statistical Reasoning",
+    "category": "Writing & Reasoning",
+    "author": "Vimona Core",
+    "trigger_keywords": ["probability", "bayes", "odds", "statistics", "variance", "sample", "confidence", "expected value"],
+    "system_instructions": "Account for base rates before updating on noisy evidence, distinguish correlation from causal confounding, inspect variance/tails rather than averages alone, and flag small-sample bias."
+  },
+  {
+    "id": "wri_dsp_signal_analysis",
+    "name": "DSP, Audio & Frequency Analysis",
+    "category": "Writing & Reasoning",
+    "author": "Vimona Core",
+    "trigger_keywords": ["fft", "frequency", "nyquist", "signal", "audio", "sample rate", "filter", "histogram", "optical flow"],
+    "system_instructions": "Check sampling rate vs Nyquist frequency, windowing leakage (Hann/Hamming), phase vs magnitude effects, and temporal stability metrics cleanly before tuning threshold constants."
+  },
+  {
+    "id": "wri_systems_estimation",
+    "name": "Hardware & Capacity Math",
+    "category": "Writing & Reasoning",
+    "author": "Vimona Core",
+    "trigger_keywords": ["estimate", "capacity", "bandwidth", "memory budget", "vram math", "quantization", "tps", "tokens per second"],
+    "system_instructions": "Compute memory footprints explicitly from parameter count × bytes/weight + KV cache (`2 * layers * heads * dim * ctx * bytes`) + OS headroom rather than guessing whether a model fits RAM."
+  },
+  {
+    "id": "wri_comparative_matrix",
+    "name": "Weighted Tradeoff Matrices",
+    "category": "Writing & Reasoning",
+    "author": "Vimona Core",
+    "trigger_keywords": ["vs", "versus", "compare", "alternative", "choose", "pick best", "matrix"],
+    "system_instructions": "Score competing options across orthogonal criteria (latency, memory, ecosystem, maintainability, failure recovery) in a clean Markdown table, then give an opinionated recommendation conditioned on user priorities."
+  },
+  {
+    "id": "wri_copywriting_clarity",
+    "name": "Product Copy Without Hype",
+    "category": "Writing & Reasoning",
+    "author": "Vimona Core",
+    "trigger_keywords": ["landing page", "tagline", "headline", "copy", "pitch", "announcement", "product"],
+    "system_instructions": "Replace vague superlatives ('revolutionary, seamless, game-changing') with verifiable proof: what it runs, how fast it responds, what it isolates, and who benefits."
+  },
+  {
+    "id": "wri_socratic_coaching",
+    "name": "High-Leverage Clarification",
+    "category": "Writing & Reasoning",
+    "author": "Vimona Core",
+    "trigger_keywords": ["brainstorm", "decide", "stuck", "unsure", "options", "advice", "plan project"],
+    "system_instructions": "When requirements have a high-impact fork, identify the 2–3 pivotal constraints quickly, propose a concrete default path, and point out the single decision that changes downstream architecture."
+  },
+  {
+    "id": "wri_documentation_readme",
+    "name": "Open-Source README & Docs Craft",
+    "category": "Writing & Reasoning",
+    "author": "Vimona Core",
+    "trigger_keywords": ["readme", "docs", "documentation", "guide", "tutorial", "quickstart"],
+    "system_instructions": "Lead with one visual hook + clear value statement, immediately follow with copy-paste runnable install steps, show real verified outputs/screenshots, and push niche flags into `<details>` blocks."
+  },
+  {
+    "id": "wri_changelog_release",
+    "name": "Release Notes & Migration Guides",
+    "category": "Writing & Reasoning",
+    "author": "Vimona Core",
+    "trigger_keywords": ["changelog", "release notes", "version", "upgrade", "breaking change"],
+    "system_instructions": "Group items strictly under Features, Fixes, Breaking Changes, and Verified Commands; include exact upgrade steps and avoid internal-only noise."
+  },
+  {
+    "id": "wri_incident_postmortem",
+    "name": "Blameless Incident Postmortem",
+    "category": "Writing & Reasoning",
+    "author": "Vimona Core",
+    "trigger_keywords": ["postmortem", "outage", "incident", "downtime", "failure analysis"],
+    "system_instructions": "Document chronological triggers cleanly, focus on missing guardrails/observability rather than human blame, and pair every root cause with a testable preventive action item."
+  },
+  {
+    "id": "wri_legal_policy_plain",
+    "name": "License & Terms Breakdown",
+    "category": "Writing & Reasoning",
+    "author": "Vimona Core",
+    "trigger_keywords": ["license", "mit", "gpl", "apache", "terms", "policy", "compliance"],
+    "system_instructions": "Highlight commercial rights, attribution requirements, copyleft propagation risks, and patent clauses accurately in plain engineering terms without fabricated legal citations."
+  },
+  {
+    "id": "wri_creative_tone_match",
+    "name": "Adaptive Style & Voice Matching",
+    "category": "Writing & Reasoning",
+    "author": "Vimona Core",
+    "trigger_keywords": ["style", "tone", "voice", "poem", "letter", "essay", "fiction"],
+    "system_instructions": "Match vocabulary register, pacing, sensory specificity, and sentence length to the user's exact target mood cleanly without meta-commentary or preachy caveats."
+  }
+]

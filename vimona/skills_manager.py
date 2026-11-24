@@ -43,6 +43,7 @@ class SkillsManagerOverlay(Gtk.Revealer):
         self._filter_cat: str = "All"
         self._search_text: str = ""
         self._creating: bool = False
+        self._visible_limit: int = 45
         self._cat_btns: dict[str, Gtk.Button] = {}
 
         self.set_transition_type(Gtk.RevealerTransitionType.CROSSFADE)
@@ -135,6 +136,9 @@ class SkillsManagerOverlay(Gtk.Revealer):
         bar.append(self._search_entry)
         page.append(bar)
 
+        cats_scroll = Gtk.ScrolledWindow()
+        cats_scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.NEVER)
+        cats_scroll.set_hexpand(True)
         cats_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         for cat in ("All", *SKILL_CATEGORIES):
             b = Gtk.Button(label=cat)
@@ -146,10 +150,11 @@ class SkillsManagerOverlay(Gtk.Revealer):
             b.connect("clicked", lambda _btn, c=cat: self._set_category_filter(c))
             self._cat_btns[cat] = b
             cats_row.append(b)
-        page.append(cats_row)
+        cats_scroll.set_child(cats_row)
+        page.append(cats_scroll)
 
         hint = Gtk.Label(
-            label="Enabled skills are ranked by trigger match; only the top 2–3 relevant skills are injected into Gemma per turn."
+            label="Domain skill library indexed locally; only the top 2–3 matching skills are injected per turn for zero context bloat."
         )
         hint.add_css_class("research-perm-note")
         hint.set_wrap(True)
@@ -267,10 +272,12 @@ class SkillsManagerOverlay(Gtk.Revealer):
 
     def _on_search_changed(self, entry: Gtk.SearchEntry) -> None:
         self._search_text = entry.get_text().strip().lower()
+        self._visible_limit = 45
         self._render_list()
 
     def _set_category_filter(self, cat: str) -> None:
         self._filter_cat = cat
+        self._visible_limit = 45
         for c, b in self._cat_btns.items():
             if c == cat:
                 b.add_css_class("selected")
@@ -294,7 +301,7 @@ class SkillsManagerOverlay(Gtk.Revealer):
             self._list_box.remove(c)
             c = nxt
 
-        shown = 0
+        matched: list[SkillSpec] = []
         for spec in self._skills:
             if self._filter_cat != "All" and spec.category.lower() != self._filter_cat.lower():
                 continue
@@ -302,14 +309,29 @@ class SkillsManagerOverlay(Gtk.Revealer):
                 hay = f"{spec.name} {spec.author} {spec.category} {' '.join(spec.trigger_keywords)} {spec.system_instructions}".lower()
                 if self._search_text not in hay:
                     continue
-            self._list_box.append(self._build_skill_card(spec))
-            shown += 1
+            matched.append(spec)
 
-        if shown == 0:
+        for spec in matched[: self._visible_limit]:
+            self._list_box.append(self._build_skill_card(spec))
+
+        remaining = len(matched) - self._visible_limit
+        if remaining > 0:
+            more_btn = Gtk.Button(label=f"Show {remaining} more matching skills ({len(matched)} total)")
+            more_btn.set_has_frame(False)
+            more_btn.add_css_class("mini-action-btn")
+            more_btn.set_cursor_from_name("pointer")
+            more_btn.connect("clicked", lambda _b: self._show_more_skills())
+            self._list_box.append(more_btn)
+
+        if not matched:
             empty = Gtk.Label(label="No skills match this filter. Click '+ Create Skill' or import a '.vimona-skill' file.")
             empty.add_css_class("research-perm-note")
             empty.set_margin_top(24)
             self._list_box.append(empty)
+
+    def _show_more_skills(self) -> None:
+        self._visible_limit += 150
+        self._render_list()
 
     def _build_skill_card(self, spec: SkillSpec) -> Gtk.Box:
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)

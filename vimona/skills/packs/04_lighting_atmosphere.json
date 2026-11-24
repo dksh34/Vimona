@@ -1,0 +1,194 @@
+[
+  {
+    "id": "lgt_golden_hour",
+    "name": "Low-Sun Golden Hour Rim",
+    "category": "Lighting",
+    "author": "Vimona Core",
+    "trigger_keywords": ["golden hour", "sunset", "sunrise", "warm sunlight", "dawn", "dusk", "amber sky"],
+    "system_instructions": "Specify `5-degree low-angle golden hour sun`, long crisp shadows, glowing translucent hair/ridge rim halos, warm atmospheric dust haze, and cool sky fill inside deep shadows."
+  },
+  {
+    "id": "lgt_blue_hour_twilight",
+    "name": "Cobalt Blue Hour + Warm Practicals",
+    "category": "Lighting",
+    "author": "Vimona Core",
+    "trigger_keywords": ["blue hour", "twilight", "evening", "early morning mist", "cobalt"],
+    "system_instructions": "Contrast cool deep-indigo ambient twilight sky (`7000K`) with isolated warm tungsten window/lantern practicals (`2700K`) for effortless cinematic depth."
+  },
+  {
+    "id": "lgt_rembrandt_triangle",
+    "name": "Rembrandt 45° Studio Key",
+    "category": "Lighting",
+    "author": "Vimona Core",
+    "trigger_keywords": ["rembrandt", "classic portrait lighting", "painterly portrait", "studio key"],
+    "system_instructions": "Place key light 45° off-axis and slightly above eyeline so a small crisp triangle of light illuminates the shadow-side cheek while preserving sculptural falloff."
+  },
+  {
+    "id": "lgt_chiaroscuro_noir",
+    "name": "Chiaroscuro & Noir Shadow Slicing",
+    "category": "Lighting",
+    "author": "Vimona Core",
+    "trigger_keywords": ["noir", "chiaroscuro", "dramatic shadows", "detective", "blinds", "high contrast"],
+    "system_instructions": "Push high key-to-fill contrast (`8:1`), hard-edged venetian blind/doorway shadow cuts, glowing cigarette/steam wisps catching narrow beams, and deep crushed blacks."
+  },
+  {
+    "id": "lgt_cyber_cyan_magenta",
+    "name": "Dual Split Neon Rim",
+    "category": "Lighting",
+    "author": "Vimona Core",
+    "trigger_keywords": ["cyan", "magenta", "neon light", "arcade", "club", "synthwave"],
+    "system_instructions": "Separate foreground subject cleanly using opposing cool electric cyan rim from left and warm magenta/amber storefront glow from right over dark wet environment."
+  },
+  {
+    "id": "lgt_overcast_softbox",
+    "name": "Overcast Diffused Sky Softbox",
+    "category": "Lighting",
+    "author": "Vimona Core",
+    "trigger_keywords": ["overcast", "cloudy", "foggy morning", "soft light", "nordic", "scotland"],
+    "system_instructions": "Use vast overcast cloud cover as a natural overhead softbox: smooth shadow transitions, rich saturated foliage/garment pigments, and crisp specular catches off damp surfaces."
+  },
+  {
+    "id": "lgt_volumetric_godrays",
+    "name": "Volumetric Light Shafts",
+    "category": "Lighting",
+    "author": "Vimona Core",
+    "trigger_keywords": ["god rays", "light beams", "forest mist", "dusty beams", "cathedral window", "volumetric"],
+    "system_instructions": "Drive visible crepuscular rays (`volumetric sunlight shafts piercing pine canopy / high arched windows`) illuminated by airborne dust, incense smoke, or valley mist."
+  },
+  {
+    "id": "lgt_candlelight_amber",
+    "name": "Intimate 1900K Candlelight Falloff",
+    "category": "Lighting",
+    "author": "Vimona Core",
+    "trigger_keywords": ["candle", "lantern", "fireplace", "warm glow", "study", "tavern", "1900k"],
+    "system_instructions": "Anchor practical illumination at `1900K` candle/lantern warmth with rapid inverse-square falloff fading into deep indigo room corners."
+  },
+  {
+    "id": "lgt_sodium_vapor_night",
+    "name": "Sodium-Vapor Night Street Ambience",
+    "category": "Lighting",
+    "author": "Vimona Core",
+    "trigger_keywords": ["streetlight", "parking lot", "late night", "underpass", "empty road"],
+    "system_instructions": "Mix harsh amber sodium-vapor pools (`2200K`) with cool moonless shadow voids, reflective asphalt sheen, and sharp shadow casting under shoes and vehicles."
+  },
+  {
+    "id": "lgt_silhouette_backlit",
+    "name": "Crisp Rim-Lit Silhouette",
+    "category": "Lighting",
+    "author": "Vimona Core",
+    "trigger_keywords": ["silhouette", "backlit", "against sun", "bright doorway", "rim light"],
+    "system_instructions": "Place strong directional light directly behind subject against haze/bright portal so core silhouette remains cleanly readable while blazing bright gold/white rims trace coat edges and hair."
+  },
+  {
+    "id": "lgt_water_reflection_bounce",
+    "name": "Specular Water Bounce Fill",
+    "category": "Lighting",
+    "author": "Vimona Core",
+    "trigger_keywords": ["lake light", "poolside", "harbor", "dock", "boat", "riverbank"],
+    "system_instructions": "Include subtle undulating upward bounce patterns reflected from sunlit water across underside arches, boat hulls, and subject jawline."
+  },
+  {
+    "id": "lgt_fluorescent_liminal",
+    "name": "Cool Fluorescent Tubes & Subway",
+    "category": "Lighting",
+    "author": "Vimona Core",
+    "trigger_keywords": ["subway", "hospital", "corridor", "fluorescent", "office night", "train station"],
+    "system_instructions": "Use overhead industrial `4500K` slightly green-shifted fluorescent tube rows receding down tiled corridors with crisp floor glare."
+  },
+  {
+    "id": "lgt_clamshell_beauty",
+    "name": "Clamshell Softwrap Glamour",
+    "category": "Lighting",
+    "author": "Vimona Core",
+    "trigger_keywords": ["glamour", "beauty shot", "clean studio", "skincare", "jewelry"],
+    "system_instructions": "Employ top octabox key paired with soft silver bottom fill reflector eliminating harsh under-eye shadows while keeping twin clean catchlights."
+  },
+  {
+    "id": "lgt_split_dramatic",
+    "name": "90° Hard Side Split Key",
+    "category": "Lighting",
+    "author": "Vimona Core",
+    "trigger_keywords": ["half shadow", "split light", "intense portrait", "fighter", "boxer"],
+    "system_instructions": "Cut illumination sharply across the center bridge of the face (`90-degree hard side key`), leaving one hemisphere intensely textured with sweat/scars and the other sunken into velvet dark."
+  },
+  {
+    "id": "lgt_firelight_embers",
+    "name": "Dynamic Firelight & Rising Sparks",
+    "category": "Lighting",
+    "author": "Vimona Core",
+    "trigger_keywords": ["fire", "bonfire", "campfire", "forge", "torch", "sparks", "hearth"],
+    "system_instructions": "Ground low upward orange flame key across faces and armor/wool folds while tiny glowing embers drift into cool night sky behind."
+  },
+  {
+    "id": "lgt_moonlit_silver",
+    "name": "Cold Moonlight & Shadow Retention",
+    "category": "Lighting",
+    "author": "Vimona Core",
+    "trigger_keywords": ["moonlight", "full moon", "midnight field", "silver light", "night forest"],
+    "system_instructions": "Keep night sky deep Prussian blue (`not crushed solid black`), tracing silver specular highlights along water ripples, leaves, and snowy ridges."
+  },
+  {
+    "id": "lgt_stained_glass_prism",
+    "name": "Chromatic Prism & Stained Glass",
+    "category": "Lighting",
+    "author": "Vimona Core",
+    "trigger_keywords": ["stained glass", "prism", "rainbow beam", "abbey", "church sun"],
+    "system_instructions": "Project crisp sapphire, ruby, and gold geometric light shards across stone pillars and clothing folds while surrounding vault shadows stay dusty and cool."
+  },
+  {
+    "id": "lgt_bioluminescent_glow",
+    "name": "Organic Bioluminescent Accent",
+    "category": "Lighting",
+    "author": "Vimona Core",
+    "trigger_keywords": ["bioluminescent", "jellyfish", "glowing fungus", "deep sea", "avatar forest"],
+    "system_instructions": "Anchor subtle localized teal/violet biological light emitters illuminating only immediate mist and bark within short radius against dark ambient canopy."
+  },
+  {
+    "id": "lgt_alpenglow_crest",
+    "name": "Rose-Gold Alpine Ridge Strike",
+    "category": "Lighting",
+    "author": "Vimona Core",
+    "trigger_keywords": ["alpenglow", "snow peak", "ridge sunrise", "alpine dawn", "summit"],
+    "system_instructions": "Contrast fiery rose-orange sun striking upper snow ridges against deep icy-cyan shaded mountain faces and misty valley floor."
+  },
+  {
+    "id": "lgt_fog_depth_planes",
+    "name": "Layered Aerial Mist Separation",
+    "category": "Lighting",
+    "author": "Vimona Core",
+    "trigger_keywords": ["fog", "mist", "haze", "layers", "ridge layers", "smoky"],
+    "system_instructions": "Separate foreground (`high-contrast dark silhouettes`), midground (`translucent suspended haze`), and distant horizon (`pale luminous fade`) cleanly across 3+ tonal depth planes."
+  },
+  {
+    "id": "lgt_stormfront_break",
+    "name": "Stormfront Cloud-Break Spotlight",
+    "category": "Lighting",
+    "author": "Vimona Core",
+    "trigger_keywords": ["storm clouds", "sunbeam", "thunderstorm", "dark sky", "highlands"],
+    "system_instructions": "Drive a sharp opening through bruised slate thunderheads casting one radiant sunlit patch over hillside rock or lighthouse while surrounding sea stays moody."
+  },
+  {
+    "id": "lgt_museum_spot",
+    "name": "Flagged Overhead Gallery Fresnel",
+    "category": "Lighting",
+    "author": "Vimona Core",
+    "trigger_keywords": ["stage", "spotlight", "theater", "gallery", "museum", "concert"],
+    "system_instructions": "Tightly shape beam spill via overhead soft-edge fresnel spot fading steeply into dark charcoal hall periphery."
+  },
+  {
+    "id": "lgt_teal_orange_grade",
+    "name": "Balanced Cinema Teal-Amber Grade",
+    "category": "Lighting",
+    "author": "Vimona Core",
+    "trigger_keywords": ["cinematic color", "blockbuster", "movie still", "film look", "color grade"],
+    "system_instructions": "Keep skin highlights natural warm peach/amber while deep shadows, metal, and night foliage settle cleanly toward subtle slate-teal without radioactive skin clipping."
+  },
+  {
+    "id": "lgt_high_key_porcelain",
+    "name": "Airy High-Key Daylight Wrap",
+    "category": "Lighting",
+    "author": "Vimona Core",
+    "trigger_keywords": ["high key", "bright airy", "minimalist white", "sunlit window morning"],
+    "system_instructions": "Flood interior with soft reflected north skylight across pale plaster and sheer linen curtains while retaining crisp black pupil and seam definition."
+  }
+]
