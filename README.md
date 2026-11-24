@@ -10,8 +10,8 @@
 
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](pyproject.toml)
 [![GTK4 + Libadwaita](https://img.shields.io/badge/UI-GTK4%20%2B%20Libadwaita-4A86CF?style=for-the-badge&logo=gnome&logoColor=white)](vimona/window.py)
-[![Air-Gap Namespace](https://img.shields.io/badge/Network-unshare%20--r%20--n-2EA043?style=for-the-badge&logo=linux&logoColor=white)](vimona/airgap.py)
-[![Wan 2.1 + Pony XL](https://img.shields.io/badge/Diffusion-Wan%202.1%20%2B%20Pony%20V6%20XL-7C5CFF?style=for-the-badge)](vimona/workflows.py)
+[![Powered by ComfyUI](https://img.shields.io/badge/Engine-ComfyUI-1F2937?style=for-the-badge)](https://github.com/comfyanonymous/ComfyUI)
+[![Linux Standalone](https://img.shields.io/badge/Linux-.run%20%2F%20AppDir-FCC624?style=for-the-badge&logo=linux&logoColor=black)](installers/build_linux_standalone.sh)
 [![Windows CI](https://img.shields.io/badge/Windows-.exe%20Workflow-0078D4?style=for-the-badge&logo=windows&logoColor=white)](.github/workflows/build-windows.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-F59E0B?style=for-the-badge)](LICENSE)
 
@@ -20,7 +20,7 @@
   <a href="#workspace-tour"><strong>Workspace Tour</strong></a> ·
   <a href="#memory-relay-architecture"><strong>Architecture</strong></a> ·
   <a href="#installation"><strong>Linux & Windows Install</strong></a> ·
-  <a href="#keyboard-shortcuts"><strong>Shortcuts</strong></a>
+  <a href="#credits--acknowledgments"><strong>Credits</strong></a>
 </p>
 
 </div>
@@ -178,20 +178,31 @@ Captured live from the GTK4 workspace (generation wait cut cleanly between hando
 
 ## Installation
 
-### 🐧 Linux (Fedora / Ubuntu / Debian / Arch)
+### 🐧 Linux Standalone App & Installer (Fedora / Ubuntu / Debian / Arch)
 
-Clone the repository and run the universal installer (`installers/install-linux.sh`), which installs GTK4, Libadwaita, PyGObject, OpenCV, FFmpeg, Firefox, and registers both `~/.local/bin/vimona` and the desktop app icon:
+**Option 1 — Build or launch the standalone Linux app:**
 
 ```bash
-git clone https://github.com/your-org/vimona.git
-cd vimona
-chmod +x installers/install-linux.sh
-./installers/install-linux.sh
+chmod +x installers/build_linux_standalone.sh
+./installers/build_linux_standalone.sh
+./dist/Vimona-Linux-x86_64.run
 ```
 
-Then launch from your desktop application menu (**Vimona**) or run:
+This packages a self-contained native ELF stub (`dist/Vimona.AppDir/usr/bin/vimona`), a portable archive (`dist/Vimona-Linux-x86_64.tar.gz`), and a single-file clickable executable (`dist/Vimona-Linux-x86_64.run`):
 
 ```bash
+./dist/Vimona-Linux-x86_64.run --check           # Verify bundled app + GTK4 runtime
+./dist/Vimona-Linux-x86_64.run --install-desktop # Pin standalone app to your app menu
+./dist/Vimona-Linux-x86_64.run --extract ./app   # Unpack portable Vimona.AppDir
+```
+
+> Pass `--pyinstaller` on Linux (or run the [`Build Standalone Linux App`](.github/workflows/build-linux-standalone.yml) GitHub Actions workflow) to produce a frozen single-file ELF binary (`dist/Vimona-Linux-x86_64`) and `dist/Vimona-x86_64.AppImage`.
+
+**Option 2 — System installer (installs OS packages + desktop integration):**
+
+```bash
+chmod +x installers/install-linux.sh
+./installers/install-linux.sh
 vimona
 ```
 
@@ -279,11 +290,13 @@ vimona/
 ├── launch-vimona.sh              # Linux wrapper launching run_vimona.py
 ├── dev.vimona.Desktop.{desktop,svg}
 ├── installers/
+│   ├── build_linux_standalone.sh # Standalone AppDir, ELF stub & .run builder
 │   ├── install-linux.sh          # Fedora / Ubuntu / Debian / Arch installer
 │   ├── install-windows.ps1       # Windows 10/11 MSYS2 GTK4 setup & shortcuts
 │   ├── build_windows_exe.ps1     # PyInstaller Vimona.exe + Inno Setup builder
 │   └── vimona-setup.iss          # Windows Setup Wizard definition
 ├── .github/workflows/
+│   ├── build-linux-standalone.yml# CI build for .run, AppImage & frozen Linux ELF
 │   └── build-windows.yml         # CI build for Vimona.exe & Linux checks
 ├── assets/
 │   ├── vimona.ico                # Multi-size Windows icon (16..256px)
@@ -305,7 +318,19 @@ vimona/
     └── ram_manager.py            # Protected PID /proc RAM inspector
 ```
 
+---
+
+## Credits & Acknowledgments
+
+Vimona's local execution pipeline relies directly on remarkable open-source engines and community models:
+
+- **[ComfyUI (`comfyanonymous/ComfyUI` & Comfy-Org)](https://github.com/comfyanonymous/ComfyUI)** — Powers Vimona's node-based air-gapped video and diffusion backend (`WanVaceToVideo`, `ModelSamplingSD3`, `--lowvram` memory offloading, UMT5 CPU execution, and `VHS_VideoCombine` via ComfyUI-VideoHelperSuite). Without ComfyUI's graph API and unified-RAM management, `Wan 2.1` video generation on `16 GB` iGPU hardware would not be possible.
+- **[llama.cpp (`ggml-org/llama.cpp`)](https://github.com/ggml-org/llama.cpp)** — High-speed Vulkan `GGUF` inference server for local chat and prompt routing.
+- **[stable-diffusion.cpp (`leejet/stable-diffusion.cpp`)](https://github.com/leejet/stable-diffusion.cpp)** — Fast Vulkan SDXL rendering backend (`sd-server`) driving `Pony V6 XL` keyframe generation.
+- **[Wan 2.1 (`Wan-Video/Wan2.1`)](https://github.com/Wan-Video/Wan2.1)** & **[CausVid](https://github.com/tianweiy/CausVid)** — Diffusion video synthesis and 6-step distilled LoRA acceleration.
+- **[GTK4](https://www.gtk.org/) & [Libadwaita](https://gnome.pages.gitlab.gnome.org/libadwaita/)** — Native hardware-accelerated Linux/MSYS2 desktop interface.
+
 <div align="center">
   <br/>
-  <sub>Built with GTK4, Libadwaita, llama.cpp Vulkan, Pony V6 XL, and ComfyUI Wan 2.1 VACE · <a href="LICENSE">MIT License</a></sub>
+  <sub>Powered by <strong><a href="https://github.com/comfyanonymous/ComfyUI">ComfyUI</a></strong>, GTK4, Libadwaita, llama.cpp Vulkan, Pony V6 XL, and Wan 2.1 · <a href="LICENSE">MIT License</a></sub>
 </div>
