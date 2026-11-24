@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Vimona
+GenericName=Local AI Chat & Media Studio
+Comment=Private, uncensored offline chat, web research, and local image/video studio
+Exec=/home/muthyaladaksh/.gemini/antigravity/scratch/vimona/launch-vimona.sh
+Icon=dev.vimona.Desktop
+Terminal=false
+Categories=Graphics;AudioVideo;Utility;
+StartupWMClass=dev.vimona.Desktop
+Keywords=AI;LLM;ComfyUI;Chat;Offline;
