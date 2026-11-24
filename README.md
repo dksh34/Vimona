@@ -27,6 +27,7 @@
   <a href="#interactive-workspace-showcase"><strong>Live Video Demos</strong></a> &nbsp;·&nbsp;
   <a href="#architecture--isolation"><strong>Air-Gap Security</strong></a> &nbsp;·&nbsp;
   <a href="#downloads--installers"><strong>Downloads</strong></a> &nbsp;·&nbsp;
+  <a href="#call-for-testers--macos-build"><strong>Testers &amp; macOS Wanted</strong></a> &nbsp;·&nbsp;
   <a href="#credits--acknowledgments"><strong>Credits</strong></a>
 </p>
 
@@ -56,6 +57,9 @@
     </td>
   </tr>
 </table>
+
+> [!IMPORTANT]
+> **HELP TEST EVERY OS BUILD · MACOS PACKAGERS NEEDED:** Please test the **Linux** standalone `.run` app and **Windows** `.exe` / `Vimona-Setup.exe` installers on your hardware and open an issue with your GPU/RAM behavior—and if you use **macOS (Apple Silicon / Intel)**, we would love a PR compiling a native standalone `Vimona.app` / `.dmg` desktop bundle! [**Jump to Testing &amp; macOS Callout ↓**](#call-for-testers--macos-build)
 
 ---
 
@@ -343,7 +347,53 @@ Released under the **[MIT License](LICENSE)** — Copyright (c) 2026 Dksh. Free 
 
 ---
 
-## Call for Testers & macOS Build
+## Call for Testers &amp; macOS Build
 
-- **Please Test Across Every OS Build:** We'd love feedback from anyone testing the **Linux** standalone `.run` / `AppImage` / system installer (`Fedora`, `Ubuntu`, `Debian`, `Arch`) and the **Windows 10/11** `.exe` / `Vimona-Setup.exe` workflow—hardware detection edge cases, Vulkan/CUDA flags, UI scaling, and inference timings are hugely helpful.
-- **Calling macOS Users (Apple Silicon / Intel):** Since builds here run on Linux & Windows CI, we cannot compile a native macOS Mach-O / Quartz GTK4 standalone `.app` or `.dmg` bundle locally. If you run macOS and would like to compile & contribute a standalone **macOS Desktop App (`Vimona.app` / `.dmg`)**, PRs and build scripts in `installers/` are warmly welcomed!
+<div align="center">
+
+[![Testers Wanted: Linux & Windows](https://img.shields.io/badge/TESTING%20NEEDED-Linux%20%26%20Windows%20OS%20Apps-2563EB?style=for-the-badge)](https://github.com/dksh34/Vimona/issues/new)
+[![macOS Standalone Needed](https://img.shields.io/badge/HELP%20WANTED-macOS%20.app%20%2F%20.dmg%20Build-D97706?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/dksh34/Vimona/pulls)
+
+</div>
+
+> [!IMPORTANT]
+> **We Need Real-World Testers Across Every Operating System!**
+> Vimona is engineered for constrained consumer laptops as well as full workstations, so hardware testing on different GPUs, RAM sizes, and desktop environments makes the biggest difference. Please test the downloadable desktop apps and tell us what breaks, what looks great, and what models your machine detects.
+
+<table>
+  <tr>
+    <td width="33.3%" valign="top">
+      <h3>Linux Testers</h3>
+      <strong>Packages:</strong> <a href="downloads/Vimona-Linux-x86_64.run"><code>Vimona-Linux-x86_64.run</code></a> &amp; <a href="downloads/Vimona-Linux-x86_64.tar.gz"><code>.tar.gz</code></a><br/><br/>
+      <strong>What to check:</strong>
+      <ul>
+        <li>Distro launch (<code>Fedora</code>, <code>Ubuntu</code>, <code>Debian</code>, <code>Arch</code>, Wayland &amp; X11)</li>
+        <li>Hardware-Tuned HF Hub (AMD/Intel Vulkan GTT &amp; NVIDIA CUDA detection)</li>
+        <li>Metallic desktop icon &amp; GNOME/KDE scaling</li>
+      </ul>
+    </td>
+    <td width="33.3%" valign="top">
+      <h3>Windows Testers</h3>
+      <strong>Packages:</strong> <a href=".github/workflows/build-windows.yml"><code>Vimona.exe</code> &amp; <code>Vimona-Setup.exe</code></a><br/><br/>
+      <strong>What to check:</strong>
+      <ul>
+        <li>Clean launch on Windows 10 &amp; Windows 11 with MSYS2 GTK4 runtime</li>
+        <li>NVIDIA CUDA &amp; AMD/Intel GPU hardware profile detection</li>
+        <li>Start Menu &amp; Desktop metallic shortcut icon rendering</li>
+      </ul>
+    </td>
+    <td width="33.3%" valign="top">
+      <h3>macOS Builders Wanted</h3>
+      <strong>Status:</strong> <em>Help Wanted (<code>.app</code> / <code>.dmg</code>)</em><br/><br/>
+      <strong>How you can help:</strong>
+      <ul>
+        <li>We build on Linux &amp; Windows CI, so we cannot compile Mach-O / Quartz GTK4 macOS bundles locally</li>
+        <li>Compile &amp; package a standalone <strong>Apple Silicon / Intel <code>Vimona.app</code> or <code>.dmg</code></strong></li>
+        <li>Wire Metal / unified memory RAM reporting in <a href="vimona/hf_models.py"><code>hf_models.py</code></a> &amp; open a PR!</li>
+      </ul>
+    </td>
+  </tr>
+</table>
+
+> [!TIP]
+> Found an edge case, UI glitch, or GPU bug—or built a macOS bundle? **[Open an Issue](https://github.com/dksh34/Vimona/issues)** or **[Submit a Pull Request](https://github.com/dksh34/Vimona/pulls)** with your OS, CPU/GPU model, and RAM size!
