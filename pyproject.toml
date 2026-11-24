@@ -1,0 +1,21 @@
+[project]
+name = "vimona"
+version = "1.0.0"
+description = "Offline GTK4 + Libadwaita AI chat, /dev/shm web research, and air-gapped image/video studio for 16 GB Linux machines."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+dependencies = [
+    "PyGObject>=3.46",
+    "numpy>=1.26",
+    "opencv-python>=4.9",
+    "pillow>=10.2",
+    "playwright>=1.42",
+]
+
+[project.scripts]
+vimona = "vimona.app:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"

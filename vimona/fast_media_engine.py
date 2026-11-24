@@ -33,6 +33,7 @@ from typing import Any, Callable
 from .airgap import AirGappedProcess, launch_airgapped_http_service
 from .perf_profile import (
     apply_auxiliary_thread_limit,
+    get_performance_mode,
     get_worker_env,
     get_worker_thread_cap,
     wrap_worker_cmd_with_priority,
@@ -115,9 +116,33 @@ def format_pony_prompt(positive_prompt: str) -> str:
     pos = positive_prompt.strip()
     if "score_9" not in pos:
         pos = f"score_9, score_8_up, score_7_up, score_6_up, {pos}"
-    if "sharp focus" not in pos.lower():
-        pos = f"{pos}, sharp focus, detailed lighting"
+    low = pos.lower()
+    if "sharp focus" not in low:
+        pos = f"{pos}, sharp focus, crisp texture, detailed lighting"
     return pos
+
+
+def _apply_dslr_finish(src_png: Path) -> None:
+    """Apply non-destructive photographic micro-contrast & subtle optics sharpening."""
+    try:
+        import cv2
+        import numpy as np
+
+        bgr = cv2.imread(str(src_png))
+        if bgr is None:
+            return
+        # Gentle luminance-only CLAHE + subtle optical unsharp mask (never oversharpened)
+        lab = cv2.cvtColor(bgr, cv2.COLOR_BGR2LAB)
+        l_ch, a_ch, b_ch = cv2.split(lab)
+        clahe = cv2.createCLAHE(clipLimit=1.35, tileGridSize=(8, 8))
+        l_boost = clahe.apply(l_ch)
+        l_mix = cv2.addWeighted(l_ch, 0.62, l_boost, 0.38, 0.0)
+        toned = cv2.cvtColor(cv2.merge([l_mix, a_ch, b_ch]), cv2.COLOR_LAB2BGR)
+        blur = cv2.GaussianBlur(toned, (0, 0), sigmaX=1.05)
+        crisp = cv2.addWeighted(toned, 1.24, blur, -0.24, 0.0)
+        cv2.imwrite(str(src_png), np.clip(crisp, 0, 255).astype(np.uint8))
+    except Exception:
+        pass
 
 
 def _pick_h264_codec_args() -> list[tuple[str, list[str]]]:
@@ -270,7 +295,6 @@ class FastVulkanImageServer:
                 "--vae",
                 str(SDXL_VAE_PATH),
                 "--force-sdxl-vae-conv-scale",
-                "--vae-tiling",
                 "--lora-model-dir",
                 str(LORAS_DIR),
                 "--flash-attn",
@@ -364,8 +388,8 @@ class FastVulkanImageServer:
         self,
         positive_prompt: str,
         negative_prompt: str = "",
-        width: int = 832,
-        height: int = 512,
+        width: int = 896,
+        height: int = 576,
         seed: int | None = None,
         cancel_event: threading.Event | None = None,
         on_step: Callable[[int, int], None] | None = None,
@@ -383,15 +407,87 @@ class FastVulkanImageServer:
         if overrides:
             if overrides.get("booster") is False:
                 recipe["lora"] = []
-                recipe["steps"] = 12
-                recipe["cfg"] = 6.0
+                recipe["steps"] = int(overrides.get("steps") or 18)
+                recipe["cfg"] = 6.5
                 recipe["sampler"] = "euler_a"
+                recipe["scheduler"] = "karras"
+            elif isinstance(overrides.get("steps"), int):
+                recipe["steps"] = int(overrides["steps"])
             if isinstance(overrides.get("cfg"), (int, float)):
                 recipe["cfg"] = float(overrides["cfg"])
             if isinstance(overrides.get("sampler"), str) and overrides["sampler"].strip():
                 recipe["sampler"] = str(overrides["sampler"]).strip()
         neg = negative_prompt.strip() or DEFAULT_NEGATIVE_PONY
 
+        staged, actual_seed, lbl = self._run_sd_job(
+            positive_prompt=positive_prompt,
+            negative_prompt=neg,
+            width=width,
+            height=height,
+            seed=actual_seed,
+            recipe=recipe,
+            cancel_event=cancel_event,
+            on_step=on_step,
+            init_image_b64=init_image_b64,
+            init_strength=init_strength,
+        )
+        if staged is None:
+            return (None, actual_seed, lbl)
+
+        want_hires = bool(
+            (overrides and overrides.get("dslr_booster"))
+            or (get_performance_mode() == "turbo" and not init_image_b64 and overrides is None)
+        )
+        if want_hires and staged.is_file() and not (cancel_event and cancel_event.is_set()):
+            try:
+                boost_w = min(1344, ((int(width * 1.25)) // 64) * 64)
+                boost_h = min(896, ((int(height * 1.25)) // 64) * 64)
+                raw_b64 = base64.b64encode(staged.read_bytes()).decode("ascii")
+                boost_recipe = {
+                    "lora": [],
+                    "steps": 8,
+                    "cfg": 5.5,
+                    "sampler": "euler_a",
+                    "scheduler": "karras",
+                    "label": "DSLR HiRes Booster",
+                }
+                boost_p, _, _ = self._run_sd_job(
+                    positive_prompt=positive_prompt,
+                    negative_prompt=neg,
+                    width=boost_w,
+                    height=boost_h,
+                    seed=actual_seed + 1,
+                    recipe=boost_recipe,
+                    cancel_event=cancel_event,
+                    on_step=None,
+                    init_image_b64=raw_b64,
+                    init_strength=0.36,
+                )
+                if boost_p is not None and boost_p.is_file():
+                    staged.unlink(missing_ok=True)
+                    staged = boost_p
+            except Exception:
+                pass
+
+        if staged.is_file():
+            _apply_dslr_finish(staged)
+        return (staged, actual_seed, lbl)
+
+    def _run_sd_job(
+        self,
+        *,
+        positive_prompt: str,
+        negative_prompt: str,
+        width: int,
+        height: int,
+        seed: int,
+        recipe: dict[str, Any],
+        cancel_event: threading.Event | None,
+        on_step: Callable[[int, int], None] | None,
+        init_image_b64: str | None,
+        init_strength: float,
+    ) -> tuple[Path | None, int, str]:
+        actual_seed = seed
         sample_params: dict[str, Any] = {
             "sample_method": recipe["sampler"],
             "scheduler": recipe["scheduler"],
@@ -400,7 +496,7 @@ class FastVulkanImageServer:
         }
         payload: dict[str, Any] = {
             "prompt": format_pony_prompt(positive_prompt),
-            "negative_prompt": neg,
+            "negative_prompt": negative_prompt,
             "width": width,
             "height": height,
             "batch_count": 1,
