@@ -21,6 +21,16 @@
 
 ## Demos
 
+<div align="center">
+  <img src="assets/demos/07-comfyui-video-making.webp" alt="ComfyUI Wan 2.1 VACE video making pipeline" width="840" />
+  <br />
+  <b>ComfyUI Video Making Pipeline — Wan 2.1 VACE 1.3B + CausVid · 24fps Flow</b> · <a href="assets/demos/07-comfyui-video-making.mp4">MP4</a>
+  <br />
+  <sub>Text AI unloads to <code>0.0 GB</code> → air-gapped Pony anchor + <code>ComfyUI</code> sliding windows + optical-flow interpolation + live playback.</sub>
+</div>
+
+<br />
+
 <table>
   <tr>
     <td width="50%" align="center">
@@ -110,6 +120,16 @@ flowchart LR
     PONY --> GAL["Isolated Session Gallery"]
     FLOW --> GAL
 ```
+
+<details>
+<summary><b>ComfyUI Video Backend Graph (<code>workflows.py</code> + <code>memory_relay.py</code>)</b></summary>
+
+1. **Air-Gapped Launch (`unshare -r -n`)**: ComfyUI boots via `--lowvram --use-pytorch-cross-attention --offline` bridged cleanly through an `AF_UNIX` socket in `/dev/shm`.
+2. **CPU Text Offload**: `UMT5-XXL fp8` loads with `device="cpu"` so `wan2.1_vace_1.3B_fp16` + `ModelSamplingSD3(shift=8.0)` + `CausVid LoRA` stay comfortably inside unified iGPU RAM.
+3. **Sliding-Window Anchoring**: Pony keyframe anchors `WanVaceToVideo(reference_image)`, while each consecutive 4s clip extracts its final frame via `ffmpeg` into `LoadImage` + `SolidMask(0.0)` (`control_video` / `control_masks`).
+4. **Post-Render Pipeline**: `VHS_VideoCombine` outputs stitch smoothly via `ffmpeg minterpolate` optical flow to `24 fps` and pass OpenCV frame histogram consistency checks before appearing in the gallery.
+
+</details>
 
 ---
 

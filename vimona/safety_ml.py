@@ -26,7 +26,7 @@ WEIGHTS_PATH = Path(__file__).resolve().with_name("safety_ml_weights.npz")
 
 TEXT_DIM = 1024
 TEXT_THRESHOLD = 0.78
-VISION_THRESHOLD = 0.80
+VISION_THRESHOLD = 0.86
 
 _WORD_RE = re.compile(r"[a-z0-9]+")
 
@@ -315,7 +315,8 @@ class SafeBlurMLEngine:
                 try:
                     n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
                     idxs = [0] if n <= 2 else [0, n // 2, max(0, n - 2)]
-                    max_p = ctx_prob * 0.7
+                    scores: list[float] = []
+                    flags = 0
                     for idx in idxs:
                         cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
                         ok, bgr = cap.read()
@@ -323,10 +324,14 @@ class SafeBlurMLEngine:
                             continue
                         rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
                         flag, vp = self.classify_image_rgb(rgb, context_text=ctx)
-                        max_p = max(max_p, vp)
+                        scores.append(vp)
                         if flag:
-                            return (True, vp)
-                    return (False, max_p)
+                            flags += 1
+                    if not scores:
+                        return (False, ctx_prob * 0.7)
+                    mean_p = sum(scores) / len(scores)
+                    is_vid_flagged = flags >= 2 or (len(scores) == 1 and flags == 1) or mean_p >= VISION_THRESHOLD
+                    return (is_vid_flagged, max(scores) if is_vid_flagged else mean_p)
                 finally:
                     cap.release()
             else:
