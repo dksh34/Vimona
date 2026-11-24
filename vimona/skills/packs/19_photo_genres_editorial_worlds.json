@@ -1,0 +1,202 @@
+[
+  {
+    "id": "photo_genre_snow_leopard",
+    "name": "Himalayan Wildlife Predator Portrait",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["snow leopard", "tiger", "wolf", "predator", "wildlife fur"],
+    "system_instructions": "Show cold high-altitude texture: frost crystals crusting whiskers, dense silver-spotted winter coat rising over slate scree ridge, alert amber iris intensity at `500mm f/4`."
+  },
+  {
+    "id": "photo_genre_equestrian_dust",
+    "name": "Golden-Hour Equine Power & Dust",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["horse photo", "mustang", "equestrian", "galloping horse"],
+    "system_instructions": "Backlight muscular sheen cleanly: backlit golden dust clouds billowing beneath flying hooves, wind-whipped mane strands glowing orange against deep dusk meadow hills."
+  },
+  {
+    "id": "photo_genre_astrophoto_milkyway",
+    "name": "Tracked Milky Way & Alpine Silhouette",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["milky way", "night sky", "stars", "astrophotography", "cosmos", "observatory"],
+    "system_instructions": "Use `14mm f/1.4 star-tracker exposure`: crisp pinpoint stars, dusty amber galactic core nebula arching above silhouetted mountain tent glowing gently inside with warm amber lantern."
+  },
+  {
+    "id": "photo_genre_biophilic_bamboo",
+    "name": "Modern Biophilic Stone & Bamboo Villa",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["villa", "zen architecture", "courtyard pool", "bamboo house", "kyoto house"],
+    "system_instructions": "Combine dark charred cedar slats (`shou sugi ban`), quiet black basalt reflecting pool, morning courtyard mist threading emerald bamboo stalks, and soft shoji glow."
+  },
+  {
+    "id": "photo_genre_midnight_conbini",
+    "name": "Midnight Rainy Convenience Store Glow",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["convenience store", "konbini", "vending machine", "midnight shop", "7 eleven look"],
+    "system_instructions": "Capture peaceful `3:00 AM urban solitude`: crisp fluorescent aisle glow pouring out rain-spattered glass doors onto glistening crosswalk stripes, lone umbrella figure reading phone outside."
+  },
+  {
+    "id": "photo_genre_vinyl_hifi_room",
+    "name": "Warm Analog Vinyl & Tube-Amp Sanctuary",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["vinyl", "turntable", "hifi", "listening room", "records", "bookshelf"],
+    "system_instructions": "Stage glowing orange vacuum-tube amplifier filaments, walnut veneer Horn speakers, densely packed LP spines under warm amber reading lamp on rainy twilight evening."
+  },
+  {
+    "id": "photo_genre_fine_dining_plating",
+    "name": "Michelin Chiaroscuro Culinary Macro",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["gourmet", "fine dining", "chef plating", "michelin", "steak", "pasta"],
+    "system_instructions": "Isolate artisanal stoneware plate with tight flagged softbox overhead: glistening herb oil droplets, crisp char texture, micro-greens standing crisp against dark moody slate bistro background."
+  },
+  {
+    "id": "photo_genre_espresso_bar",
+    "name": "Specialty Espresso Extraction & Steam",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["espresso", "barista", "latte art", "cafe counter", "coffee machine"],
+    "system_instructions": "Focus `50mm f/1.8 macro` tightly on tiger-striped golden crema streaming from naked portafilter above brushed stainless tray alongside warm backlit espresso steam curls."
+  },
+  {
+    "id": "photo_genre_watch_chronograph",
+    "name": "Swiss Mechanical Watch Bevel Macro",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["luxury watch", "chronograph", "rolex look", "horology", "watch dial"],
+    "system_instructions": "Specify `100mm macro commercial watch light`: crisp polished chamfered steel bevels catching clean white studio strip gradient, blued steel hands, tiny radial guilloche dial engraving."
+  },
+  {
+    "id": "photo_genre_glass_perfume",
+    "name": "Backlit Crystal Bottle & Caustic Halo",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["perfume", "glass bottle", "cosmetics", "fragrance", "water surface"],
+    "system_instructions": "Backlight cut amber crystal through frosted glass scrim resting over dark wet obsidian slate, throwing sharp golden refractive caustic arcs across foreground surface."
+  },
+  {
+    "id": "photo_genre_minimal_stair_cut",
+    "name": "Minimalist Plaster Staircase Sun Slice",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["minimal architecture", "staircase", "shadow line", "sun slice", "adobe"],
+    "system_instructions": "Frame razor-clean geometric architecture (`travertine or warm chalk plaster`), letting harsh crisp diagonal afternoon window sun split textured frame strictly into sunlit gold and cool slate."
+  },
+  {
+    "id": "photo_genre_underground_tube",
+    "name": "Atmospheric Subway Tile & Blur",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["metro", "underground", "subway platform", "tile wall", "commuter"],
+    "system_instructions": "Balance gritty glazed mosaic tiles under cool platform fluorescents, passing train motion streak on yellow safety line, and calm solitary traveler waiting with scarf."
+  },
+  {
+    "id": "photo_genre_mediterranean_terrace",
+    "name": "Sun-Bleached Amalfi Stone Terrace",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["mediterranean", "italy", "amalfi", "santorini", "terrace", "sea villa"],
+    "system_instructions": "Show sunlit limestone balustrade framing deep cobalt Tyrrhenian cove, heavy earthenware lemon pots, striped linen shade, and warm dusty golden-hour salt haze."
+  },
+  {
+    "id": "photo_genre_highlands_bothy",
+    "name": "Moody Scottish Highlands Stone Cabin",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["highlands", "scotland", "stone cottage", "moor", "heather", "misty cabin"],
+    "system_instructions": "Anchor weathered dark fieldstone cottage with faint peat smoke curling from chimney beneath brooding bruised rainclouds above winding silver glen stream and rust-colored bracken."
+  },
+  {
+    "id": "photo_genre_alpine_hut_stars",
+    "name": "High-Altitude Refuge Lantern Under Stars",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["alpine hut", "mountain cabin", "glacier night", "basecamp"],
+    "system_instructions": "Contrast frigid cobalt-blue snow-packed couloir under bright stars with one tiny inviting warm orange window square perched firmly upon steep granite col."
+  },
+  {
+    "id": "photo_genre_cyber_repair_bench",
+    "name": "Tactile Hardware & Soldering Bench",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["electronics", "soldering", "circuit", "repair shop", "cyber workshop"],
+    "system_instructions": "Stage illuminated stereo microscope overhead green PCB traces, drifting flux rosin smoke wisp illuminated by warm task lamp, tweezers, braided cables, and scuffed aluminum tools."
+  },
+  {
+    "id": "photo_genre_vintage_cockpit",
+    "name": "1970s Analog Cockpit & Horizon Dusk",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["cockpit", "pilot", "aviation", "gauges", "aircraft window"],
+    "system_instructions": "Illuminate dense row of analog circular dials softly in warm red-amber night-flight instrument glow while distant pink sunset storm tops glow cleanly through scuffed canopy plexiglass."
+  },
+  {
+    "id": "photo_genre_overgrown_conservatory",
+    "name": "Ruined Glass Conservatory & Ferns",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["abandoned", "overgrown", "broken glass", "ruin interior", "ivy"],
+    "system_instructions": "Filter soft shafts of humid forest daylight through shattered wrought-iron skylights down across moss-carpeted cracked marble tiles and wild spiraling ferns."
+  },
+  {
+    "id": "photo_genre_samurai_courtyard",
+    "name": "Overcast Cedar Temple Courtyard Rain",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["japanese temple", "shrine", "pagoda", "cedar rain", "wooden veranda"],
+    "system_instructions": "Use quiet soft overcast light over wet dark cedar engawa veranda, raked gray gravel wet with dark rain drops, mossy lantern, and pale pink cherry blossoms resting on stone."
+  },
+  {
+    "id": "photo_genre_paris_bookshop",
+    "name": "Labyrinthine Antique Bookshop Warmth",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["bookshop", "bookstore", "vintage library", "stacked books", "study"],
+    "system_instructions": "Pack floor-to-ceiling leaning cedar shelves overflowing with frayed leather folios, rolling brass library ladder, warm dusty afternoon beam catching floating specks over oak ladder."
+  },
+  {
+    "id": "photo_genre_jet_afterburner",
+    "name": "Supersonic Fighter Runway Twilight",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["fighter jet", "afterburner", "f22", "airbase", "runway rain"],
+    "system_instructions": "Mirror glowing violet-amber afterburner shock diamonds across slick rain-drenched concrete runway while heat shimmer blurs misty pine treeline at base perimeter."
+  },
+  {
+    "id": "photo_genre_f1_rain_pit",
+    "name": "F1 Wet-Track Pit Lane Spray",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["formula 1", "f1", "racecar", "pit stop", "motorsport rain"],
+    "system_instructions": "Capture glistening carbon-fiber aero bargeboards, green-banded wet treads blasting fine mist rooster tails under floodlit twilight stadium gantry haze."
+  },
+  {
+    "id": "photo_genre_botanical_herbarium",
+    "name": "Crisp Archival Herbarium Specimen",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["herbarium", "pressed flower", "botanical specimen", "vintage science"],
+    "system_instructions": "Frame top-down 90° flatlay over warm archival cotton rag paper highlighting translucent dried leaf venation, delicate linen tape mounts, and crisp fine-nib ink specimen notes."
+  },
+  {
+    "id": "photo_genre_foundry_molten",
+    "name": "Heavy Steel Foundry Crucible Pour",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["foundry", "steel mill", "molten iron", "crucible", "industrial forge"],
+    "system_instructions": "Flood vast smoky steel rafters cleanly with blinding white-orange molten slag stream arcing downward into casting mold as silhouetted workers shield silver reflective suits."
+  },
+  {
+    "id": "photo_genre_arctic_icebreaker",
+    "name": "Arctic Red Hull Icebreaker Pack Ice",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["icebreaker", "ship arctic", "pack ice", "antarctica", "expedition"],
+    "system_instructions": "Show massive rust-streaked crimson steel bow splitting fractured electric-blue sea ice floes beneath crisp low polar sun casting long golden streaks across frozen ocean."
+  }
+]

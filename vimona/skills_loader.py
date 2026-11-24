@@ -428,7 +428,15 @@ def _score_skill_match(
     for tok in re.findall(r"[a-z0-9]{4,}", spec.name.lower()):
         if tok in toks:
             score += 1.0
-    if kw_hits == 0 and spec.id in ("vid_wan_period_timing", "vid_wan_5_part_formula", "vid_wan_i2v_delta_only", "vid_wan_causvid_tuning"):
+    if kw_hits == 0 and spec.id in (
+        "vid_wan_period_timing",
+        "vid_wan_5_part_formula",
+        "vid_wan_i2v_delta_only",
+        "vid_wan_causvid_tuning",
+        "photo_pony_score_hierarchy",
+        "pony_token_hierarchy",
+        "pony_zero_artifact_neg",
+    ):
         score += 0.5
     return score
 
@@ -466,7 +474,7 @@ def select_active_skills(
                 optional_scored.append((sc, spec))
 
     optional_scored.sort(key=lambda pair: (-pair[0], pair[1].builtin, pair[1].name.lower()))
-    for _sc, spec in optional_scored[: max(0, min(3, max_optional))]:
+    for _sc, spec in optional_scored[: max(0, min(6, max_optional))]:
         selected.append(spec)
 
     return selected
@@ -482,7 +490,7 @@ def collect_skill_media_patches(
     chosen = select_active_skills(
         user_prompt=user_prompt,
         active_mode=active_mode,
-        max_optional=3,
+        max_optional=5,
         skills_dir=skills_dir,
         user_skills_dir=user_skills_dir,
     )

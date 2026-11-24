@@ -1,0 +1,210 @@
+[
+  {
+    "id": "photo_pony_score_hierarchy",
+    "name": "Pony V6 XL Full Score Tag Stack",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["pony v6", "score_9", "photo", "picture", "image", "realistic"],
+    "system_instructions": "For Pony Diffusion V6 XL, open positive prompts strictly with `score_9, score_8_up, score_7_up, score_6_up, score_5_up, score_4_up` and mirror lower tiers (`score_6, score_5, score_4`) in negatives to keep sharpness maximal without degrading composition."
+  },
+  {
+    "id": "photo_pony_anti_anime_override",
+    "name": "Pony XL Anti-Anime Photorealism Lock",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["photorealistic", "real photo", "dslr", "raw photo", "candid photo", "photograph"],
+    "system_instructions": "Override Pony V6 XL's illustration prior explicitly: pair `source_fotography, photo (medium), RAW photo, DSLR` at front of positive prompt with `source_anime, anime, cartoon, illustration, painting, 3d render, cgi` suppressed in negative.",
+    "negative_prompt_patch": "source_anime, cartoon, illustration, painting, sketch, 3d render, cgi, plastic skin"
+  },
+  {
+    "id": "photo_sdxl_cfg_balance",
+    "name": "SDXL Low-CFG Natural Dynamic Range",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["overbaked", "burnt skin", "oversaturated", "cfg", "natural lighting"],
+    "system_instructions": "On `sd-server` SDXL/Pony, hold CFG tightly between `5.0` and `6.8` with `24–30` steps (`dpmpp_2m` or `euler`); never push CFG >= 8.0 or highlights clip harsh and skin turns waxy orange.",
+    "comfyui_node_overrides": {
+      "cfg": 5.8,
+      "sampler": "dpmpp_2m",
+      "steps": 28
+    }
+  },
+  {
+    "id": "photo_sdxl_clip_skip_2",
+    "name": "CLIP Skip -2 Semantic Precision",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["clip skip", "tag order", "muddy image", "prompt coherence"],
+    "system_instructions": "Pony V6 XL relies on penultimate CLIP hidden layer conditioning (`CLIP Skip 2`). Order visual concepts concretely—Subject + Pose -> Wardrobe Material -> Lighting Source -> Camera Glass -> Surface Texture—never burying lens tokens at the very tail."
+  },
+  {
+    "id": "photo_sdxl_native_buckets",
+    "name": "SDXL Native Resolution Aspect Lock",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["aspect ratio", "portrait crop", "widescreen", "double head", "square 1024"],
+    "system_instructions": "Anchor SDXL generation cleanly inside native pixel area buckets (`1024×1024`, `1216×832` landscape, `832×1216` portrait, `1152×896`) matching subject orientation so tall bodies never squash or duplicate."
+  },
+  {
+    "id": "photo_skin_pores_no_plastic",
+    "name": "Natural Skin Pores & Subsurface Texture",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["skin pores", "natural skin", "freckles", "close up face", "blemishes"],
+    "system_instructions": "Request authentic organic epidermis: `visible fine skin pores, subtle peach fuzz catching backlight, faint natural skin unevenness, micro-wrinkles around eye corners, translucent ear cartilage scatter`, avoiding doll smoothness.",
+    "negative_prompt_patch": "airbrushed skin, porcelain skin, smooth plastic skin, waxy face"
+  },
+  {
+    "id": "photo_corneal_iris_catchlight",
+    "name": "Iris Fibers & Moist Corneal Catchlight",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["eyes", "iris", "gaze", "eye closeup", "catchlight"],
+    "system_instructions": "Give every portrait unmistakable ocular life: `sharp detailed fibrous iris ring, clean window-shaped catchlight reflecting off moist cornea, natural sclera blood vessel hint, distinct upper/lower eyelashes`.",
+    "negative_prompt_patch": "dead eyes, asymmetrical pupils, cross-eyed, blank sclera"
+  },
+  {
+    "id": "photo_grounded_hands_props",
+    "name": "Hand Physics & Natural Prop Grip",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["hands", "fingers", "holding", "cup", "rail", "guitar", "steering wheel"],
+    "system_instructions": "Avoid idle open-palm poses facing lens: give hands concrete physical contact (`fingers wrapped gently around ceramic espresso cup`, `hands tucked naturally inside wool coat pockets`, `grip centered cleanly on strap`) with relaxed knuckles."
+  },
+  {
+    "id": "photo_flyaway_hair_realism",
+    "name": "Stray Flyaway Strands & Hair Parting",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["hair", "messy bun", "windblown hair", "ponytail", "braid"],
+    "system_instructions": "Avoid helmet-like solid hair clumps by specifying `individual translucent stray flyaway hair strands glowing softly against backlight, natural irregular scalp parting, subtle wind lift across temple`."
+  },
+  {
+    "id": "photo_anti_overbake_neg",
+    "name": "Minimal Non-Flattening Negative Filter",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["clean negative", "flat image", "muddy contrast", "washed out"],
+    "system_instructions": "Keep negatives light and structural so shadows retain velvet depth—exclude generic style-killers (`darkness, contrast, noise`) and filter only anatomical/rendering failure tags cleanly."
+  },
+  {
+    "id": "photo_multi_subject_decouple",
+    "name": "Two-Subject Attribute Separation",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["two people", "couple", "2people", "duo", "two characters"],
+    "system_instructions": "Keep dual-subject prompts strictly separated spatially (`2people, tall man on left in charcoal wool overcoat, woman on right in burnt orange scarf sitting at café table`) so outfit colors and hair never bleed between faces."
+  },
+  {
+    "id": "photo_emphasis_weight_restraint",
+    "name": "Balanced Token Emphasis Restraint",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["weight syntax", "burn", "oversharp", "weight 1.5"],
+    "system_instructions": "Keep any Pony emphasis weights restrained between `(token:1.1)` and `(token:1.25)`; aggressive weights `>= 1.4` introduce rainbow chromatic ringing and high-frequency grain tearing."
+  },
+  {
+    "id": "photo_circle_of_confusion_dof",
+    "name": "Optical Bokeh & Distance Calibration",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["bokeh", "shallow dof", "f/1.2", "f/1.4", "blurred background"],
+    "system_instructions": "Match aperture to subject distance realistically: use `85mm f/1.4, subject sharp eyelashes forward fading into creamy circular night bokeh orbs`, avoiding artificial Photoshop edge halos."
+  },
+  {
+    "id": "photo_highlight_rolloff_film",
+    "name": "Soft Film Highlight Roll-Off",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["blown sky", "hdr look", "whiteout window", "tone mapping"],
+    "system_instructions": "Prevent cheap clipped digital whites around sunlit windows or sky clouds via `gentle creamy photographic highlight roll-off, subtle halation glow, clean midtone contrast, zero aggressive HDR`."
+  },
+  {
+    "id": "photo_no_vae_tiling_microsharp",
+    "name": "Seamless Full-Frame Detail Integrity",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["crisp detail", "tile seam", "sharp fabric", "high resolution"],
+    "system_instructions": "Describe continuous fine fabric seams, wood grain boards, and atmospheric gradients sweeping smoothly edge-to-edge cleanly without checkerboard patching or flat smudge zones."
+  },
+  {
+    "id": "photo_candid_unposed_human",
+    "name": "Unposed Candid Posture Geometry",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["candid", "unposed", "mid step", "natural moment", "off guard"],
+    "system_instructions": "Break stiff symmetry completely: capture mid-blink laugh lines, weight leaning unevenly onto one hip, jacket collar turned asymmetrically, gaze fixed off-camera toward street motion."
+  },
+  {
+    "id": "photo_organic_iso_grain",
+    "name": "Authentic High-ISO Film Grain Structure",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["film grain", "iso 3200", "analog texture", "raw noise"],
+    "system_instructions": "Replace synthetic glossy surfaces with `subtle fine organic 400-ISO silver halide grain balanced cleanly inside shadow regions`, uniting foreground actors with painted architectural walls."
+  },
+  {
+    "id": "photo_moisture_sweat_rain_sheen",
+    "name": "Realistic Sweat, Rain & Moisture Speculars",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["sweat", "wet hair", "dew", "moisture", "humid", "rain skin"],
+    "system_instructions": "Model moisture physics truthfully: hairline damp clumping, tiny specular micro-beads gleaming under key rimlight along collarbone/glass, darkened wet cotton collar patches."
+  },
+  {
+    "id": "photo_adjective_color_containment",
+    "name": "Color-Bleed Prevention Across Props",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["wrong color", "color bleed", "green eyes red coat"],
+    "system_instructions": "Place colors right next to their owning noun with distinct contrasting anchors (`ivory ceramic cup on dark slate counter beside emerald glass bottle`) so colors stay compartmentalized."
+  },
+  {
+    "id": "photo_coherent_horizon_mirrors",
+    "name": "Mirror & Water Symmetry Coherence",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["water reflection", "lake mirror", "glass window", "chrome reflection"],
+    "system_instructions": "Specify matching horizon alignment and gentle optical ripples (`calm dark lake reflecting exact inverted amber ridge peaks with subtle breeze distortion`) for coherent mirror reflections."
+  },
+  {
+    "id": "photo_grounded_wear_scuffs",
+    "name": "Real-World Wear, Scuffs & Dust Grounding",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["authentic", "lived in", "worn", "weathered", "used"],
+    "system_instructions": "Ban sterile CGI cleanliness: add faint heel scuffs on floorboards, coffee cup ring on oak bar, chipped edge enamel, finger smudges along brass doorknob, and dust in molding corners."
+  },
+  {
+    "id": "photo_monochrome_zone_system",
+    "name": "Zone-System B&W Contrast Discipline",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["zone system", "ansel adams", "black white fine art", "silver gelatin"],
+    "system_instructions": "Structure grayscale photography cleanly across true black crevices (Zone II), textured midtone granite/linen (Zone V), and bright crisp cloud edges (Zone VIII) without muddy gray wash."
+  },
+  {
+    "id": "photo_highkey_exposure_control",
+    "name": "High-Key Snow & White Porcelain Preservation",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["snow exposure", "white dress", "high key studio", "winter light"],
+    "system_instructions": "Keep bright white subjects (`snowdrifts, white linen shirt, frost`) crisp with delicate blue-violet shadow folds and textured surface relief so detail never blows into flat white paper."
+  },
+  {
+    "id": "photo_lowkey_shadow_retention",
+    "name": "Low-Key Velvet Darkness With Readable Form",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["low key", "dark room", "dim candle", "black background"],
+    "system_instructions": "Preserve deep rich shadow mood while tracing delicate grazing rimlight along shoulders, wool fibers, and table rims so forms separate effortlessly from dark slate backgrounds."
+  },
+  {
+    "id": "photo_clean_neon_signage_focus",
+    "name": "Authentic Backlit Signage & Background Depth",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["shop signs", "street signs", "neon text", "alleyway"],
+    "system_instructions": "Place illuminated street signage comfortably inside natural background `f/2.0` bokeh falloff rather than demanding razor readability on tiny distant signs so glowing neon feels organic and legible."
+  }
+]

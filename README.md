@@ -56,8 +56,8 @@ Instead of crushing shared RAM by holding multiple models live, Vimona swaps the
   </tr>
   <tr>
     <td width="50%" valign="top">
-      <h3>🧩 369 Expert Domain, Prompt &amp; Video Skills</h3>
-      Covers <code>Video</code> (<code>124</code> Wan/ComfyUI skills), <code>Prompt Engineering</code> (<code>50</code>), <code>Context Engineering</code> (<code>50</code>), <code>Image</code>, <code>Lighting</code>, <code>Camera</code>, <code>Engineering</code>, <code>Writing &amp; Reasoning</code>, &amp; <code>Web Research</code> with cached top-3 routing.
+      <h3>🧩 469 Expert Domain, Prompt, Photo &amp; Video Skills</h3>
+      Covers <code>Image</code> (<code>137</code> Pony/SDXL skills), <code>Video</code> (<code>124</code> Wan/ComfyUI skills), <code>Prompt Engineering</code> (<code>50</code>), <code>Context Engineering</code> (<code>50</code>), <code>Lighting</code>, <code>Camera</code>, <code>Engineering</code>, <code>Writing &amp; Reasoning</code>, &amp; <code>Web Research</code>.
     </td>
     <td width="50%" valign="top">
       <h3>🗂️ Runtime Context Engineering</h3>

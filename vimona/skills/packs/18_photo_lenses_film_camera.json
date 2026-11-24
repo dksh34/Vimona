@@ -1,0 +1,202 @@
+[
+  {
+    "id": "photo_cam_canon_r3_action",
+    "name": "Canon EOS R3 High-Speed Action Crisp",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["canon", "sports photo", "freeze motion", "fast shutter", "athlete"],
+    "system_instructions": "Use `shot on Canon EOS R3, 70-200mm f/2.8 lens, 1/2000s fast shutter speed`: freeze flying chalk dust, muscle tension veins, and water spray mid-air against compressed stadium bokeh."
+  },
+  {
+    "id": "photo_cam_leica_m11_35mm",
+    "name": "Leica M11 35mm Summilux Street",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["leica", "summilux", "rangefinder", "candid 35mm", "magnum"],
+    "system_instructions": "Invoke rangefinder immediacy: `Leica M11 aesthetic, 35mm Summilux f/1.4, tactile micro-contrast, deep punchy shadows, intimate street distance`, unvarnished candid timing."
+  },
+  {
+    "id": "photo_cam_nikon_z8_wildlife",
+    "name": "Nikon Z8 600mm Super-Telephoto Wildlife",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["wildlife", "bird", "wolf", "fox", "eagle", "telephoto animal", "safari"],
+    "system_instructions": "Specify `600mm f/4 super-telephoto prime`: paper-thin focal plane isolating individual wet fur strands or feather barbules crisply against silky painterly autumn/snow bokeh."
+  },
+  {
+    "id": "photo_cam_sony_50mm_gm",
+    "name": "50mm f/1.2 G-Master Modern Editorial",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["f/1.2", "g master", "modern portrait", "sony", "sharp editorial"],
+    "system_instructions": "Pair `50mm f/1.2 prime, clinical edge-to-edge eye sharpness, razor eyelash resolution, smooth cat-eye peripheral bokeh, crisp natural skin tones` for modern high-budget portrait campaigns."
+  },
+  {
+    "id": "photo_cam_hasselblad_x2d",
+    "name": "Hasselblad X2D 100C Medium Format",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["hasselblad", "100mp", "medium format", "studio editorial", "campaign shot"],
+    "system_instructions": "Use `Hasselblad X2D 100C, XCD 90mm f/2.5`: uncanny three-dimensional subject pop (`medium-format spatial separation`), subtle 16-bit highlight roll-off, rich unclipped fabric and skin tones."
+  },
+  {
+    "id": "photo_cam_fujifilm_gfx_alpine",
+    "name": "Fujifilm GFX 100S Alpine Drama",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["gfx", "fujifilm", "mountain photography", "ridge crisp", "landscape raw"],
+    "system_instructions": "Channel `Fujifilm GFX 100S, GF 32-64mm f/4`: ultra-clean rocky granite crevices, subtle cool-teal frost shadow undertones balancing luminous golden alpine cloud highlights."
+  },
+  {
+    "id": "photo_film_velvia_50",
+    "name": "Fujichrome Velvia 50 Slide Vibrance",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["velvia", "slide film", "emerald", "autumn color", "rich landscape"],
+    "system_instructions": "Apply `Fujichrome Velvia 50 reversal slide film`: deep dense shadow blacks, rich saturated moss greens and terracotta canyons, luminous crisp sky gradients for fine-art nature scenes."
+  },
+  {
+    "id": "photo_film_trix_400",
+    "name": "Kodak Tri-X 400 Gritty Press Grain",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["tri-x", "press photo", "1960s street", "punchy grain", "vintage bw"],
+    "system_instructions": "Specify `Kodak Tri-X 400 black and white film pushed one stop`: prominent punchy silver grain, smoky jazz/alley contrast, expressive raw street energy."
+  },
+  {
+    "id": "photo_film_ektar_100",
+    "name": "Kodak Ektar 100 Coastal Punch",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["ektar", "summer sun", "vintage beach", "turquoise water", "midday film"],
+    "system_instructions": "Infuse `Kodak Ektar 100 crisp ultra-fine grain`: clean vibrant cobalt sea water, crisp chalk-white limestone cottages, punchy red umbrellas, and sunny contrast."
+  },
+  {
+    "id": "photo_film_polaroid_sx70",
+    "name": "Polaroid SX-70 Instant Pastel Glow",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["polaroid", "instant film", "retro faded", "dreamy film", "sx70"],
+    "system_instructions": "Channel `vintage Polaroid SX-70 instant print`: lifted creamy milky blacks, warm nostalgic magenta-amber highlight drift, gentle lens edge softness, intimate summer dusk feel."
+  },
+  {
+    "id": "photo_film_wet_plate_tintype",
+    "name": "1860s Wet-Plate Collodion Tintype",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["tintype", "wet plate", "collodion", "civil war photo", "antique portrait"],
+    "system_instructions": "Render authentic `wet-plate collodion silver ferrotype`: razor-sharp central Petzval eye plane, bright spectral cyan-silver eyes, swirling periphery blur, subtle silver nitrate chemical pour edges."
+  },
+  {
+    "id": "photo_lens_helios_44_swirl",
+    "name": "Helios 44-2 58mm Swirly Bokeh",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["helios", "swirly bokeh", "vintage lens", "58mm f2", "dreamy forest"],
+    "system_instructions": "Use `Helios 44-2 58mm f/2 vintage Soviet optics`: crisp centered face enveloped inside luminous elliptical swirling leaf/fairy-light bokeh vortex along edges."
+  },
+  {
+    "id": "photo_lens_petzval_brass",
+    "name": "85mm f/2.2 Petzval Brass Spiral",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["petzval", "brass lens", "optical vignette", "theatrical portrait"],
+    "system_instructions": "Invoke `Lomography Petzval 85mm brass art lens`: glowing sweet-spot center sharpness with intense swirling radial bokeh falloff and subtle warm vintage brass flare."
+  },
+  {
+    "id": "photo_lens_28mm_urban",
+    "name": "28mm f/2.8 Street Context Balance",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["28mm", "environmental street", "garry winogrand", "cafe street"],
+    "system_instructions": "Frame closely via `28mm f/2.8 wide-normal lens` keeping foreground human gesture intimate while wide doorway signage, passing cars, and upper architecture remain sharp in context."
+  },
+  {
+    "id": "photo_lens_16mm_fisheye_skate",
+    "name": "16mm Circular Drama & Action",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["fisheye", "skateboard", "16mm", "90s hiphop", "concert crowd"],
+    "system_instructions": "Anchor `low 16mm ultra-wide fisheye optics inches below airborne sneaker/skateboard or microphone`, bending concrete pool coping and sunset palm skyline cleanly inward."
+  },
+  {
+    "id": "photo_lens_tiltshift_miniature",
+    "name": "45mm Tilt-Shift Miniature Effect",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["tilt shift", "miniature city", "toy city", "diorama photo"],
+    "system_instructions": "Shoot from high rooftop perch with `45mm tilt-shift selective focus slice`: narrow crisp middle ribbon of colorful harbor boats/trams sandwiched between creamy blurred top and bottom zones."
+  },
+  {
+    "id": "photo_lens_135mm_plena",
+    "name": "135mm f/1.8 Background Compression",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["135mm", "compressed bokeh", "street isolate", "teleportrait"],
+    "system_instructions": "Isolate solitary subject effortlessly inside busy downtown crowds via `135mm f/1.8 telephoto`: tight framing, distant city headlights blooming into huge buttery discs behind crisp hair."
+  },
+  {
+    "id": "photo_film_aerochrome_ir",
+    "name": "Kodak Aerochrome Crimson Infrared",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["aerochrome", "infrared", "crimson forest", "pink trees", "ir photography"],
+    "system_instructions": "Emulate `Kodak Aerochrome false-color infrared film`: lush summer forest foliage glowing vibrant magenta-crimson against deep crisp cobalt sky and bright stark chalk clouds."
+  },
+  {
+    "id": "photo_cam_rolleiflex_square",
+    "name": "Rolleiflex Twin-Lens Waist-Level 6×6",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["rolleiflex", "medium format square", "waist level", "6x6"],
+    "system_instructions": "Shoot from slightly low calm waist-level perspective (`Rolleiflex 2.8F, Planar 80mm, gentle natural daylight`), capturing poised timeless documentary dignity."
+  },
+  {
+    "id": "photo_cam_terry_oncam_flash",
+    "name": "Direct On-Camera Hard Pop Flash",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["direct flash", "on camera flash", "90s party", "paparazzi", "point and shoot"],
+    "system_instructions": "Use `35mm point-and-shoot Contax T2 direct pop flash at night`: punchy frontal sheen along jacket/lip gloss casting tight crisp drop shadow immediately behind against dark club/street background."
+  },
+  {
+    "id": "photo_tech_nd_silky_water",
+    "name": "Long-Exposure ND Filter Glass Water",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["long exposure", "silky water", "waterfall", "nd filter", "misty rocks"],
+    "system_instructions": "Specify `tripod-mounted 4-second ND1000 exposure`: velvet glassy mist swirling evenly around razor-sharp wet black moss boulders and crisp unmoving pine needles."
+  },
+  {
+    "id": "photo_tech_1_30s_panning_blur",
+    "name": "1/30s Shutter Speed Drag Panning",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["motion blur car", "panning shot", "shutter drag", "speeding"],
+    "system_instructions": "Keep motorcycle/coupe cabin tack-sharp (`1/30s tracked camera pan`) while asphalt guardrails, streetlights, and spoke wheels streak cleanly into linear horizontal motion trails."
+  },
+  {
+    "id": "photo_lens_anamorphic_cinema_still",
+    "name": "40mm 2× Anamorphic Cinema Frame",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["movie frame", "anamorphic still", "cinema still", "2.39"],
+    "system_instructions": "Use `ARRI Alexa 35 aesthetic, Cooke Anamorphic 40mm f/2.0`: organic oval bokeh highlights, restrained warm/cyan film print LUT, and classic cinematic headroom."
+  },
+  {
+    "id": "photo_tech_focus_stack_macro",
+    "name": "Focus-Stacked Extreme Botanical/Insect Macro",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["focus stack", "compound eye", "beetle", "snowflake macro", "stamen"],
+    "system_instructions": "Render crisp edge-to-edge macro geometry (`100mm f/5.6 focus-stacked micro frame`): crystalline morning dew lenses refracting sunrise inside velvet petal ridges cleanly."
+  },
+  {
+    "id": "photo_cam_holga_lofi",
+    "name": "Holga 120N Dreamy Toy-Lens",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["holga", "lomo", "toy camera", "light leak", "dreamy vignette"],
+    "system_instructions": "Embrace nostalgic plastic-lens charm: `deep corner darkening vignette, soft peripheral radial blur, faint warm amber edge light leak, tender poetic isolation`."
+  }
+]

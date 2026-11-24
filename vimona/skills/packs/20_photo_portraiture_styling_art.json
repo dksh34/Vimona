@@ -1,0 +1,202 @@
+[
+  {
+    "id": "photo_port_beauty_dish",
+    "name": "Silver Beauty-Dish High Fashion Sculpt",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["beauty dish", "vogue", "editorial fashion", "high fashion portrait"],
+    "system_instructions": "Sculpt cheekbones cleanly via `centered overhead silver beauty dish light`, crisp circular catchlights, tight specular collarbones, muted slate studio backdrop, and razor garment tailoring."
+  },
+  {
+    "id": "photo_port_silver_window",
+    "name": "Window Daylight + Silver Fill Candid",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["window portrait", "natural window light", "daylight portrait"],
+    "system_instructions": "Place subject beside sheer north-facing apartment window (`soft directional side wrap daylight`), lifting gentle cheek shadows subtly with reflected white sheet while distant hallway recedes dark."
+  },
+  {
+    "id": "photo_port_weathered_character",
+    "name": "Weathered Character Study & Life Lines",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["old man", "elderly portrait", "fisherman", "wrinkles", "character face"],
+    "system_instructions": "Celebrate authentic time-etched skin relief: deep sun-weathered crow's feet, salt-crusted knit wool beanie, coarse silver beard bristles catching overcast harbor light truthfully."
+  },
+  {
+    "id": "photo_port_ballet_backstage",
+    "name": "Backstage Stagehand & Dancer Grit",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["ballet portrait", "dancer backstage", "tutu", "stage wing"],
+    "system_instructions": "Contrast glowing warm stage spotlight spill bleeding past heavy black velvet curtains against scuffed satin pointe ribbons, resin-dusted ankles, and glistening shoulder sweat."
+  },
+  {
+    "id": "photo_port_rain_musician",
+    "name": "Backlit Concert Stage Haze Portrait",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["musician", "guitarist", "singer stage", "concert photo", "mic"],
+    "system_instructions": "Wrap silhouette intensely inside warm amber concert Fresnel flare cutting smoky club air, worn sunburst guitar lacquer gleam, damp curls, and raw honest focus."
+  },
+  {
+    "id": "photo_port_artisan_potter",
+    "name": "Artisan Maker Hands & Workshop Story",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["potter", "clay", "ceramics", "carpenter", "craftsman"],
+    "system_instructions": "Frame tight waist-up across spinning stoneware wheel showing wet gray slip coating focused fingers, canvas apron dust splatters, and warm dusty barn window light."
+  },
+  {
+    "id": "photo_port_pier_silhouette",
+    "name": "Architectural Pier Under-Arch Silhouette",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["pier silhouette", "under bridge", "couple ocean", "sunset beach"],
+    "system_instructions": "Step deep beneath towering shadowed wooden pier pilings looking outward toward blazing amber surf foam, framing tiny crisp silhouettes cleanly inside dark vertical timber columns."
+  },
+  {
+    "id": "photo_port_noir_venetian",
+    "name": "1940s Noir Venetian Blind Shadows",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["detective", "fedora", "venetian blinds", "1940s noir", "trench coat"],
+    "system_instructions": "Project sharp parallel sunlight bars across smoked oak desk and sharp jawline (`classic monochrome chiaroscuro`), wisps of rising steam catching crisp diagonal slats."
+  },
+  {
+    "id": "photo_port_leaf_dapple",
+    "name": "Summer Canopy Leaf Dapple Pattern",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["dappled light", "leaf shadow", "summer sun portrait", "orchard"],
+    "system_instructions": "Cast delicate lacy organic sunlit patterns across cotton blouse and sunlit freckles through overhead fig branches (`85mm f/2.0, creamy shimmering green garden bokeh`)."
+  },
+  {
+    "id": "photo_port_cozy_hearth",
+    "name": "Winter Knitwear & Warm Hearth Glow",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["sweater", "winter indoor", "fireplace portrait", "cozy wool"],
+    "system_instructions": "Emphasize chunky oatmeal cable-knit wool fuzz illuminated by low amber firelight beside frosted twilight blue pane behind."
+  },
+  {
+    "id": "photo_port_kimono_brocade",
+    "name": "Silk Kimono Gold-Thread Brocade Study",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["kimono", "yukata", "obi", "traditional silk", "kyoto portrait"],
+    "system_instructions": "Capture fine metallic gold-thread crane embroidery catching soft bamboo garden side-light along crisp silk folds and understated matte lacquer hairpins."
+  },
+  {
+    "id": "photo_port_tactical_nylon",
+    "name": "Matte Tactical Cordura & Mud Detail",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["soldier", "tactical", "special forces", "plate carrier", "nvg"],
+    "system_instructions": "Describe matte Cordura weave stitching, scratched anodized aluminum rails, damp woodland mist beading along Gore-Tex shoulders, and calm focused steel-gray expression."
+  },
+  {
+    "id": "photo_port_couture_sculpt",
+    "name": "Avant-Garde Couture Silhouette Studio",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["couture", "gown", "sculptural dress", "met gala", "runway photo"],
+    "system_instructions": "Highlight dramatic pleated organza architecture casting crisp self-shadows against neutral seamless plaster cyclorama lit by large feathered octabox."
+  },
+  {
+    "id": "photo_art_oil_impasto",
+    "name": "Gallery Oil Impasto Palette-Knife Texture",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["oil painting", "impasto", "canvas texture", "painterly", "fine art painting"],
+    "system_instructions": "Keep real paint materiality intact: `rich thick oil impasto ridges, tactile linen canvas weave peaking through thin glazes, confident directional palette-knife strokes, museum chiaroscuro`."
+  },
+  {
+    "id": "photo_art_gouache_pastoral",
+    "name": "Matte Storybook Gouache Warmth",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["gouache", "storybook art", "studio ghibli feel", "painted village"],
+    "system_instructions": "Use `velvety opaque matte gouache brushwork, sun-warmed ochre hills, crisp shadowed pine clusters, delicate dry-brush cloud edges, hand-painted illustration warmth`."
+  },
+  {
+    "id": "photo_art_charcoal_sanguine",
+    "name": "Atelier Charcoal & Sanguine Paper Study",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["charcoal drawing", "sketch", "graphite", "figure study", "sanguine"],
+    "system_instructions": "Ground medium on `warm toned laid Ingres cotton paper`: expressive compressed willow charcoal shadows, crisp white chalk highlight strokes, subtle smudged finger blend."
+  },
+  {
+    "id": "photo_art_ukiyoe_woodblock",
+    "name": "Edo Woodblock Grain & Prussian Indigo",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["ukiyo-e", "woodblock", "hokusai", "japanese print", "sumi ink"],
+    "system_instructions": "Preserve authentic `shin-hanga woodblock print aesthetics`: visible cherrywood grain faintly embossed in pale mist washes, crisp hand-carved keyblock contours, bokashi indigo gradations."
+  },
+  {
+    "id": "photo_art_1984_chrome_airbrush",
+    "name": "1980s Retro Chrome Airbrush Poster",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["retro 80s", "airbrush", "synthwave poster", "chrome art", "vhs cover"],
+    "system_instructions": "Channel `1984 Hajime Sorayama / Syd Mead acrylic airbrush mastery`: smooth brushed specular chrome reflections, soft pastel magenta-cyan horizon airbrush fade, subtle crisp paint mask edges."
+  },
+  {
+    "id": "photo_art_isometric_cutaway",
+    "name": "Architectural Isometric Miniature Cutaway",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["isometric", "cutaway room", "miniature cutaway", "cross section"],
+    "system_instructions": "Organize crisp `45-degree isometric cross-section diorama` showing layered oak beams, miniature glowing desk lamps, tiny bookshelf clutter, and soft ambient occlusion shadows."
+  },
+  {
+    "id": "photo_art_papercraft_shadowbox",
+    "name": "Backlit Layered Paper-Cut Shadowbox",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["papercraft", "paper cut", "layered paper", "shadowbox", "origami"],
+    "system_instructions": "Stack delicate translucent cardstock layers cleanly separated vertically so warm rear LED glow illuminates crisp fibrous paper edges down through misty valley silhouettes."
+  },
+  {
+    "id": "photo_art_technical_blueprint",
+    "name": "Crisp Cyanotype Engineering Blueprint",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["blueprint", "schematic", "exploded view", "technical drawing"],
+    "system_instructions": "Render clean `exploded orthographic engineering assembly diagram on deep Prussian blueprint stock`, razor crisp hairline dimension arrows, subtle fold crease texture."
+  },
+  {
+    "id": "photo_art_concept_matte_fortress",
+    "name": "Film Production Concept Matte Architecture",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["concept art", "environment art", "weta", "sci fi concept", "citadel art"],
+    "system_instructions": "Combine photographic granite textures with expressive atmospheric mist brushes: monumental brutalist hangar carved inside fjord cliff, tiny shuttle beacons giving unmistakable scale."
+  },
+  {
+    "id": "photo_art_botanical_fieldguide",
+    "name": "Hand-Painted Botanical Field Guide Plate",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["botanical illustration", "watercolor flower", "field guide", "naturalist art"],
+    "system_instructions": "Use `transparent layered watercolor pigment washes over fine sepia fountain-pen ink outlines` on textured cold-press cotton paper showing root, bud, and cross-section cleanly."
+  },
+  {
+    "id": "photo_art_comic_crosshatch",
+    "name": "Inked Graphic Novel Chiaroscuro",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["comic art", "graphic novel", "ink drawing", "crosshatch", "mike mignola"],
+    "system_instructions": "Drive bold heavy solid India-ink shadow spotting paired with crisp directional nib crosshatching and restrained muted rust/teal flat color fills."
+  },
+  {
+    "id": "photo_art_kintsugi_ceramic",
+    "name": "Kintsugi Urushi Lacquer & Gold Seam",
+    "category": "Image",
+    "author": "Vimona Core",
+    "trigger_keywords": ["kintsugi", "ceramic bowl", "gold seam", "wabi sabi", "pottery macro"],
+    "system_instructions": "Focus `100mm macro` tightly across dark speckled charcoal raku stoneware fractures mended delicately with gleaming dusted 24k gold urushi lacquer seams on worn cedar surface."
+  }
+]
