@@ -33,6 +33,7 @@ from pathlib import Path
 from typing import Any
 
 from .airgap import purge_legacy_burner_profile, scorched_earth_wipe
+from .safety_ml import get_safety_ml_engine
 from .safety_patterns import is_explicit_text
 
 COMFY_VENV_PYTHON = Path("~/comfyui/venv/bin/python").expanduser()
@@ -194,28 +195,12 @@ def analyze_image_bytes_in_ram(
 
     lighting_mood = ", ".join(mood_parts[:3])
 
-    # Explicit YCbCr check on central 84% crop + alt/title text check BEFORE returning to UI
-    h_a, w_a, _ = arr.shape
-    core = arr[int(h_a * 0.08) : int(h_a * 0.92), int(w_a * 0.08) : int(w_a * 0.92)]
-    cr_r, cr_g, cr_b = core[..., 0], core[..., 1], core[..., 2]
-    cy = 0.299 * cr_r + 0.587 * cr_g + 0.114 * cr_b
-    ccb = 128.0 - 0.168736 * cr_r - 0.331264 * cr_g + 0.5 * cr_b
-    ccr = 128.0 + 0.5 * cr_r - 0.418688 * cr_g - 0.081312 * cr_b
-    skin = (
-        (cy > 68.0)
-        & (cr_r > cr_g)
-        & ((cr_r - cr_g) > 12.0)
-        & ((cr_r - cr_b) > 22.0)
-        & (ccb >= 98.0)
-        & (ccb <= 122.0)
-        & (ccr >= 138.0)
-        & (ccr <= 162.0)
+    # Dedicated SafeBlur Micro-ML Vision + Context classification BEFORE returning to UI
+    combined_txt = f"{alt_text} {page_title} {query}".strip()
+    is_explicit, _sc = get_safety_ml_engine().classify_image_rgb(
+        np.clip(arr, 0, 255).astype(np.uint8),
+        context_text=combined_txt,
     )
-    skin_ratio = float(np.mean(skin)) if core.size else 0.0
-    skin_uniform = skin_ratio >= 0.72 and float(np.std(cy[skin])) < 55.0
-
-    combined_txt = f"{alt_text} {page_title} {query}"
-    is_explicit = is_explicit_text(combined_txt) or skin_uniform
 
     style_tokens = ", ".join(
         p for p in [lighting_mood, ", ".join(palette_tags[:3]), _clean_text(alt_text, 90)] if p

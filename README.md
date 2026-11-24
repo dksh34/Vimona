@@ -109,8 +109,8 @@ Vimona passes memory like a baton:
       <p>When a prompt needs real-world visual references, headless Firefox runs directly inside RAM under <code>/dev/shm</code>, extracts context and images in memory, and gets destroyed via <code>scorched_earth_wipe()</code> before rendering starts.</p>
     </td>
     <td width="50%" valign="top">
-      <h4>4. Targeted Frosted Safe-Blur</h4>
-      <p>Sensitive prompts, live queries, thumbnails, and desktop notification text get a translucent frosted blur overlay by default—only on content that actually matches sensitive rules—while finished renders stay inside Vimona's isolated gallery unless saved manually.</p>
+      <h4>4. Dedicated Micro-ML Safe-Blur</h4>
+      <p>Instead of naive keyword trips or LLM overhead, a tiny <code>93 KB</code> NumPy/OpenCV classifier (<code>safety_ml.py</code>) scores text n-grams and 28-D visual patch geometry (&lt;2 ms) so frosted Gaussian blur only triggers on genuinely explicit or graphic items, while finished renders stay isolated in Vimona's gallery.</p>
     </td>
   </tr>
 </table>
@@ -258,7 +258,7 @@ python3 -m py_compile vimona/*.py run_vimona.py
 ```
 
 <details>
-<summary><b>Explore repository layout (32 files inside <code>vimona/</code> across UI, airgap, memory relay, skills, and shaders)</b></summary>
+<summary><b>Explore repository layout (34 files inside <code>vimona/</code> across UI, airgap, memory relay, skills, SafeBlur ML, and shaders)</b></summary>
 
 ```text
 vimona/
@@ -275,7 +275,9 @@ vimona/
 ├── skills_manager.py      # Dark-mode Skills Manager overlay (search, filters, create, drag-drop import/export)
 ├── perf_profile.py        # Quiet/Eco vs Turbo thread caps, nice/ionice wrapping, cooldown timer
 ├── ram_manager.py         # Protected PID tracking + non-intrusive InstalledAppsRamWindow sweeper
-├── safety_patterns.py     # Sensitive keyword pattern detector for prompts, queries, and alerts
+├── safety_ml.py           # Compact 93 KB Micro-ML engine (Text n-gram MLP + 28-D OpenCV Vision MLP)
+├── safety_ml_weights.npz  # Pretrained NumPy MLP weights for sub-2ms Safe-Blur scoring (zero LLM)
+├── safety_patterns.py     # Sensitive text entry point backed by safety_ml.SafeBlurMLEngine
 ├── safety_blur.py         # GPU frosted Safe-Blur wrapper with click-to-reveal and slide-to-commit confirm
 ├── media.py               # OpenCV VideoFrameDecoder + MP4 probe helpers
 ├── storage.py             # chats.json persistence + ephemeral session staging & exit cleanup

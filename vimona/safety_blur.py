@@ -15,84 +15,20 @@ from gi.repository import GdkPixbuf, GLib, Gtk
 
 from .icons import SvgIcon
 from .media import VideoFrameDecoder
+from .safety_ml import get_safety_ml_engine
 from .safety_patterns import is_explicit_text
 from .slide_commit import SlideCommitWidget
 from .tokens import COLORS
 
 
-@lru_cache(maxsize=256)
-def _check_media_pixels_explicit(file_path_str: str) -> bool:
-    """Fast cached YCbCr skin-exposure analyzer for images and video frame 0."""
-    p = Path(file_path_str)
-    if not p.is_file():
-        return False
-    arr: np.ndarray | None = None
-    ext = p.suffix.lower()
-
-    try:
-        if ext in (".mp4", ".webm", ".mkv", ".mov", ".avi"):
-            dec = VideoFrameDecoder(file_path_str)
-            try:
-                if dec.is_ready:
-                    surf = dec.get_frame_surface(0)
-                    if surf is not None:
-                        w, h = surf.get_width(), surf.get_height()
-                        raw = np.frombuffer(surf.get_data(), dtype=np.uint8).reshape((h, w, 4))
-                        step_y = max(1, h // 64)
-                        step_x = max(1, w // 64)
-                        arr = raw[::step_y, ::step_x, 2::-1].astype(np.float32)
-            finally:
-                dec.close()
-        else:
-            pb = GdkPixbuf.Pixbuf.new_from_file_at_scale(file_path_str, 64, 64, False)
-            if pb is not None:
-                n_ch = pb.get_n_channels()
-                w, h = pb.get_width(), pb.get_height()
-                stride = pb.get_rowstride()
-                pixels = np.frombuffer(pb.get_pixels(), dtype=np.uint8).reshape((h, stride))
-                rgb = pixels[:, : w * n_ch].reshape((h, w, n_ch))[..., :3]
-                arr = rgb.astype(np.float32)
-    except Exception:
-        return False
-
-    if arr is None or arr.size == 0:
-        return False
-
-    h, w, _ = arr.shape
-    y0, y1 = max(0, int(h * 0.08)), min(h, int(h * 0.92))
-    x0, x1 = max(0, int(w * 0.08)), min(w, int(w * 0.92))
-    core = arr[y0:y1, x0:x1]
-    if core.size == 0:
-        return False
-
-    r, g, b = core[..., 0], core[..., 1], core[..., 2]
-    y = 0.299 * r + 0.587 * g + 0.114 * b
-    cb = 128.0 - 0.168736 * r - 0.331264 * g + 0.5 * b
-    cr = 128.0 + 0.5 * r - 0.418688 * g - 0.081312 * b
-
-    skin = (
-        (y > 68.0)
-        & (r > g)
-        & ((r - g) > 12.0)
-        & ((r - b) > 22.0)
-        & (cb >= 98.0)
-        & (cb <= 122.0)
-        & (cr >= 138.0)
-        & (cr <= 162.0)
-    )
-    skin_ratio = float(np.mean(skin))
-    if skin_ratio < 0.72:
-        return False
-    return float(np.std(y[skin])) < 55.0
-
-
 def is_explicit_media(file_path: str | None, prompt_hint: str = "", title: str = "") -> bool:
-    """Return True if an image or video is explicit by prompt/title context or visual exposure."""
-    if is_explicit_text(prompt_hint) or is_explicit_text(title):
-        return True
-    if file_path:
-        return _check_media_pixels_explicit(file_path)
-    return False
+    """Classify image or video sensitivity using the compact SafeBlur Micro-ML engine (no LLM)."""
+    flagged, _score = get_safety_ml_engine().classify_file(
+        str(file_path or ""),
+        prompt_hint or "",
+        title or "",
+    )
+    return flagged
 
 
 class _BlurLayer(Gtk.Box):
