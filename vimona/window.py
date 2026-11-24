@@ -3037,7 +3037,7 @@ class VimonaWindow(Adw.ApplicationWindow):
     def _rebuild_hf_models_popover(self, category: str) -> None:
         self._hf_model_tab = category
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        root.set_size_request(430, 440)
+        root.set_size_request(445, 505)
 
         # Header + Hardware summary banner
         top = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)

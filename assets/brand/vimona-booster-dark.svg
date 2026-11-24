@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1160 296" width="1160" height="296" role="img" aria-label="Vimona Dual Boosting Engine and Hardware-Tuned Pipeline">
+  <defs>
+    <linearGradient id="bbg-d" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d0e13"/>
+      <stop offset="100%" stop-color="#14161f"/>
+    </linearGradient>
+    <linearGradient id="hdr-accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="50%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#34d399"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="4" y="4" width="1152" height="288" rx="22" fill="url(#bbg-d)" stroke="#ffffff" stroke-opacity="0.11" stroke-width="1.5"/>
+
+  <!-- Top Bar -->
+  <text x="32" y="40" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="700" fill="#ffffff">Vimona Boosting Engine &amp; Hardware-Tuned Inference Stack</text>
+  <rect x="866" y="21" width="264" height="26" rx="13" fill="#172b22" stroke="#34d399" stroke-opacity="0.38"/>
+  <circle cx="884" cy="34" r="4" fill="#34d399"/>
+  <text x="896" y="38" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10.5" font-weight="700" fill="#86efac">TUNED · VRAM / GTT / CPU CORES</text>
+  <rect x="32" y="54" width="1098" height="1.5" fill="url(#hdr-accent)" fill-opacity="0.35"/>
+
+  <!-- Card 1: Text Router Boost -->
+  <g transform="translate(32, 74)">
+    <rect x="0" y="0" width="346" height="192" rx="16" fill="#171923" stroke="#60a5fa" stroke-opacity="0.32"/>
+    <rect x="18" y="18" width="128" height="24" rx="12" fill="#1d2c4a"/>
+    <text x="82" y="34" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10.5" font-weight="700" fill="#93c5fd">TEXT &amp; CONTEXT</text>
+    <text x="18" y="68" font-family="Inter, sans-serif" font-size="16.5" font-weight="700" fill="#ffffff">llama-server Vulkan / CUDA</text>
+    <text x="18" y="92" font-family="ui-monospace, monospace" font-size="11.5" fill="#9ea6c2">Qwen 2.5 7B/14B · Gemma 3 4B · Qwen 3</text>
+    <line x1="18" y1="110" x2="328" y2="110" stroke="#ffffff" stroke-opacity="0.08"/>
+    <text x="18" y="133" font-family="Inter, sans-serif" font-size="12.5" fill="#d1d5db">• Auto ctx: 2K (low) / 4K (16GB) / 8K (pro)</text>
+    <text x="18" y="155" font-family="Inter, sans-serif" font-size="12.5" fill="#d1d5db">• Top-3 skill injection from 469 experts</text>
+    <text x="18" y="177" font-family="Inter, sans-serif" font-size="12.5" fill="#93c5fd">• Stops cleanly to 0.0 GB on render</text>
+  </g>
+
+  <!-- Card 2: Image Speed Boost -->
+  <g transform="translate(406, 74)">
+    <rect x="0" y="0" width="348" height="192" rx="16" fill="#181a24" stroke="#a78bfa" stroke-opacity="0.36"/>
+    <rect x="18" y="18" width="144" height="24" rx="12" fill="#2c224a"/>
+    <text x="90" y="34" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10.5" font-weight="700" fill="#d8b4fe">IMAGE BOOST · 5-STEP</text>
+    <text x="18" y="68" font-family="Inter, sans-serif" font-size="16.5" font-weight="700" fill="#ffffff">sd-server DMD2 + Lightning</text>
+    <text x="18" y="92" font-family="ui-monospace, monospace" font-size="11.5" fill="#a8b0cf">Pony Q8 · RealVis Q4 · Juggernaut Q4</text>
+    <line x1="18" y1="110" x2="330" y2="110" stroke="#ffffff" stroke-opacity="0.08"/>
+    <text x="18" y="133" font-family="Inter, sans-serif" font-size="12.5" fill="#d1d5db">• DMD2 5-step (cfg 1.6) / Lightning 6-step</text>
+    <text x="18" y="155" font-family="Inter, sans-serif" font-size="12.5" fill="#d1d5db">• Auto --vae-tiling for unified iGPUs</text>
+    <text x="18" y="177" font-family="Inter, sans-serif" font-size="12.5" fill="#d8b4fe">• Isolated inside unshare -r -n netns</text>
+  </g>
+
+  <!-- Card 3: Video 720p DSLR Boost -->
+  <g transform="translate(782, 74)">
+    <rect x="0" y="0" width="346" height="192" rx="16" fill="#171b22" stroke="#34d399" stroke-opacity="0.36"/>
+    <rect x="18" y="18" width="148" height="24" rx="12" fill="#193429"/>
+    <text x="92" y="34" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10.5" font-weight="700" fill="#6ee7b7">VIDEO BOOST · 720p24</text>
+    <text x="18" y="68" font-family="Inter, sans-serif" font-size="16.5" font-weight="700" fill="#ffffff">ComfyUI Wan 2.1 + CausVid</text>
+    <text x="18" y="92" font-family="ui-monospace, monospace" font-size="11.5" fill="#9eb8af">Wan VACE 1.3B + LTX-Video 2B</text>
+    <line x1="18" y1="110" x2="328" y2="110" stroke="#ffffff" stroke-opacity="0.08"/>
+    <text x="18" y="133" font-family="Inter, sans-serif" font-size="12.5" fill="#d1d5db">• UMT5 pinned CPU · CausVid 6-step LoRA</text>
+    <text x="18" y="155" font-family="Inter, sans-serif" font-size="12.5" fill="#d1d5db">• ffmpeg lanczos + unsharp 1280×720 24fps</text>
+    <text x="18" y="177" font-family="Inter, sans-serif" font-size="12.5" fill="#6ee7b7">• Histogram temporal check (score 1.0)</text>
+  </g>
+</svg>

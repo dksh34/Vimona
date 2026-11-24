@@ -50,8 +50,8 @@
     <!-- Node boxes -->
     <rect x="18" y="50" width="184" height="50" rx="11" fill="#1e1e28" stroke="#ffffff" stroke-opacity="0.12"/>
     <circle cx="34" cy="70" r="4.5" fill="#6aa9ff"/>
-    <text x="46" y="73" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="11.5" font-weight="600" fill="#f3f3f6">Qwen 3.5 · Router</text>
-    <text x="30" y="90" font-family="ui-monospace, monospace" font-size="9" fill="#9a9aa6">llama.cpp Vulkan · ~320ms</text>
+    <text x="46" y="73" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="11.5" font-weight="600" fill="#f3f3f6">Hardware-Tuned HF</text>
+    <text x="30" y="90" font-family="ui-monospace, monospace" font-size="9" fill="#9a9aa6">Qwen · RealVis · Wan · 469 Skills</text>
 
     <rect x="214" y="50" width="184" height="50" rx="11" fill="#1e1e28" stroke="#ffffff" stroke-opacity="0.12"/>
     <circle cx="230" cy="70" r="4.5" fill="#c38fff"/>
@@ -88,7 +88,7 @@
 
   <text x="184" y="142" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="17" font-weight="500" fill="#d0d0dc">Local-first, air-gapped AI workstation for</text>
   <text x="184" y="166" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="17" font-weight="500" fill="#d0d0dc">private chat, SDXL imagery, and 720p video.</text>
-  <text x="184" y="193" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13.5" font-weight="400" fill="#888896">Ephemeral /dev/shm research · Memory-relay handoff · Vulkan GPU</text>
+  <text x="184" y="193" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13.5" font-weight="400" fill="#888896">Ephemeral /dev/shm research · DMD2 &amp; CausVid Boost · 469 Skills</text>
 
   <!-- Visual Feature Pills -->
   <g transform="translate(56, 232)">
