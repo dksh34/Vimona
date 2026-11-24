@@ -8,6 +8,9 @@
 
 <br/><br/>
 
+[![Powered by Hugging Face](https://img.shields.io/badge/Powered%20by-Hugging%20Face-FFD21E?style=flat-square&logo=huggingface&logoColor=black)](https://huggingface.co)
+[![Hardware-Tuned Models](https://img.shields.io/badge/Flagship-Hardware--Tuned%20Model%20Picking-10B981?style=flat-square)](#hardware-tuned-model-picking--boosting)
+[![Local AI Harness](https://img.shields.io/badge/Architecture-Local%20AI%20Harness-1E2430?style=flat-square)](#what-makes-vimona-a-harness-not-a-model-fork)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-1E2430?style=flat-square&logo=python&logoColor=93C5FD)](pyproject.toml)
 [![GTK4 + Libadwaita](https://img.shields.io/badge/Desktop-GTK4%20%2B%20Libadwaita-1E2430?style=flat-square&logo=gnome&logoColor=93C5FD)](vimona/window.py)
 [![ComfyUI Engine](https://img.shields.io/badge/Engine-ComfyUI%20%2B%20sd.cpp-1E2430?style=flat-square)](https://github.com/comfyanonymous/ComfyUI)
@@ -18,14 +21,14 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-1E2430?style=flat-square)](LICENSE)
 
 <h3>
-  Local-first AI chat, <code>/dev/shm</code> ephemeral research, 5-step DSLR imagery, &amp; <code>720p</code> video — built for real laptops.
+  A local AI orchestration harness <strong>powered by Hugging Face</strong> — featuring automatic <strong>Hardware-Tuned Model Picking</strong> tailored to your exact GPU, VRAM/GTT, and RAM.
 </h3>
 
 <p>
-  <a href="#boosting-engine--hardware-tuned-models"><strong>Boosting &amp; Models</strong></a> &nbsp;·&nbsp;
+  <a href="#hardware-tuned-model-picking--boosting"><strong>Hardware-Tuned Picking</strong></a> &nbsp;·&nbsp;
+  <a href="#what-makes-vimona-a-harness-not-a-model-fork"><strong>Why a Harness</strong></a> &nbsp;·&nbsp;
   <a href="#469-skills--context-engineering"><strong>469 Skills Engine</strong></a> &nbsp;·&nbsp;
   <a href="#interactive-workspace-showcase"><strong>Live Video Demos</strong></a> &nbsp;·&nbsp;
-  <a href="#architecture--isolation"><strong>Air-Gap Security</strong></a> &nbsp;·&nbsp;
   <a href="#downloads--installers"><strong>Downloads</strong></a> &nbsp;·&nbsp;
   <a href="#call-for-testers--macos-build"><strong>Testers &amp; macOS Wanted</strong></a> &nbsp;·&nbsp;
   <a href="#credits--acknowledgments"><strong>Credits</strong></a>
@@ -35,25 +38,31 @@
 
 <img src="assets/vimona-hero-showcase.png" width="96%" alt="Vimona GTK4 + Libadwaita Dark Workspace showcasing Alpine 50mm DSLR Keyframes, Controls, and Hardware-Tuned Model Header"/>
 
-<sub><em>Native GTK4 + Libadwaita dark canvas running on Linux (`AMD Radeon 840M` · `14.9 GB` unified memory). Zero Electron bloat.</em></sub>
+<sub><em>Vimona desktop harness running on Linux (`AMD Radeon 840M` · `8.0 GB GPU Pool` · `14.9 GB RAM`). Powered by Hugging Face open weights &amp; GTK4 + Libadwaita.</em></sub>
 
 </div>
+
+<br/>
+
+> [!NOTE]
+> **FLAGSHIP FEATURE — HARDWARE-TUNED MODEL PICKING (POWERED BY HUGGING FACE):**
+> Most local AI apps show one static list and let laptops crash on `24 GB` weights. **Vimona is an orchestration harness** that probes your actual silicon (`/proc/meminfo`, `nvidia-smi`, and Linux DRM `mem_info_vram_total` + `mem_info_gtt_total`), classifies your tier (`Low`, `Balanced 8–16 GB`, or `Workstation 24+ GB`), **hides unsuited heavy/FP16 models automatically**, pulls verified `GGUF`/weight files directly from **Hugging Face Hub**, and tunes server launch flags (`--ctx-size`, `--vae-tiling`, `--n-gpu-layers`, `threads`) to fit your exact hardware.
 
 <br/>
 
 <table>
   <tr>
     <td width="33.3%" valign="top">
-      <h4>Hardware-Tuned Hub</h4>
-      Reads real <code>VRAM</code>, Linux DRM <code>GTT</code>, CPU cores, &amp; backend (<code>Vulkan</code>/<code>CUDA</code>/<code>CPU</code>). Hides <code>20+ GB</code>/FP16 models automatically when your GPU pool cannot hold them.
+      <h4>1. Hardware-Tuned Model Picking</h4>
+      Inspects live <code>VRAM</code>, unified <code>GTT</code> pool, CPU cores &amp; backend (<code>Vulkan</code>/<code>CUDA</code>/<code>CPU</code>). An `AMD Radeon 840M` only sees tuned <code>Q4/Q8 GGUF</code> weights—never crashing on <code>20+ GB</code> models.
     </td>
     <td width="33.3%" valign="top">
-      <h4>Dual Boosting Engine</h4>
-      Combines <strong><code>DMD2</code> / <code>Lightning</code></strong> (<code>5–6</code> step SDXL Vulkan) with <strong><code>Wan 2.1 CausVid</code></strong> (<code>6</code> step <code>1.3B</code> video) + <code>ffmpeg</code> DSLR sharpening to <code>1280×720 24fps</code>.
+      <h4>2. Local AI Harness (Zero Lock-In)</h4>
+      Essentially a pure runtime harness orchestrating <strong>Hugging Face</strong> models across <code>llama.cpp</code>, <code>stable-diffusion.cpp</code>, <code>ComfyUI</code>, <code>469</code> context-routed skills, and <code>/dev/shm</code> Firefox cleanly under one roof.
     </td>
     <td width="33.3%" valign="top">
-      <h4>Air-Gapped &amp; Zero-Trace</h4>
-      Diffusion runs under <code>unshare -r -n</code> (<code>ENETUNREACH</code>) bridged over an <code>AF_UNIX</code> socket. Ephemeral Firefox lookups run purely inside <code>/dev/shm</code> and self-wipe.
+      <h4>3. Boosted &amp; Air-Gapped Execution</h4>
+      Unloads text to <code>0.0 GB</code> before launching <code>5-step DMD2</code> images &amp; <code>6-step Wan 2.1 CausVid</code> <code>720p</code> video inside <code>unshare -r -n</code> (<code>ENETUNREACH</code>) over an <code>AF_UNIX</code> bridge.
     </td>
   </tr>
 </table>
@@ -97,9 +106,36 @@ Every frame below was generated locally on consumer unified-memory hardware usin
 
 ---
 
-## Boosting Engine & Hardware-Tuned Models
+## Hardware-Tuned Model Picking &amp; Boosting
 
-Vimona refuses to crash laptops by recommending `24 GB` workstation weights to `8–16 GB` iGPU machines. [`vimona/hf_models.py`](vimona/hf_models.py) inspects `/proc/meminfo`, `nvidia-smi`, and `/sys/class/drm` (`mem_info_vram_total` + `mem_info_gtt_total`), classifies your tier (`low`, `balanced`, or `workstation`), filters Hugging Face's curated catalog strictly to fitting weights, and auto-tunes inference server flags.
+> **The centerpiece of Vimona ([`vimona/hf_models.py`](vimona/hf_models.py)):** **Powered directly by [Hugging Face](https://huggingface.co)**, Vimona never dumps unworkable `24 GB` workstation models onto `8–16 GB` laptops—nor clutters high-VRAM workstations with entry fallbacks.
+
+Before showing a single download button, the **Hardware Profiler** probes:
+1. **System Memory:** `MemTotal` &amp; `MemAvailable` via `/proc/meminfo` (or Windows `GlobalMemoryStatusEx`), reserving ~`2.5 GB` OS headroom on unified-memory PCs.
+2. **GPU Addressable Pool:** Exact discrete VRAM via `nvidia-smi` **plus Linux DRM `mem_info_vram_total` and `mem_info_gtt_total`** (catching unified APU pools accurately—e.g. `0.5 GB` carveout + `7.5 GB` GTT = **`8.0 GB GPU Pool`** on Ryzen AI 5 / Radeon 840M).
+3. **Strict Model Filter + Live Hub Stats:** Only curated **Hugging Face Hub** weights that fit your backend (`Vulkan` / `CUDA` / `CPU`), GPU pool, and RAM tier stay visible (`is_model_tuned_for_hardware`), showing real-time `HF ♥` &amp; downloads and auto-configuring runtime flags (`--ctx-size`, `--vae-tiling`, `--offload-to-cpu`, `--n-gpu-layers`).
+
+<div align="center">
+
+<img src="assets/hf-models-popup.png" width="76%" alt="Vimona Hardware-Tuned Hugging Face Model Picker filtering to Vulkan GGUF weights for AMD Radeon 840M"/>
+
+<sub><strong>Hardware-Tuned Hugging Face Picker:</strong> Detects <code>AMD Radeon 840M · 8.0 GB GPU Pool · 14.9 GB RAM · VULKAN</code>, hides heavy FP16/FLUX bloat, highlights the local <code>Active ✓</code> weight, and streams missing <code>GGUF</code> weights safely from Hugging Face.</sub>
+
+</div>
+
+<br/>
+
+| Detected Hardware Tier | What Vimona Picks Automatically (Text / Image / Video) | What It Hides &amp; Why | Runtime Server Flags Auto-Tuned |
+| :--- | :--- | :--- | :--- |
+| **Low-RAM / CPU** (`< 11 GB` RAM or `CPU` only) | `Qwen 2.5 3B` / `Gemma 3 4B`, `RealVisXL Lightning Q4` (`2.6 GB`) | Hides `7B–14B`, FP16 SDXL, FLUX &amp; video weights cleanly so swap never thrashes | `--ctx-size 2048`, `--n-gpu-layers 0`, `--offload-to-cpu`, `--vae-tiling` |
+| **Balanced Laptop / APU** (`15–16 GB` Vulkan UMA or `8 GB` dGPU) | `Qwen 2.5 7B / Coder 7B`, `Qwen 3 8B`, `Pony V6 XL Q8` (`3.9 GB`), `RealVisXL Q4` (`2.6 GB`), `Juggernaut Q4` (`2.8 GB`), `Wan 2.1 1.3B` | Hides `14B` models &amp; `6.5+ GB` unquantized FP16 duplicates that overflow `8 GB` GTT/VRAM | `--ctx-size 4096`, `Vulkan0`/`CUDA`, `--vae-tiling`, `DMD2 5-step (cfg 1.6)` |
+| **Workstation** (`24+ GB` RAM &amp; `16+ GB` VRAM) | `Qwen 2.5 14B`, `RealVisXL FP16`, `Juggernaut XL FP16`, `FLUX.1-dev Q4`, `Wan 2.1 14B` | Hides low-RAM `3B`/`Q4` entry clutter so full-capacity flagship models lead | `--ctx-size 8192`, `--flash-attn on`, full-precision VRAM pipeline |
+
+<br/>
+
+### What Makes Vimona a Harness (Not a Model Fork)
+
+Vimona owns zero proprietary weights and locks you to zero hosted APIs—it is an **end-to-end local orchestration harness** built around open standards:
 
 <div align="center">
 
@@ -114,34 +150,17 @@ Vimona refuses to crash laptops by recommending `24 GB` workstation weights to `
 <table>
   <tr>
     <td width="50%" align="center" valign="top">
-      <img src="assets/hf-models-popup.png" width="100%" alt="Hardware-Tuned Hugging Face Models popup showing live GTT detection and GGUF models"/><br/>
-      <sub><strong>Hardware-Tuned Hugging Face Popover</strong> — Detects exact GPU pool &amp; hides heavy/incompatible bloat.</sub>
+      <img src="assets/controls-dropdown.png" width="100%" alt="Unified Controls dropdown menu with Quiet/Turbo, Skills, Select Chat, and Alerts"/><br/>
+      <sub><strong>Unified Controls Dropdown</strong> — Switch Quiet/Turbo thermals, open <code>469</code> Skills, select multi-turn context, or toggle SafeBlur Alerts.</sub>
     </td>
     <td width="50%" align="center" valign="top">
-      <img src="assets/controls-dropdown.png" width="100%" alt="Unified Controls dropdown menu with Quiet/Turbo, Skills, Select Chat, and Alerts"/><br/>
-      <sub><strong>Unified Controls Dropdown</strong> — Clean header menu housing Quiet/Turbo toggle, Skills, &amp; SafeBlur Alerts.</sub>
+      <img src="assets/demos/08-boosting-hf-controls.webp" width="100%" alt="Live interactive demo of Controls dropdown, Hardware-Tuned HF Models tabs, and boosted 720p video output"/><br/>
+      <sub><strong>Model Picker &amp; Boosted Flow</strong> · <a href="assets/demos/08-boosting-hf-controls.mp4">MP4 Recording</a></sub>
     </td>
   </tr>
 </table>
 
-<br/>
-
-<img src="assets/demos/08-boosting-hf-controls.webp" width="90%" alt="Live interactive demo of Controls dropdown, Hardware-Tuned HF Models tabs, and boosted 720p video output"/>
-
-<sub><strong>Interactive Controls, Model Tabs &amp; Boosted Output Flow</strong> · <a href="assets/demos/08-boosting-hf-controls.mp4">MP4 Recording</a></sub>
-
 </div>
-
-<details>
-<summary>Hardware Tier Tuning Matrix (Automatic Model Selection &amp; Engine Flags)</summary>
-
-| Detected Hardware Profile | Tuned Image Models | Tuned Text Models | Tuned Video Models | Runtime Flags (`llama-server` / `sd-server`) |
-| :--- | :--- | :--- | :--- | :--- |
-| **Low-RAM / CPU** (`< 11 GB` RAM or `CPU` only) | `RealVisXL V5.0 Lightning Q4` (`2.6 GB`) | `Qwen 2.5 3B` (`2.6 GB`), `Gemma 3 4B` (`2.5 GB`) | *Hidden honestly when GPU headroom lacking* | `--ctx-size 2048`, `--n-gpu-layers 0`, `--offload-to-cpu`, `--vae-tiling` |
-| **Balanced Laptop / 15–16 GB APU** (e.g. `Ryzen AI 5 · Radeon 840M 8 GB Pool` or `RTX 4060 8 GB`) | `Pony V6 XL Q8` (`3.9 GB`), `RealVisXL Q4` (`2.6 GB`), `Juggernaut XL Q4` (`2.8 GB`) | `Qwen 2.5 7B`, `Qwen 2.5 Coder 7B`, `Qwen 3 8B`, `Llama 3.1 8B`, `Gemma 3 4B` | `Wan 2.1 VACE 1.3B`, `Wan 2.1 T2V 1.3B`, `LTX-Video 2B` | `--ctx-size 4096`, `Vulkan0`/`CUDA`, `--vae-tiling`, `DMD2 5-step (cfg 1.6)` |
-| **Workstation** (`24+ GB` RAM &amp; `16+ GB` VRAM) | `RealVisXL V5.0 FP16`, `Juggernaut XL FP16`, `FLUX.1-dev Q4_K_S` | `Qwen 2.5 14B`, `Qwen 3 8B`, `Llama 3.1 8B`, `Qwen 2.5 7B` | `Wan 2.1 I2V 14B`, `Wan 2.1 T2V 14B`, `Wan VACE 1.3B`, `LTX-Video 2B` | `--ctx-size 8192`, `--flash-attn on`, full VRAM pipeline |
-
-</details>
 
 ---
 
@@ -330,8 +349,9 @@ vimona/
 
 ## Credits &amp; Acknowledgments
 
-Vimona stands directly on top of extraordinary open-source infrastructure:
+Vimona is a local AI harness powered directly by Hugging Face and extraordinary open-source infrastructure:
 
+- **[Hugging Face Hub (`huggingface.co`)](https://huggingface.co)** — Powers Vimona's curated model catalog, live model repository metadata API (`likes`, `downloads`), and resumable-safe direct `GGUF`/`safetensors` downloads matched cleanly by hardware tier.
 - **[ComfyUI (`comfyanonymous/ComfyUI` & Comfy-Org)](https://github.com/comfyanonymous/ComfyUI)** — Powers Vimona's air-gapped node graph backend (`WanVaceToVideo`, `ModelSamplingSD3`, `--lowvram` offloading, CPU UMT5 scheduling, and `VHS_VideoCombine`). Running `Wan 2.1` smoothly inside `16 GB` unified RAM would not be possible without ComfyUI.
 - **[llama.cpp (`ggml-org/llama.cpp`)](https://github.com/ggml-org/llama.cpp)** — High-speed Vulkan & CUDA `GGUF` inference server (`llama-server`) for local reasoning, coding, and skill routing.
 - **[stable-diffusion.cpp (`leejet/stable-diffusion.cpp`)](https://github.com/leejet/stable-diffusion.cpp)** — Fast Vulkan/GGUF diffusion server (`sd-server`) driving 4–6 step `DMD2` & `Lightning` image boosting with spatial VAE tiling.
