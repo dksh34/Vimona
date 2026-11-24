@@ -12,8 +12,8 @@
 [![GTK4 + Libadwaita](https://img.shields.io/badge/Desktop-GTK4%20%2B%20Libadwaita-1E2430?style=flat-square&logo=gnome&logoColor=93C5FD)](vimona/window.py)
 [![ComfyUI Engine](https://img.shields.io/badge/Engine-ComfyUI%20%2B%20sd.cpp-1E2430?style=flat-square)](https://github.com/comfyanonymous/ComfyUI)
 [![469 Skills](https://img.shields.io/badge/Skills-469%20Indexed-1E2430?style=flat-square)](vimona/skills_loader.py)
-[![Linux Standalone](https://img.shields.io/badge/Linux-.run%20%2F%20AppDir-1E2430?style=flat-square&logo=linux&logoColor=FDE047)](installers/build_linux_standalone.sh)
-[![Windows CI](https://img.shields.io/badge/Windows-.exe%20Build-1E2430?style=flat-square&logo=windows&logoColor=93C5FD)](.github/workflows/build-windows.yml)
+[![Linux Standalone](https://img.shields.io/badge/Download-Linux%20.run%20App-1E2430?style=flat-square&logo=linux&logoColor=FDE047)](downloads/Vimona-Linux-x86_64.run)
+[![Windows CI](https://img.shields.io/badge/Download-Windows%20.exe-1E2430?style=flat-square&logo=windows&logoColor=93C5FD)](.github/workflows/build-windows.yml)
 [![macOS Help Wanted](https://img.shields.io/badge/macOS-Packagers%20Welcome-1E2430?style=flat-square&logo=apple&logoColor=EDEDED)](#call-for-testers--macos-build)
 [![License: MIT](https://img.shields.io/badge/License-MIT-1E2430?style=flat-square)](LICENSE)
 
@@ -26,8 +26,8 @@
   <a href="#469-skills--context-engineering"><strong>469 Skills Engine</strong></a> &nbsp;·&nbsp;
   <a href="#interactive-workspace-showcase"><strong>Live Video Demos</strong></a> &nbsp;·&nbsp;
   <a href="#architecture--isolation"><strong>Air-Gap Security</strong></a> &nbsp;·&nbsp;
-  <a href="#installation"><strong>Linux &amp; Windows Install</strong></a> &nbsp;·&nbsp;
-  <a href="#credits--contributors"><strong>Credits &amp; Contributors</strong></a>
+  <a href="#downloads--installers"><strong>Downloads</strong></a> &nbsp;·&nbsp;
+  <a href="#credits--acknowledgments"><strong>Credits</strong></a>
 </p>
 
 <br/>
@@ -246,42 +246,35 @@ Click **MP4 Recording** under any demo card to inspect full-resolution footage r
 
 ---
 
-## Installation
+## Downloads &amp; Installers
 
-### Linux Standalone App & System Installer
+Choose the direct download package for your operating system—no terminal commands required.
 
-**Build or run the self-contained standalone Linux bundle:**
-
-```bash
-chmod +x installers/build_linux_standalone.sh
-./installers/build_linux_standalone.sh
-./dist/Vimona-Linux-x86_64.run
-```
-
-Useful standalone flags:
-
-```bash
-./dist/Vimona-Linux-x86_64.run --check           # Verify bundled ELF stub + GTK4/Adw runtime
-./dist/Vimona-Linux-x86_64.run --install-desktop # Pin standalone app to your launcher menu
-./dist/Vimona-Linux-x86_64.run --extract ./app   # Unpack portable dist/Vimona.AppDir
-```
-
-**Or install desktop integration directly on Fedora / Ubuntu / Debian / Arch:**
-
-```bash
-chmod +x installers/install-linux.sh
-./installers/install-linux.sh
-vimona
-```
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>Linux (x86_64 Desktop App)</h3>
+      <ul>
+        <li><strong>Standalone Executable:</strong> <a href="downloads/Vimona-Linux-x86_64.run"><strong>Download Vimona-Linux-x86_64.run</strong></a> (<code>454 KB</code> self-extracting bundle with metallic icon &amp; native ELF stub)</li>
+        <li><strong>Portable Archive:</strong> <a href="downloads/Vimona-Linux-x86_64.tar.gz"><strong>Download Vimona-Linux-x86_64.tar.gz</strong></a> (<code>451 KB</code> portable <code>Vimona.AppDir</code> bundle)</li>
+        <li><strong>System Desktop Installer:</strong> <a href="installers/install-linux.sh"><code>installers/install-linux.sh</code></a> (adds <code>Vimona</code> to GNOME / KDE app menus &amp; <code>hicolor</code> icons)</li>
+      </ul>
+      <sub><strong>How to run:</strong> Right-click <code>Vimona-Linux-x86_64.run</code> → <em>Properties</em> → enable <em>Executable as Program</em> → double-click to launch. Or download the automated AppImage / ELF build from the <a href=".github/workflows/build-linux-standalone.yml">Linux CI Workflow</a>.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <h3>Windows 10 / 11 (<code>.exe</code> &amp; Setup Wizard)</h3>
+      <ul>
+        <li><strong>Automated CI Downloads:</strong> Open <a href=".github/workflows/build-windows.yml"><strong>Windows <code>.exe</code> Release Artifacts</strong></a> on GitHub Actions to download pre-built <code>Vimona.exe</code> &amp; <code>Vimona-Setup.exe</code></li>
+        <li><strong>Setup Wizard Script:</strong> <a href="installers/install-windows.ps1"><code>installers/install-windows.ps1</code></a> (right-click → <em>Run with PowerShell</em>)</li>
+        <li><strong>Packaging Recipe:</strong> <a href="installers/build_windows_exe.ps1"><code>build_windows_exe.ps1</code></a> &amp; <a href="installers/vimona-setup.iss"><code>vimona-setup.iss</code></a> bundled with multi-size <a href="assets/vimona.ico"><code>vimona.ico</code></a></li>
+      </ul>
+      <sub><strong>How to run:</strong> Download <code>Vimona-Setup.exe</code> from CI artifacts, double-click to install with the metallic Desktop &amp; Start Menu shortcut icon, and launch Vimona.</sub>
+    </td>
+  </tr>
+</table>
 
 <details>
-<summary>Installer Options, Direct Repo Launch &amp; Keyboard Shortcuts</summary>
-
-```bash
-./installers/install-linux.sh --skip-deps   # Desktop launcher without touching system packages
-./installers/install-linux.sh --uninstall   # Remove installed launcher, icon & desktop entry
-./launch-vimona.sh                          # Run directly from source without installing
-```
+<summary>Keyboard Shortcuts Reference</summary>
 
 | Shortcut | Action |
 | :--- | :--- |
@@ -295,26 +288,6 @@ vimona
 
 </details>
 
-### Windows 10 / 11 (`.exe` & Setup Wizard)
-
-Vimona includes cross-platform process/UID guards (`win32`-safe), MSYS2 UCRT64 GTK4 setup, PyInstaller `.exe` packaging, Inno Setup installer, and an automated GitHub Actions `.exe` workflow:
-
-```powershell
-# Automated setup (MSYS2 GTK4 + Python deps + Start Menu/Desktop shortcuts)
-Set-ExecutionPolicy -Scope Process Bypass
-.\installers\install-windows.ps1
-
-# Build standalone dist\Vimona\Vimona.exe (+ Setup Wizard via Inno Setup 6)
-.\installers\build_windows_exe.ps1
-.\installers\build_windows_exe.ps1 -OneFile
-```
-
-| Build / Script | Purpose | Target |
-| :--- | :--- | :--- |
-| [`.github/workflows/build-windows.yml`](.github/workflows/build-windows.yml) | Automated Windows CI publishing `Vimona.exe` &amp; `Vimona-Setup.exe` | Windows x64 |
-| [`.github/workflows/build-linux-standalone.yml`](.github/workflows/build-linux-standalone.yml) | Automated Linux standalone `.run`, AppImage &amp; frozen ELF CI | Linux x64 |
-| [`installers/vimona-setup.iss`](installers/vimona-setup.iss) | Inno Setup installer definition with multi-size [`assets/vimona.ico`](assets/vimona.ico) | Installer Wizard |
-
 ---
 
 ## Project Architecture Map
@@ -324,10 +297,12 @@ vimona/
 ├── run_vimona.py                          # Application entrypoint (Adw.Application)
 ├── launch-vimona.sh                       # Direct Linux launch wrapper
 ├── LICENSE                                # MIT License
-├── installers/                            # Linux .run/AppDir/AppImage & Windows .exe/Inno scripts
-├── .github/workflows/                     # Automated Linux & Windows build workflows
+├── downloads/                             # Direct downloadable Linux .run & portable .tar.gz bundles
+├── installers/                            # Linux AppDir/AppImage & Windows .exe/Inno scripts
+├── .github/workflows/                     # Automated Linux & Windows CI download workflows
 ├── assets/
-│   ├── brand/                             # Theme-aware hero, pipeline & booster SVGs + icon
+│   ├── vimona.ico                         # Multi-resolution Windows icon (16..256px metallic V)
+│   ├── brand/                             # Theme-aware hero, pipeline, booster SVGs & 256px PNG icon
 │   ├── demos/                             # Animated WebP + MP4 showcases (01..08)
 │   └── *.png                              # High-res framed UI & real DSLR output captures
 └── vimona/
@@ -349,9 +324,7 @@ vimona/
 
 ---
 
-## Credits & Contributors
-
-### Open-Source Engines & Community Models
+## Credits &amp; Acknowledgments
 
 Vimona stands directly on top of extraordinary open-source infrastructure:
 
@@ -361,13 +334,6 @@ Vimona stands directly on top of extraordinary open-source infrastructure:
 - **[Wan 2.1 (`Wan-Video/Wan2.1`)](https://github.com/Wan-Video/Wan2.1)** & **[CausVid (`tianweiy/CausVid`)](https://github.com/tianweiy/CausVid)** — Diffusion video synthesis and 6-step distilled acceleration.
 - **Community Model Authors** — Curators & quantizers behind `Qwen 2.5 / Qwen 3`, `Gemma 3`, `Llama 3.1`, `Pony Diffusion V6 XL`, `RealVisXL V5.0 Lightning`, `Juggernaut XL v9`, `LTX-Video`, and GGUF quantizations (`bartowski`, `city96`, `off-grid-ai`, `RunDiffusion`, `SG161222`).
 - **[GTK4](https://www.gtk.org/), [Libadwaita](https://gnome.pages.gitlab.gnome.org/libadwaita/), [PyGObject](https://pygobject.gnome.org/), [NumPy](https://numpy.org/), [OpenCV](https://opencv.org/) & [FFmpeg](https://ffmpeg.org/)** — Native hardware-accelerated UI, offline ML scoring, and 720p temporal finishing.
-
-### Contributors
-
-| Contributor | Role | Key Areas |
-| :--- | :--- | :--- |
-| **Dksh** | Creator & Project Owner | Product vision, hardware validation on Ryzen/Radeon & Windows targets, design direction, QA |
-| **Antigravity (Google DeepMind)** | AI Co-Architect & Contributor | GTK4/Libadwaita UI engineering, 469-skill library & context router, `unshare` + `AF_UNIX` air-gap bridge, Hardware-Tuned HF Hub, 93 KB SafeBlur ML, stress testing & visual capture |
 
 ---
 
