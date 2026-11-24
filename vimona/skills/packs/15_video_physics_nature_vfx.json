@@ -1,0 +1,202 @@
+[
+  {
+    "id": "vid_vfx_explosion_flinch",
+    "name": "Explosion Light Spill & Camera Flinch",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["explosion", "blast", "detonation", "shockwave", "debris", "vfx"],
+    "system_instructions": "Bake practical explosion VFX directly into surrounding physics: `violent orange fireball blooms across wet brick, blinding light spill flickering across nearby windows, thick black smoke billowing upward, camera flinches slightly from concussive shockwave`."
+  },
+  {
+    "id": "vid_vfx_arcane_particles",
+    "name": "Swirling Energy & Dynamic Light Cast",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["magic", "arcane", "energy glow", "spell", "aura", "mana"],
+    "system_instructions": "Describe both effect AND surface interaction: `swirling sapphire arcane filaments orbit hovering fingers, casting pulsing blue highlights across cheek bones, metallic armor seams, and dark cave mist`."
+  },
+  {
+    "id": "vid_vfx_hologram_flicker",
+    "name": "Translucent Hologram & Hand Spill",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["hologram", "hud", "sci fi interface", "projection", "digital display"],
+    "system_instructions": "Ground sci-fi VFX cleanly: `translucent cyan wireframe hologram rotating smoothly above dark desk, subtle scanline flicker, cool teal glow reflecting sharply on brass fingertips and cornea`."
+  },
+  {
+    "id": "vid_vfx_ember_disintegration",
+    "name": "Ash & Glowing Ember Disintegration",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["disintegrate", "turn to ash", "dissolve", "crumble dust"],
+    "system_instructions": "Prompt progressive erosion cleanly: `outer stone armor cracks open revealing orange fissures before crumbling smoothly into fine dark ash and wind-swept glowing embers drifting backward`."
+  },
+  {
+    "id": "vid_vfx_shockwave_ripple",
+    "name": "Sonic Shockwave Ring & Air Refraction",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["sonic boom", "ripple wave", "shockwave ring", "impact pulse"],
+    "system_instructions": "Describe concentric refractive wave expansion: `visible transparent shockwave hemisphere blasts outward flattening tall grass radial-wise and scattering rooftop dust clouds instantaneously`."
+  },
+  {
+    "id": "vid_vfx_lightning_strobe",
+    "name": "Thunderstorm Lightning Sheet Flash",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["lightning", "thunderstorm", "thunder flash", "storm sky"],
+    "system_instructions": "Time atmospheric strobe beats cleanly: `bruised indigo storm clouds hang dark over ridges. A sudden forked lightning arc flashes inside clouds, briefly illuminating jagged snowy crags in stark ice-white light`."
+  },
+  {
+    "id": "vid_vfx_leaf_vortex",
+    "name": "Swirling Autumn Leaf Wind Vortex",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["leaf storm", "swirling leaves", "wind vortex", "autumn wind"],
+    "system_instructions": "Track curved eddies rather than random speckles: `crisp bronze maple leaves whip upward from wet slate steps, spiraling cleanly around coat hems in warm sunlit backlight`."
+  },
+  {
+    "id": "vid_vfx_heavy_blizzard",
+    "name": "Horizontal Blizzard Gust & Squint",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["blizzard", "whiteout", "snowstorm", "arctic wind", "frost"],
+    "system_instructions": "Drive coherent wind vector across all props: `horizontal gale blasts powdery spindrift snow sideways past frozen hood fur, frosted wool coat whipping right as traveler shields eyes`."
+  },
+  {
+    "id": "vid_vfx_cliff_wave_explosion",
+    "name": "Basalt Sea-Stack Wave Crash & Mist",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["cliff wave", "lighthouse storm", "crashing surf", "sea spray"],
+    "system_instructions": "Describe towering hydrodynamic collision: `massive slate Atlantic swell slams against black basalt sea cliffs, sending white sunlit spray curtains soaring twenty meters into misty coastal wind`."
+  },
+  {
+    "id": "vid_vfx_sunrise_light_creep",
+    "name": "Evolving Sunrise Shadow & Alpenglow",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["sunrise lighting", "alpenglow", "light creeping", "dawn spreading"],
+    "system_instructions": "Animate subtle sun elevation shifts over scenic anchors: `warm rose-amber dawn sunlight creeps slowly downward across snow ridges, turning icy blue shadow faces luminous gold`."
+  },
+  {
+    "id": "vid_vfx_storm_cloud_churn",
+    "name": "Accelerating Cumulonimbus Cloud Boil",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["boiling clouds", "anvil cloud", "supercell", "timelapse sky"],
+    "system_instructions": "Keep distant mountain silhouettes steady while `towering bronze-tinted storm clouds churn and mushroom majestically upward, wispy anvil edges catching golden sunset`."
+  },
+  {
+    "id": "vid_vfx_steam_locomotive",
+    "name": "Steam Engine Pistons & Dense Exhaust",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["steam train", "locomotive", "chimney", "pistons", "railway steam"],
+    "system_instructions": "Couple mechanical steel linkage to billowing exhaust: `polished connecting rods drive synchronized steel wheels forward while thick warm sunlit white steam plumes blast violently upward`."
+  },
+  {
+    "id": "vid_vfx_candleflame_draft",
+    "name": "Draft-Bending Candle Flame & Curl",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["candle flicker", "flame bend", "snuffed candle", "wax"],
+    "system_instructions": "Focus macro optics closely on delicate flame physics: `tall golden candle flame bends sharply sideward under a sudden cool draft, stretching glowing soot trail over brass holder`."
+  },
+  {
+    "id": "vid_vfx_glass_shatter_240fps",
+    "name": "High-Speed Glass & Crystal Shatter",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["shatter", "breaking glass", "mirror break", "240fps impact"],
+    "system_instructions": "Use `extreme 240fps slow motion capture`: spidery silver stress fractures race radially from impact center before faceted crystal shards tumble glinting slowly through dramatic side backlight."
+  },
+  {
+    "id": "vid_vfx_underwater_bubbles",
+    "name": "Submerged Buoyant Bubble Streams",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["bubbles", "scuba", "sinking", "swimming underwater"],
+    "system_instructions": "Layer depth cleanly underwater: `silver air bubbles wobble upward fracturing bright surface caustic rays while loose hair and tunic sleeves billow lazily in slow water drag`."
+  },
+  {
+    "id": "vid_vfx_lava_heat_haze",
+    "name": "Molten Magma Crust & Convection Shimmer",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["lava", "volcano", "magma", "molten metal", "foundry"],
+    "system_instructions": "Contrast cooling dark jagged basalt crusts cracking apart to expose viscous bright orange molten seams radiating visible rising heat shimmer and floating embers."
+  },
+  {
+    "id": "vid_vfx_desert_sand_ridge",
+    "name": "Wind-Driven Saharan Dune Spindrift",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["sandstorm", "dune", "desert wind", "sahara", "dust storm"],
+    "system_instructions": "Animate razor-sharp ochre sand dune crests cleanly: `translucent plumes of golden sand whip sharply like smoke off windward dune knife-edges under low afternoon backlight`."
+  },
+  {
+    "id": "vid_vfx_ink_in_water",
+    "name": "Macro Ink Bloom & Fluid Vortices",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["ink drop", "paint water", "fluid swirl", "abstract liquid"],
+    "system_instructions": "Frame macro `100mm f/2.8 backlit crystal tank`: dense obsidian and crimson ink plumes descend gracefully, blooming outward into delicate curling Kelvin-Helmholtz fluid filaments."
+  },
+  {
+    "id": "vid_vfx_aurora_borealis",
+    "name": "Shivering Emerald Aurora Curtains",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["aurora", "northern lights", "arctic night", "stars"],
+    "system_instructions": "Keep snowy spruce silhouettes motionless below while `luminous emerald and violet aurora borealis curtains ripple overhead across crisp starry zenith, faintly tinting snow ice green`."
+  },
+  {
+    "id": "vid_vfx_fireflies_spores",
+    "name": "Bioluminescent Fireflies & Bokeh Spores",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["fireflies", "spores", "magical forest", "night glow bugs"],
+    "system_instructions": "Send gentle curving golden-green firefly blinks gliding lazily across cool misty woodland reeds, blooming into soft bokeh orbs as individuals cross near lens."
+  },
+  {
+    "id": "vid_vfx_frost_crystallization",
+    "name": "Macro Ice Feather Crystallization",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["freezing", "ice growth", "frost glass", "ice crystals"],
+    "system_instructions": "Accelerate crisp dendritic growth across window panes: `feathery frost needles shoot swiftly across cool backlit glass turning transparent condensation into etched frozen lace`."
+  },
+  {
+    "id": "vid_vfx_neon_burnout_hum",
+    "name": "Shorting Neon Sign Spark & Buzz",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["buzzing neon", "electrical spark", "broken sign", "flicker outage"],
+    "system_instructions": "Coordinate electrical drop beat: `pink glass kanji tube flickers erratically in rain, dropping briefly dark with tiny blue wire sparks before buzzing back onto wet puddles`."
+  },
+  {
+    "id": "vid_vfx_smoke_grenade_plume",
+    "name": "Dense Colored Tactical Smoke Roll",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["smoke grenade", "colored smoke", "flare", "fog roll"],
+    "system_instructions": "Drive volumetric heavy smoke billowing densely upward from sizzling canister on wet concrete, swallowing boots first while backlit streetlamps sculpt swirling volumetric cloud edges."
+  },
+  {
+    "id": "vid_vfx_heat_mirage_tarmac",
+    "name": "Horizon Heat Shimmer Over Asphalt",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["heat haze", "mirage", "desert highway", "runway heat"],
+    "system_instructions": "Shoot down `200mm compressed desert highway perspective` where fierce undulating air convection warps distant horizon silhouettes above shimmering wet-looking false mirage asphalt."
+  },
+  {
+    "id": "vid_vfx_sparks_grinder_wheel",
+    "name": "Steel Angle-Grinder Arc & Ricochet",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["sparks flying", "welding", "blacksmith hammer", "angle grinder"],
+    "system_instructions": "Spray `incandescent yellow-white sparks arcing rapidly in sharp parabolic jets across dark garage floor`, bouncing sharply off concrete and glowing warmly across leather gloves."
+  }
+]

@@ -1,0 +1,202 @@
+[
+  {
+    "id": "vid_act_dialogue_glance",
+    "name": "Restrained Dialogue Glance & Micro-Nod",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["actor", "subtle acting", "listening", "nodding", "quiet reaction"],
+    "system_instructions": "Keep human acting subtle and believable: `she listens calmly, blinks once, shifts gaze slightly toward rain-streaked glass, and gives an almost imperceptible resolute nod`—avoid exaggerated rubbery mouth flap."
+  },
+  {
+    "id": "vid_act_rimlight_turn_reveal",
+    "name": "Shadow-to-Rimlight Dramatic Turn",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["turn around", "turns to camera", "reveal face", "shadow turn"],
+    "system_instructions": "Stage beat cleanly: `backlit figure stands motionless looking out window. Slowly they turn their head 90 degrees over shoulder as crisp warm amber side-light catches cheekbones and eyes`."
+  },
+  {
+    "id": "vid_act_hood_pullback",
+    "name": "Drenched Cloak Hood Pull-Back Intro",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["hood", "cloak reveal", "unmask", "character intro"],
+    "system_instructions": "Choreograph weighted hand action: `gloved right hand reaches calmly upward and pulls heavy rain-soaked dark wool hood backward off hair, droplets scattering onto lit shoulders`."
+  },
+  {
+    "id": "vid_act_katana_iaido_draw",
+    "name": "Controlled Iaido Blade Unsheathe",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["katana", "unsheathe", "draw sword", "samurai draw", "blade glint"],
+    "system_instructions": "Split into crisp beats: `thumb nudges brass tsuba unlocking scabbard silently. Steel blade glides steadily forward catching narrow moonlight streak right before snapping into low ready stance`."
+  },
+  {
+    "id": "vid_act_impact_recoil_sweat",
+    "name": "Kinetic Strike, Recoil & Mist Spray",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["boxing impact", "knockout", "martial hit", "punch impact"],
+    "system_instructions": "Emphasize real physics on impact: `hook lands cleanly forcing sharp head whip and fine backlit sweat/dust spray bursting outward into dark arena spotlights as shoulders coil back`."
+  },
+  {
+    "id": "vid_act_parkour_vault",
+    "name": "Rooftop Vault Weight Transfer",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["parkour", "jump roof", "vault", "sprint leap"],
+    "system_instructions": "Track momentum cleanly: `runner plants left palm atop concrete ledge, swings legs cleanly overhead clearing gap, and absorbs concrete landing dynamically into rolling forward sprint`."
+  },
+  {
+    "id": "vid_act_ballet_pirouette_fabric",
+    "name": "Silk Dress Spin & Secondary Follow",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["dance", "spin", "pirouette", "ballet", "twirl"],
+    "system_instructions": "Match rotational inertia cleanly: `dancer spots gaze crisply forward while spinning cleanly, crimson silk skirt flaring outward in delayed wave around ankles across sunlit stage floor dust`."
+  },
+  {
+    "id": "vid_act_horse_gallop_dust",
+    "name": "Thundering Gallop Dust Track Parallel",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["horse", "gallop", "rider", "cavalry", "mane"],
+    "system_instructions": "Truck parallel beside `dark bay stallion galloping furiously across golden prairie scrub, hooves kicking backlit dust clods upward while rider leans smoothly over whipping mane`."
+  },
+  {
+    "id": "vid_act_moto_alpine_apex",
+    "name": "Motorcycle Lean Through Mountain Switchback",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["motorcycle", "bike lean", "hairpin turn", "alpine road", "helmet"],
+    "system_instructions": "Keep gyroscopic stability plausible: `matte black sportbike leans deeply left hugging painted alpine hairpin curve, visor catching dawn peaks while blurred road markings streak beneath knee`."
+  },
+  {
+    "id": "vid_act_train_depart_platform",
+    "name": "Passenger Platform Departure Drift",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["train leaving", "station goodbye", "vintage train", "platform fog"],
+    "system_instructions": "Contrast stationary traveler on wet brick platform against accelerating brass-trimmed green train carriages gliding right, window lamps painting streaks through misty evening air."
+  },
+  {
+    "id": "vid_act_diner_pour_steam",
+    "name": "Late-Night Diner Coffee Pour",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["pour coffee", "diner", "mug", "morning routine", "kettle"],
+    "system_instructions": "Anchor hands steady over ceramic cup: `waitress tilts glass carafe smoothly pouring dark glossy coffee into thick ivory diner mug while bright warm steam curls under neon sign window`."
+  },
+  {
+    "id": "vid_gen_starship_warp_exit",
+    "name": "Orbital Deceleration & Hull Glint",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["spaceship video", "hyperdrive", "orbit ship", "starship", "warp"],
+    "system_instructions": "Blend scale and crisp solar light: `massive angular Titanium cruiser glides majestically past camera over curved blue planetary cloud limb as tiny docking tug beacons pulse rhythmically`."
+  },
+  {
+    "id": "vid_gen_knight_ember_walk",
+    "name": "Iron Knight Walking Through Forge Embers",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["knight walking", "dark armor", "castle hall", "medieval battle"],
+    "system_instructions": "Ground metallic heaviness: `tall scarred knight in rain-streaked hammered plate strides steadily down broken stone steps, tattered cape dragging while bright hearth embers swirl past steel pauldrons`."
+  },
+  {
+    "id": "vid_gen_cyber_umbrella_shake",
+    "name": "Neon Umbrella Water Flick & Step",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["umbrella", "shaking rain", "cyber alley", "closing umbrella"],
+    "system_instructions": "Give clear tactile beat: `traveler pauses beneath glowing neon awning. She shakes tilted translucent umbrella firmly twice spraying crisp cyan-lit water arcs onto wet street`."
+  },
+  {
+    "id": "vid_tr_infinite_macro_zoom",
+    "name": "Continuous Macro Portal Zoom Transition",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["macro transition", "infinite zoom", "microscopic", "iris zoom"],
+    "system_instructions": "Drive unbroken forward dive: `camera pushes seamlessly inside dark pupil reflection/fabric weave pores, transitioning smoothly through glowing geometric fibers into vast illuminated valley horizon`."
+  },
+  {
+    "id": "vid_tr_match_cut_circle",
+    "name": "Seamless Circular Geometry Match Cut",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["match cut", "morph cut", "portal transition", "shape match"],
+    "system_instructions": "Align identical screen-space circle center: `spinning brass pocket watch hands blur rapidly as circular rim transforms seamlessly into glowing golden tunnel entrance rotating forward`."
+  },
+  {
+    "id": "vid_tr_cloud_hyper_drop",
+    "name": "Orbital Cloud-Drop Hyper-Zoom",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["hyper zoom", "cloud dive", "google earth zoom", "sky dive"],
+    "system_instructions": "Prompt continuous vertical dive: `fast unobstructed aerial drop plunging steeply downward straight through luminous golden cloud deck toward winding glowing river and mountain town roofs`."
+  },
+  {
+    "id": "vid_tr_rack_focus_raindrop",
+    "name": "In-Shot Glass Raindrop Rack-Focus Reveal",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["rack focus video", "raindrop reveal", "window focus shift"],
+    "system_instructions": "Keep lens locked steady: `extreme close focus holds on backlit amber raindrops clinging to dark window glass. Focus pulls smoothly deep backward sharpening lone silhouetted figure on street`."
+  },
+  {
+    "id": "vid_tr_whip_blur_location",
+    "name": "Horizontal Swish-Blur Scene Pivot",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["scene transition", "whip cut", "swish cut", "location swap"],
+    "system_instructions": "Use horizontal speed bridge cleanly: `calm snowy forest pan accelerates explosively right into seamless motion blur streaking amber-ward, decelerating crisply onto warm firelit cabin table`."
+  },
+  {
+    "id": "vid_tr_foreground_silhouette_wipe",
+    "name": "Moving Vehicle / Crowd Reveal Wipe",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["bus wipe", "train wipe", "wipe reveal", "pass reveal"],
+    "system_instructions": "Use organic foreground blocker cleanly: `blurred dark tram car sweeps horizontally right across frame momentarily blacking lens, clearing smoothly onto sunlit coastal square beyond`."
+  },
+  {
+    "id": "vid_gen_sakuga_anime_motion",
+    "name": "Feature-Film Sakuga Cel Fluidity",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["anime video", "sakuga", "anime animation", "animated cel"],
+    "system_instructions": "Specify `theatrical high-framerate 24fps anime cel animation, painted watercolor clouds, expressive smear frames strictly on rapid dash limbs, glowing hand-drawn impact sparks`."
+  },
+  {
+    "id": "vid_gen_noir_streetlamp_walk",
+    "name": "Monochrome Noir Rain & Trenchcoat Walk",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["noir video", "black and white video", "detective rain", "trenchcoat walk"],
+    "system_instructions": "Render high-contrast `1940s monochrome cinema footage`: solitary trenchcoated silhouette steps out of fog-choked alley past one hard overhead streetlamp casting razor shadows down wet cobbles."
+  },
+  {
+    "id": "vid_gen_warzone_verite_dust",
+    "name": "Grounded Verité Action Tracking",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["action scene", "tactical", "battlefield video", "helicopter wind"],
+    "system_instructions": "Use `low shoulder-rig documentary tracking`: harsh rotor/wind dust blowing furiously sideways across scuffed canvas gear while characters move purposefully past concrete barriers."
+  },
+  {
+    "id": "vid_gen_fashion_runway_swirl",
+    "name": "Editorial Slow-Mo Coat & Silk Flow",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["fashion video", "catwalk", "runway", "coat flow", "editorial video"],
+    "system_instructions": "Shoot `75mm medium telephoto slow motion` tracking model striding sharply forward: heavy structured wool coat hem billows majestically behind against subtle flashed specular strobes."
+  },
+  {
+    "id": "vid_gen_quiet_contemplation",
+    "name": "Atmospheric Stillness & Passing World",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["calm video", "peaceful", "contemplative", "lo-fi cinema", "quiet moment"],
+    "system_instructions": "Anchor emotional quiet cleanly: `calm figure sits motionless at wooden window table cradling warm tea cup while distant pine mist and soft falling rain move gently beyond clear glass`."
+  }
+]

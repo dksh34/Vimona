@@ -1,0 +1,202 @@
+[
+  {
+    "id": "vid_cam_dolly_in_tension",
+    "name": "Dolly-In Focus & Tension Build",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["dolly in", "push forward", "close in", "build tension", "face reveal"],
+    "system_instructions": "Frame a smooth `slow physical dolly push-in toward the subject's eyes, shallow 50mm depth of field, background gradually blurring and shifting in subtle parallax`, escalating emotional gravity smoothly."
+  },
+  {
+    "id": "vid_cam_dolly_out_scale",
+    "name": "Dolly-Out Environmental Scale Reveal",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["dolly out", "pull back", "pull out", "reveal scale", "loneliness"],
+    "system_instructions": "Execute `steady dolly pull-back moving away from the solitary subject`, widening from tight framing to expose towering cliffs, ruins, or neon traffic stretching outward."
+  },
+  {
+    "id": "vid_cam_clockwise_orbit",
+    "name": "Fixed-Radius Clockwise Hero Orbit",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["clockwise orbit", "circle around", "orbiting shot", "hero turn"],
+    "system_instructions": "Instruct `smooth continuous clockwise orbit around the centered subject at fixed radius, background walls and bokeh lamps rotating cleanly behind a poised figure`."
+  },
+  {
+    "id": "vid_cam_counterclockwise_orbit",
+    "name": "Counter-Clockwise Tension Arc",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["counter clockwise", "counterclockwise orbit", "arc left", "standoff arc"],
+    "system_instructions": "Sweep `unhurried counter-clockwise 90-degree orbital arc` transitioning from profile to tense front-quarter confrontation while lighting shifts smoothly from silhouette rim to key face."
+  },
+  {
+    "id": "vid_cam_vertigo_zolly",
+    "name": "Hitchcock Vertigo Dolly-Zoom (Zolly)",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["vertigo effect", "dolly zoom", "zolly", "dread", "hallway warp"],
+    "system_instructions": "Prompt `Vertigo dolly-zoom effect: camera tracks physically backward while optical lens zooms steadily inward, keeping subject torso same size as corridor walls stretch dramatically behind`."
+  },
+  {
+    "id": "vid_cam_lateral_truck_parallel",
+    "name": "Lateral Truck Parallel Track",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["lateral track", "truck left", "truck right", "sideways glide", "walking beside"],
+    "system_instructions": "Move camera smoothly `parallel laterally beside the moving subject at waist height`, foreground columns whipping quickly across lens while mid-ground subject stays locked sharp."
+  },
+  {
+    "id": "vid_cam_whip_pan_snap",
+    "name": "High-Speed Whip Pan Snap Cut",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["whip pan", "fast pan", "swish pan", "snap reveal"],
+    "system_instructions": "Hold initial beat briefly. Then execute `fast blurred horizontal whip pan right sweeping across light streaks, snapping dead-sharp onto the waiting opponent`."
+  },
+  {
+    "id": "vid_cam_pedestal_boom_rise",
+    "name": "Vertical Pedestal / Jib Rise",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["pedestal up", "boom up", "jib rise", "elevate camera", "skyscraper tilt"],
+    "system_instructions": "Elevate lens smoothly vertically from street level (`smooth vertical crane/pedestal rise sweeping upward past glowing awnings`) revealing wet rooftops and horizon skyline."
+  },
+  {
+    "id": "vid_cam_steadicam_corridor",
+    "name": "Steadicam Floating Corridor Trail",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["steadicam", "following behind", "walk and talk", "through doorway"],
+    "system_instructions": "Use `fluid low-vibration Steadicam follow tracking two paces behind character shoulders through heavy swinging doors into illuminated hall`, preserving smooth fluid glide."
+  },
+  {
+    "id": "vid_cam_fpv_drone_thread",
+    "name": "FPV Racing Drone Gap Dive",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["fpv", "dive", "banking drone", "canyon fly", "warehouse fly"],
+    "system_instructions": "Instruct `dynamic banked FPV drone glide swooping through steel archway and diving cleanly along sunlit misty waterfall gorge, smooth wide-angle motion`."
+  },
+  {
+    "id": "vid_cam_locked_tripod_life",
+    "name": "Locked Tripod Observational Tableau",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["fixed camera", "static tripod", "observational", "still cam"],
+    "system_instructions": "Specify `locked-off stationary tripod wide shot` so every brick and beam holds razor still while natural life—steam vents, passing cyclist, swaying lantern—flows calmly through frame."
+  },
+  {
+    "id": "vid_cam_crash_zoom",
+    "name": "Punchy Action Crash-Zoom In",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["crash zoom", "snap zoom", "punch in", "sudden zoom"],
+    "system_instructions": "Hold wide standoff briefly. Then apply `sudden fast optical crash-zoom tightly onto narrowing eyes or weapon trigger`, spiking rhythmic pacing instantly."
+  },
+  {
+    "id": "vid_cam_crane_over_barrier",
+    "name": "Crane Lift Over Foreground Barrier",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["over wall", "crane reveal", "battlement", "cliff reveal"],
+    "system_instructions": "Begin tight behind dark silhouetted parapet/boulders and smoothly boom upward + forward (`rising cinema crane reveal`), unveiling a luminous sunrise harbor or camp beyond."
+  },
+  {
+    "id": "vid_cam_snorricam_sprint",
+    "name": "Snorricam Chest-Locked Panic Run",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["snorricam", "chest mount", "panicked run", "chase face"],
+    "system_instructions": "Anchor `chest-mounted Snorricam locked onto breathless runner's face centered tight in 24mm frame` while blurred neon streetlamps and wet brickwork whip violently behind."
+  },
+  {
+    "id": "vid_cam_mirror_reveal_pan",
+    "name": "Mirror Reflection Slide Reveal",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["mirror pan", "reflection reveal", "vanity", "car mirror"],
+    "system_instructions": "Start tight inside cracked mirror or wing-mirror reflection, then slide camera smoothly outward revealing the rain-swept avenue and real subject together in spatial clarity."
+  },
+  {
+    "id": "vid_cam_low_rolling_car_rig",
+    "name": "Low Asphalt Pursuit Vehicle Rig",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["chase car", "pursuit", "rolling shot", "bumper cam", "highway"],
+    "system_instructions": "Position `low pursuit camera rig hovering inches over streaking wet tarmac`, pacing smoothly beside spinning dark alloy wheels and glowing amber brake rotors."
+  },
+  {
+    "id": "vid_cam_ots_two_shot_turn",
+    "name": "Over-Shoulder Standoff Drift",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["over shoulder", "two shot", "confrontation", "dialogue video"],
+    "system_instructions": "Frame past soft foreground shoulder on left (`shallow 85mm over-the-shoulder shot`) slowly pushing right to isolate opposing character's tense expression on beat two."
+  },
+  {
+    "id": "vid_cam_birdseye_spiral",
+    "name": "Overhead Spiral & Trail Tracking",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["top down video", "overhead tracking", "spiral stairs", "umbrella crowd"],
+    "system_instructions": "Glide `90-degree bird's-eye top-down camera tracking smoothly over rain-slick crosswalk umbrellas` rotating slightly to match geometric movement paths below."
+  },
+  {
+    "id": "vid_cam_horizon_pan_scan",
+    "name": "Majestic Slow Horizon Pan",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["pan left", "pan right", "landscape sweep", "vista pan"],
+    "system_instructions": "Instruct `unhurried tripod fluid-head pan left-to-right across sunlit glacial lake and pine ridge`, letting mist curl naturally along distant peaks."
+  },
+  {
+    "id": "vid_cam_handheld_intimate",
+    "name": "Intimate Handheld Documentary Breath",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["handheld camera", "documentary video", "raw footage", "verite"],
+    "system_instructions": "Use `subtle organic handheld 35mm cinema cadence` with minor shoulder micro-sway that tracks tiny eye-line adjustments and finger fidgeting honestly."
+  },
+  {
+    "id": "vid_cam_window_push_through",
+    "name": "Seamless Glass Threshold Glide",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["through window", "open window", "cafe outside", "glass glide"],
+    "system_instructions": "Move `smooth camera glide tracking through open timber cafe window` transitioning effortlessly from rainy cobblestone dusk outside to warm tungsten interior light."
+  },
+  {
+    "id": "vid_cam_pillar_occlusion_wipe",
+    "name": "Architectural Pillar Wipe Reveal",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["pillar wipe", "behind pillar", "emerge", "train station pillar"],
+    "system_instructions": "Track laterally past a close dark stone/steel column wiping cleanly across lens (`natural occlusion wipe`), revealing protagonist striding down platform right as frame clears."
+  },
+  {
+    "id": "vid_cam_horizon_dutch_roll",
+    "name": "Slow Unsettling Horizon Roll",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["horizon roll", "tilt camera", "dutch roll", "zero g roll"],
+    "system_instructions": "Execute `gradual 20-degree axial camera roll across silent mist-filled hall`, inducing weightless architectural vertigo without losing crisp floor edges."
+  },
+  {
+    "id": "vid_cam_lead_backward_walker",
+    "name": "Leading Track Backward Ahead of Walker",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["walk toward camera", "leading shot", "retro tracking", "striding forward"],
+    "system_instructions": "Glide `smoothly backward at chest height leading directly ahead of the striding protagonist`, keeping determined eyes locked sharp while neon corridor doors recede smoothly behind."
+  },
+  {
+    "id": "vid_cam_tilt_up_monument",
+    "name": "Ground-to-Sky Vertical Tilt Up",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["tilt up", "look up", "reveal tower", "cathedral spire", "boot to face"],
+    "system_instructions": "Start tight on mud-spattered boots or snow crust, then execute `steady smooth upward vertical tilt` sweeping over wool coat folds and steel sword hilt up toward golden clouds."
+  }
+]

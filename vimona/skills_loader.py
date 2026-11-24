@@ -426,8 +426,10 @@ def _score_skill_match(
         score += 0.8
 
     for tok in re.findall(r"[a-z0-9]{4,}", spec.name.lower()):
-        if tok in toks or tok in prompt_low:
+        if tok in toks:
             score += 1.0
+    if kw_hits == 0 and spec.id in ("vid_wan_period_timing", "vid_wan_5_part_formula", "vid_wan_i2v_delta_only", "vid_wan_causvid_tuning"):
+        score += 0.5
     return score
 
 

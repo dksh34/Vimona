@@ -1,0 +1,208 @@
+[
+  {
+    "id": "vid_wan_period_timing",
+    "name": "Wan 2.1 Period-Separated Beats",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["sequence", "then", "next", "after", "pauses", "opens", "turns", "wan", "video", "clip"],
+    "system_instructions": "In Wan 2.1 prompts, commas merge simultaneous descriptors while PERIODS separate sequential temporal beats. Write distinct actions as crisp sequential sentences (`She walks past the neon doorway. She pauses under the rain and glances upward.`) rather than comma soup."
+  },
+  {
+    "id": "vid_wan_i2v_delta_only",
+    "name": "I2V Zero-Redundancy Motion Delta",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["image to video", "animate", "reference image", "anchor", "starting frame", "first frame"],
+    "system_instructions": "When animating a reference anchor via Wan 2.1 VACE, do NOT waste tokens re-describing static background props the vision/VAE encoder already sees—dedicate tokens strictly to what changes, shifts lighting, or moves over time."
+  },
+  {
+    "id": "vid_wan_causvid_sampler_rules",
+    "name": "CausVid 6-Step Sampler Guardrails",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["causvid", "fast lora", "wan settings", "6 steps", "8 steps", "cfg", "shift"],
+    "system_instructions": "For distilled `CausVid` Wan 2.1 1.3B (`LoRA strength 0.40–0.50`), keep `steps=6–8`, `cfg=1.0–1.5`, `shift=5.5–8.0`, and `uni_pc` or `euler` (`simple`/`normal`); avoid high CFG (>2.5) or ancestral samplers which distort 6-step latents.",
+    "comfyui_node_overrides": {
+      "sampler": "uni_pc",
+      "steps": 6,
+      "flow_shift": 6.0
+    }
+  },
+  {
+    "id": "vid_wan_4n_plus_1_frames",
+    "name": "Wan Temporal 4n+1 Frame Cadence",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["frame count", "frames", "duration", "17 frames", "33 frames", "81 frames", "fps"],
+    "system_instructions": "Match Wan 2.1 3D causal VAE alignment strictly using `4n + 1` frame counts (`17`, `33`, `49`, `81`) paired with clean integer step pacing so motion decodes without temporal stutter at clip boundaries."
+  },
+  {
+    "id": "vid_wan_motion_amplitude",
+    "name": "Explicit Motion Amplitude Calibration",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["speed", "subtle motion", "violent", "gentle", "amplitude", "velocity"],
+    "system_instructions": "Quantify motion strength explicitly in Wan prompts (`gentle unhurried swaying`, `deliberate steady stride`, `explosive rapid shatter`, `subtle quiet breathing`) so outputs avoid dead-static stiffness or chaotic warp."
+  },
+  {
+    "id": "vid_wan_camera_intent_coupling",
+    "name": "Narrative-Driven Camera Purpose",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["camera move", "reveal", "follow", "isolate", "cinema"],
+    "system_instructions": "Pair every camera path with narrative motivation (`camera slowly pushes in as shadows tighten across her face` or `camera pulls backward revealing the cavernous hangar around him`) instead of orphaned movement labels."
+  },
+  {
+    "id": "vid_wan_resolution_divisibility",
+    "name": "Wan Native Grid & 720p Lanczos Scale",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["resolution", "480p", "720p", "upscale", "sharpness", "lanczos"],
+    "system_instructions": "Sample Wan 2.1 1.3B cleanly on mod-16 native grids (`640×368` or `832×480`), then master upward via `ffmpeg scale=1280:720:flags=lanczos` + mild `unsharp=5:5:0.75` rather than forcing unstable high native latent sizes on 8 GB UMA."
+  },
+  {
+    "id": "vid_wan_official_neg_hygiene",
+    "name": "Wan Temporal Anti-Flicker Negatives",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["flicker", "morph", "static", "bad video", "jitter", "boil", "artifact"],
+    "system_instructions": "Filter temporal degradation explicitly: target `static frames, flickering, blurry motion, morphing anatomy, repetitive patterns, washed-out colors` while keeping clean exposure/lighting positive descriptors.",
+    "negative_prompt_patch": "static frames, flickering, blurry motion, morphing, repetitive patterns, washed-out colors"
+  },
+  {
+    "id": "vid_vace_window_overlap",
+    "name": "Sliding Window Overlap Tail Continuity",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["long video", "multi window", "overlap", "stitch", "transition cut", "extend video"],
+    "system_instructions": "Extend Wan 2.1 sequences reliably by extracting crisp non-blurred tail anchor frames into subsequent VACE windows (`SolidMask(0.0)` reference frame lock), maintaining uninterrupted directional lighting and camera momentum."
+  },
+  {
+    "id": "vid_vace_pseudo_mask_inpaint",
+    "name": "VACE White Pseudo-Mask Inpainting",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["inpaint video", "mask video", "replace object", "remove object", "outpaint"],
+    "system_instructions": "For Wan VACE masked edits, use solid high-contrast mask regions (`Screen blend white pixels`) isolating only the target zone so surrounding frames stay locked with zero pixel shimmer."
+  },
+  {
+    "id": "vid_vace_depth_pose_lock",
+    "name": "Multi-Condition Depth + Pose Fidelity",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["pose transfer", "depth", "dwpose", "controlnet video", "motion transfer", "skeleton"],
+    "system_instructions": "When guiding rapid human choreography (`dance`, `sparring`, `gymnastics`), constrain both `Depth Anything V2` spatial volume and `DWPose` limb skeletons together so arms and torsos never detach or sprout phantom joints."
+  },
+  {
+    "id": "vid_vace_ref_identity_pin",
+    "name": "Subject Reference-to-Video Lock",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["reference character", "r2v", "same person", "keep appearance", "face drift"],
+    "system_instructions": "Lock core identity invariants concisely (`dark bob hair, crimson scarf, weathered slate coat`) near prompt start and avoid swapping clothing materials mid-clip so character identity persists through head turns."
+  },
+  {
+    "id": "vid_wan_shift_coherence_balance",
+    "name": "Flow Shift Stability Control",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["flow shift", "chaotic motion", "warping", "shift value"],
+    "system_instructions": "Moderate `ModelSamplingSD3(shift)` between `5.0` and `6.5` for calm scenic or subtle portrait video (`less frame warping`), reserving higher `7.0–8.0` shifts only when bold rapid scene motion is desired."
+  },
+  {
+    "id": "vid_wan_teacache_coherence",
+    "name": "Block-Skip Cache Safety Margins",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["teacache", "cache speed", "skip steps", "fast video render"],
+    "system_instructions": "When accelerating DiT inference (`TeaCache rel_l1_thresh 0.15–0.20` or SlG skip-blocks), preserve full early denoising steps for silhouette layout and apply caching only across redundant mid-to-late refinement passes."
+  },
+  {
+    "id": "vid_wan_umt5_english_clarity",
+    "name": "UMT5-XXL Natural Prose Structuring",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["umt5", "t5 prompt", "natural language video", "script style"],
+    "system_instructions": "UMT5-XXL understands full grammatical English prose much better than fragmented Danbooru tags. Replace broken buzzword strings with fluent active sentences describing subject, motion physics, light spill, and lens."
+  },
+  {
+    "id": "vid_wan_5_part_formula",
+    "name": "Wan 5-Part Director Formula",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["video structure", "director script", "format video", "wan formula"],
+    "system_instructions": "Compose every Wan video prompt strictly in 5 clear dimensions: `[Camera Path & Lens] + [Entity Appearance] + [Physical Action Beats] + [Environment & Atmospheric Light] + [Film Texture]`."
+  },
+  {
+    "id": "vid_wan_anti_screensaver_drift",
+    "name": "Eliminating Aimless Screensaver Drift",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["boring video", "no motion", "lazy drift", "static clip"],
+    "system_instructions": "Prevent lazy floating screensaver outputs by binding concrete subject interaction with the floor/air (`boots crunch across frost`, `sleeve snags wind`, `camera trucks beside moving bumper`) rather than vague scenic nouns."
+  },
+  {
+    "id": "vid_wan_dolly_vs_zoom_distinction",
+    "name": "Physical Dolly vs Optical Lens Zoom",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["push in", "pull back", "zoom vs dolly", "parallax push"],
+    "system_instructions": "Prefer explicit physical motion (`camera physically dollies forward past foreground pillars`) over vague `zoom in`—physical dolly preserves rich 3D parallax between near objects and distant sky."
+  },
+  {
+    "id": "vid_wan_exposure_stability",
+    "name": "Flicker-Free Light Source Anchoring",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["exposure flicker", "brightness jump", "auto exposure", "strobing"],
+    "system_instructions": "Stabilize frame-to-frame luminance in Wan outputs by anchoring one clear constant key light source (`steady overcast north skylight` or `fixed amber streetlamp overhead`) unless flashing effects are explicitly desired."
+  },
+  {
+    "id": "vid_wan_single_axis_clarity",
+    "name": "Clean Single-Axis Trajectory Discipline",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["clean trajectory", "jittery camera", "wobble", "shaky"],
+    "system_instructions": "On compact 1.3B checkpoints, instruct one clean primary camera axis per 4s clip (`slow lateral truck left` OR `steady forward glide`) rather than simultaneous tilt+roll+zoom combinations."
+  },
+  {
+    "id": "vid_wan_micro_shutter_feel",
+    "name": "24fps 180° Natural Motion Blur",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["180 shutter", "cinematic blur", "24fps look", "natural motion blur"],
+    "system_instructions": "Anchor filmic cadence with `shot at 24fps, 180-degree shutter natural motion blur on fast gestures` so motion interpolates silkily into crisp 720p playback without robotic choppiness."
+  },
+  {
+    "id": "vid_wan_foreground_parallax_depth",
+    "name": "Soft Foreground Occluder Parallax",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["foreground parallax", "pass behind", "tree branch pass", "depth reveal"],
+    "system_instructions": "Pass a softly defocused near-lens element (`damp pine branch`, `rusty steel girder`, `rain-streaked doorway edge`) gently across one frame edge during lateral tracking to triple perceived 3D cinema depth."
+  },
+  {
+    "id": "vid_wan_background_anchor_lock",
+    "name": "Architectural Horizon Anchor Stability",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["warping walls", "melting background", "building morph"],
+    "system_instructions": "Name crisp structural background geometry (`vertical dark granite pillars`, `level ocean horizon`, `parallel window frames`) so Wan's spatial attention preserves rigid perspective during fast actor motion."
+  },
+  {
+    "id": "vid_wan_color_drift_prevention",
+    "name": "Cross-Frame White-Balance Consistency",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["color shift", "yellow shift", "contrast drop", "saturation creep"],
+    "system_instructions": "Lock consistent color grading tokens (`consistent Kodak neutral daylight white balance, controlled contrast, crisp blacks`) to avoid slow sepia or mud saturation creep toward final frames."
+  },
+  {
+    "id": "vid_wan_16gb_ram_budget_video",
+    "name": "Low-VRAM 1.3B Video Scene Complexity",
+    "category": "Video",
+    "author": "Vimona Core",
+    "trigger_keywords": ["1.3b", "low vram", "16gb laptop", "clean silhouette"],
+    "system_instructions": "Optimize scenes for 1.3B clarity: showcase 1–2 distinct focal subjects against legible high-contrast lighting instead of 20 tiny distant overlapping figures whose limbs compete for latent pixels."
+  }
+]
