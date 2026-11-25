@@ -42,19 +42,21 @@ from .perf_profile import (
     get_worker_thread_cap,
     wrap_worker_cmd_with_priority,
 )
+from .config import get_config
 from .ram_manager import register_protected_pid, unregister_protected_pid
 from .storage import stage_ephemeral_media
 from .workflows import DEFAULT_NEGATIVE_PONY
 
-SD_SERVER_BIN = Path("~/stable-diffusion.cpp/build/bin/sd-server").expanduser()
-SD_CLI_BIN = Path("~/stable-diffusion.cpp/build/bin/sd-cli").expanduser()
+_CFG = get_config()
+SD_SERVER_BIN = _CFG.sd_server_bin
+SD_CLI_BIN = _CFG.sd_cli_bin
 PONY_FULL_MODEL = Path("~/pony-diffusion-v6-xl-Q8_0.gguf").expanduser()
-PONY_UNET_MODEL = Path("~/comfyui/models/unet/pony-diffusion-v6-xl-Q8_0.gguf").expanduser()
-SDXL_VAE_PATH = Path("~/comfyui/models/vae/sdxl_vae.safetensors").expanduser()
-LORAS_DIR = Path("~/comfyui/models/loras").expanduser()
+PONY_UNET_MODEL = _CFG.comfy_dir / "models/unet/pony-diffusion-v6-xl-Q8_0.gguf"
+SDXL_VAE_PATH = _CFG.comfy_dir / "models/vae/sdxl_vae.safetensors"
+LORAS_DIR = _CFG.comfy_dir / "models/loras"
 DMD2_LORA_FILE = LORAS_DIR / "dmd2_sdxl_4step_lora_fp16.safetensors"
 LIGHTNING_LORA_FILE = LORAS_DIR / "sdxl_lightning_4step_lora.safetensors"
-LOG_DIR = Path("~/.local/share/vimona").expanduser()
+LOG_DIR = _CFG.state_dir
 
 
 def resolve_pony_checkpoint() -> Path:

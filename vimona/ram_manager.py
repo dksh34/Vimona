@@ -380,6 +380,8 @@ def _is_system_process(
     cgroup_text: str,
 ) -> bool:
     low_comm = comm.lower()
+    if not low_comm and not exe_path:
+        return True
     if low_comm in _SYSTEM_PROC_EXACT or low_comm.startswith(_SYSTEM_PROC_PREFIXES):
         return True
     if exe_path:

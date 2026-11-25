@@ -226,13 +226,14 @@ if [[ "\${1:-}" == "--check" ]]; then
     python3 -c '
 import sys
 sys.path.insert(0, "'"\${APP_DIR}/usr/share/vimona"'")
-import gi
-gi.require_version("Gtk", "4.0")
-gi.require_version("Adw", "1")
 import vimona, vimona.safety_ml
+from vimona.preflight import run_preflight_checks
+rep = run_preflight_checks(require_display=False)
 print("Standalone OK:", vimona.__app_id__, "at", "'"\${APP_DIR}"'")
+print(rep.format_text())
+raise SystemExit(0 if rep.can_start_gui else 1)
 '
-    exit 0
+    exit \$?
 fi
 
 if [[ "\${1:-}" == "--install-desktop" ]]; then

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import atexit
+import json
 import signal
 import sys
 
@@ -16,6 +17,8 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
 from . import __app_id__
+from .logging_utils import configure_logging
+from .preflight import run_preflight_checks
 from .tokens import build_stylesheet
 from .window import VimonaWindow
 
@@ -82,6 +85,16 @@ class VimonaApplication(Adw.Application):
 
 
 def main(argv: list[str] | None = None) -> int:
+    args = list(argv if argv is not None else sys.argv)
+    configure_logging()
+    if "--preflight" in args or "--check" in args:
+        report = run_preflight_checks(require_display=False)
+        if "--json" in args:
+            print(json.dumps(report.to_dict(), indent=2))
+        else:
+            print(report.format_text())
+        return 0 if report.can_start_gui else 1
+
     app = VimonaApplication()
 
     def _sig_handler(_signum: int, _frame: object) -> None:
@@ -91,4 +104,4 @@ def main(argv: list[str] | None = None) -> int:
     signal.signal(signal.SIGINT, _sig_handler)
     if hasattr(signal, "SIGTERM"):
         signal.signal(signal.SIGTERM, _sig_handler)
-    return app.run(argv if argv is not None else sys.argv)
+    return app.run(args)

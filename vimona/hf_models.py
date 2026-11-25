@@ -20,8 +20,12 @@ import urllib.parse
 import urllib.request
 from typing import Any, Callable
 
-MODELS_STATE_FILE = Path("~/.local/share/vimona/models_config.json").expanduser()
-LOCAL_MODELS_DIR = Path("~/.local/share/vimona/models").expanduser()
+from .config import get_config
+from .errors import ModelDownloadError as _BaseModelDownloadError
+
+_CFG = get_config()
+MODELS_STATE_FILE = _CFG.state_dir / "models_config.json"
+LOCAL_MODELS_DIR = _CFG.models_dir
 
 _HF_META_CACHE: dict[str, dict[str, Any]] = {}
 _HF_FILE_TREE_CACHE: dict[str, list[dict[str, Any]]] = {}
@@ -34,7 +38,7 @@ _DOWNLOAD_LOCK = threading.Lock()
 _ACTIVE_DOWNLOADS: set[str] = set()
 
 
-class ModelDownloadError(RuntimeError):
+class ModelDownloadError(_BaseModelDownloadError, RuntimeError):
     """Raised when a model download or integrity check fails (`C1`–`C12`)."""
 
 

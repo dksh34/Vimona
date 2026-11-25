@@ -38,10 +38,11 @@ import urllib.error
 import urllib.request
 from typing import Any, Callable
 
+from .errors import IsolationError
 from .perf_profile import get_worker_env, wrap_worker_cmd_with_priority
 
 
-class AirGapIsolationError(RuntimeError):
+class AirGapIsolationError(IsolationError, RuntimeError):
     """Raised when fail-closed network/namespace isolation cannot be established or verified."""
 
 

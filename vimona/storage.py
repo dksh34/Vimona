@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from .airgap import is_pid_alive_with_start, purge_legacy_burner_profile, scorched_earth_wipe
+from .config import get_config
 
 from .models import (
     ChatSession,
@@ -30,7 +31,7 @@ from .models import (
     VideoClipSpec,
 )
 
-STATE_DIR = Path("~/.local/share/vimona").expanduser()
+STATE_DIR = get_config().state_dir
 CHATS_FILE = STATE_DIR / "chats.json"
 EPHEMERAL_PREFIX = "vimona-session-media-"
 INSTANCE_UUID = uuid.uuid4().hex[:8]

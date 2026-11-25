@@ -29,6 +29,8 @@ from .airgap import (
     launch_airgapped_http_service,
     purge_legacy_burner_profile,
 )
+from .config import get_config
+from .errors import HandoffError, InsufficientMemoryError
 from .fast_media_engine import (
     FastVulkanImageServer,
     has_vulkan_image_engine,
@@ -40,14 +42,15 @@ from .ram_manager import register_protected_pid, unregister_protected_pid
 from .storage import stage_ephemeral_media
 from .workflows import build_pony_keyframe_workflow, build_wan_vace_window_workflow
 
-LLAMA_SERVER_BIN = Path("~/llama.cpp/build/bin/llama-server").expanduser()
-LLM_MODEL_PATH = Path("~/models/llm/light-uncensored.gguf").expanduser()
-COMFY_DIR = Path("~/comfyui").expanduser()
+_CFG = get_config()
+LLAMA_SERVER_BIN = _CFG.llama_server_bin
+LLM_MODEL_PATH = _CFG.default_llm_path
+COMFY_DIR = _CFG.comfy_dir
 COMFY_VENV_PYTHON = COMFY_DIR / "venv/bin/python"
 COMFY_MAIN = COMFY_DIR / "main.py"
 COMFY_INPUT_DIR = COMFY_DIR / "input"
 COMFY_OUTPUT_DIR = COMFY_DIR / "output"
-LOG_DIR = Path("~/.local/share/vimona").expanduser()
+LOG_DIR = _CFG.state_dir
 
 LLAMA_HOST = "127.0.0.1"
 COMFY_HOST = "127.0.0.1"
@@ -63,12 +66,7 @@ def _pick_free_port(preferred: int) -> int:
             return int(s.getsockname()[1])
 
 
-class HandoffError(RuntimeError):
-    """Raised when an engine handoff fails, times out, or leaves live descendants (`E5`, `E6`)."""
-
-
-class InsufficientMemoryError(HandoffError):
-    """Raised when available host RAM cannot safely host the target engine (`E12`)."""
+# Domain exceptions HandoffError & InsufficientMemoryError imported from .errors (`L6`).
 
 
 @dataclass(frozen=True)

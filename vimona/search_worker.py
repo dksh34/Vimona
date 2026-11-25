@@ -54,10 +54,11 @@ from .airgap import (
     purge_legacy_burner_profile,
     scorched_earth_wipe,
 )
+from .config import get_config
 from .safety_ml import get_safety_ml_engine
 from .safety_patterns import is_explicit_text
 
-COMFY_VENV_PYTHON = Path("~/comfyui/venv/bin/python").expanduser()
+COMFY_VENV_PYTHON = get_config().comfy_dir / "venv/bin/python"
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SHM_DIR = Path("/dev/shm")
 

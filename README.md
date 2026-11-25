@@ -297,11 +297,42 @@ Click **MP4 Recording** under any demo card to inspect full-resolution footage r
 
 </div>
 
-1. **Explicit Research Gate (`SlideCommitWidget`)** — External web fetches never happen implicitly. Live lookups launch headless Firefox inside `/dev/shm/vimona_ephem_*` strictly after you slide-confirm, extract images/palettes in memory, and execute `scorched_earth_wipe()` before diffusion boots.
-2. **Kernel Network-Namespace Air Gap ([`vimona/airgap.py`](vimona/airgap.py))** — `sd-server` and `ComfyUI` run inside `unshare -r -n` on Linux with zero external interfaces (`ENETUNREACH`), communicating strictly with Vimona via a host-bound `AF_UNIX` bridge socket (`SHUT_WR` EOF clean framing).
-3. **Sequential Mutual-Exclusion RAM Relay ([`vimona/memory_relay.py`](vimona/memory_relay.py))** — Instead of OOM-crashing unified RAM, `llama-server` cleanly exits to `0.0 GB` before image/video diffusion allocates GPU buffers.
-4. **93 KB Offline SafeBlur ML Gate ([`vimona/safety_ml.py`](vimona/safety_ml.py))** — Dual pure-NumPy logistic model (`512`-dim hashed text n-grams + `22` color/edge/contrast image features, `safety_ml_weights.npz`). Applies toggleable frosted scrim (`rgba(14,14,20,0.42)`) strictly on sensitive hits; landscapes, cars, architecture, and portraits stay crisp.
-5. **Protected PID RAM Guard ([`vimona/ram_manager.py`](vimona/ram_manager.py))** — Scans live `/proc` memory hogs while shielding system compositors (`pipewire`, `kwin`, `mutter`, `systemd`, `llama-server`, `ComfyUI`) from accidental termination.
+1. **Explicit Research Gate (`SlideCommitWidget`)** — External web fetches never happen implicitly. Live lookups launch headless Firefox inside RAM-backed `/dev/shm/vimona_ephem_*` strictly after you slide-confirm, validate public HTTP/HTTPS destinations against SSRF & DNS rebinding, decode candidate images strictly via verified magic bytes & pixel caps in RAM, sanitize scraped text inside untrusted data delimiters, wait for browser exit + execute `scorched_earth_wipe()` before diffusion boots. SafeSearch defaults to explicit `moderate` (`VIMONA_SAFESEARCH=strict|moderate|off`).
+2. **Fail-Closed Network & Mount Isolation ([`vimona/airgap.py`](vimona/airgap.py))** — `sd-server` and `ComfyUI` run inside `unshare -r -n -m` (private user, network & `/tmp` tmpfs mount namespaces, `PR_SET_NO_NEW_PRIVS`, `RLIMIT_CORE=0`, verified zero IPv4/IPv6/DNS egress) communicating via an exclusive `0700` `AF_UNIX` bridge socket + `X-Vimona-Bridge-Token` authentication. If namespace creation fails, Vimona **fails closed** instead of silently running unisolated.
+3. **Privacy Scope & Host Limits** — `unshare -r -n -m` isolates networking and mounts a private `/tmp` tmpfs, **not** a full VM or root-level sandbox against the user's own home directory, and Linux swap or hibernation can still write RAM pages to disk unless disabled (`zram`/encrypted swap recommended; Vimona reports active swap/filesystem backing honestly via `trace_report`). Chat history (`~/.local/share/vimona/chats.json`) is written atomically (`0600` inside `0700` dir) with `flock`, `.bak` recovery, and corrupt-snapshot quarantine.
+4. **Verified Mutual-Exclusion RAM Relay ([`vimona/memory_relay.py`](vimona/memory_relay.py))** — Mutex-locked engine handoffs terminate `llama-server` and ALL descendant PIDs (`SIGINT`/`SIGTERM`/`SIGKILL` + zombie reap), wait for `MemAvailable` settling, verify reclaimed memory, and enforce conservative RAM headroom before booting image/video engines.
+5. **Fail-Closed SafeBlur ML Gate ([`vimona/safety_ml.py`](vimona/safety_ml.py))** — Dual pure-NumPy classifier (`512`-dim hashed text n-grams + `22` color/edge/contrast image features, `safety_ml_weights.npz`) + `10`-frame video sampling. Fails **closed** (treats weights missing/corrupt as `unavailable` / blurred) rather than silently allowing unscored media.
+6. **Verified Protected PID RAM Guard ([`vimona/ram_manager.py`](vimona/ram_manager.py))** — Scans live `/proc` memory hogs (`RssAnon` + `RssFile`/`RssShmem`) while validating UID, process identity, and `starttime` ticks via `pidfd_send_signal`, shielding desktop compositors and active inference engines from accidental signals.
+
+---
+
+## Hardware Requirements & Sizing (`MemAvailable` + Peak Runtime Budgets)
+
+Vimona estimates **peak inference RAM** (weights + KV cache + CLIP/T5 encoders + batch/frame latents + active OS headroom), not raw `.gguf` download size alone:
+
+| Hardware Tier | Minimum Specs | Supported Workloads | Realistic Expectations |
+| :--- | :--- | :--- | :--- |
+| **Entry / CPU-Only** | `8 GB` RAM (`>= 3.5 GB` `MemAvailable`), 4+ CPU cores | Small `1.5B–4B` `Q4_K_M` text models, compressed `Q4` SDXL stills | Text inference runs steadily (`10–25 tok/s`); multi-frame video is intentionally hidden to avoid OOM/swap thrash. |
+| **Balanced Laptop / APU** | `16 GB` RAM (`>= 8 GB` `MemAvailable`), Vulkan iGPU (`8 GB` GPU Pool) or `8 GB` dGPU | `7B–12B` `Q4/Q8` chat/coding, `DMD2/Lightning` `5–6` step stills, `2B` `CausVid` `4–12s` video | Smooth single-user workflow via zero-overlap RAM relay; first load takes ~5–15s, cached stills take a few seconds. |
+| **Workstation** | `24–64+ GB` RAM, discrete `16–48+ GB` CUDA/ROCm GPU | `14B–32B+` reasoning LLMs, `FP16`/`FLUX`/`SD 3.5`, `16–32s` video clips | Longer contexts (`8192+` tokens), larger batches, and full-precision diffusion run directly in VRAM. |
+
+---
+
+## Preflight Diagnostics & Troubleshooting
+
+Before filing an issue or debugging a missing backend, run Vimona's built-in preflight diagnostic:
+
+```bash
+python3 run_vimona.py --preflight --json
+# or check a standalone bundle:
+./downloads/Vimona-Linux-x86_64.run --check
+```
+
+- **Environment Overrides:** Override default paths anytime via `VIMONA_STATE_DIR`, `VIMONA_MODELS_DIR`, `VIMONA_LLM_DIR`, `VIMONA_COMFY_DIR`, `VIMONA_LLAMA_BIN`, `VIMONA_SD_BIN`, `VIMONA_FFMPEG_BIN`, `VIMONA_DEFAULT_LLM`, and `VIMONA_SAFESEARCH` (`strict` | `moderate` | `off`).
+- **Missing Optional Engines:** If `sd-server`, `ComfyUI`, or `playwright` are absent, Vimona launches in graceful degraded mode and reports disabled capabilities explicitly rather than crashing at startup.
+- **Air-Gap Failed (`Isolation: failed`):** Ensure Linux unprivileged user namespaces are enabled (`sysctl kernel.unprivileged_userns_clone=1` on restricted distros) and `unshare` (`util-linux`) is installed. Vimona intentionally refuses unisolated execution when isolation fails.
+- **Logs & State Recovery:** Rotating logs with automatic secret/token/prompt redaction live in `~/.local/share/vimona/vimona.log` (`0600`). Corrupted `chats.json` snapshots are automatically quarantined to `chats.corrupt.<ts>.json` and restored cleanly from `chats.json.bak`.
+- **Resumable Hugging Face Downloads:** Interrupted downloads preserve `.part` files cleanly and resume via HTTP `Range` requests with pinned SHA-256 checksum & GGUF/safetensors header validation.
 
 ---
 
@@ -314,8 +345,8 @@ Choose the direct download package for your operating system—no terminal comma
     <td width="50%" valign="top">
       <h3>Linux (x86_64 Desktop App)</h3>
       <ul>
-        <li><strong>Standalone Executable:</strong> <a href="downloads/Vimona-Linux-x86_64.run"><strong>Download Vimona-Linux-x86_64.run</strong></a> (<code>462 KB</code> self-extracting bundle with metallic icon &amp; native ELF stub)</li>
-        <li><strong>Portable Archive:</strong> <a href="downloads/Vimona-Linux-x86_64.tar.gz"><strong>Download Vimona-Linux-x86_64.tar.gz</strong></a> (<code>460 KB</code> portable <code>Vimona.AppDir</code> bundle)</li>
+        <li><strong>Standalone Executable:</strong> <a href="downloads/Vimona-Linux-x86_64.run"><strong>Download Vimona-Linux-x86_64.run</strong></a> (<code>506 KB</code> self-extracting bundle with metallic icon &amp; native ELF stub)</li>
+        <li><strong>Portable Archive:</strong> <a href="downloads/Vimona-Linux-x86_64.tar.gz"><strong>Download Vimona-Linux-x86_64.tar.gz</strong></a> (<code>503 KB</code> portable <code>Vimona.AppDir</code> bundle)</li>
         <li><strong>System Desktop Installer:</strong> <a href="installers/install-linux.sh"><code>installers/install-linux.sh</code></a> (adds <code>Vimona</code> to GNOME / KDE app menus &amp; <code>hicolor</code> icons)</li>
       </ul>
       <sub><strong>How to run:</strong> Right-click <code>Vimona-Linux-x86_64.run</code> → <em>Properties</em> → enable <em>Executable as Program</em> → double-click to launch. Or download the automated AppImage / ELF build from the <a href=".github/workflows/build-linux-standalone.yml">Linux CI Workflow</a>.</sub>
@@ -365,20 +396,22 @@ vimona/
 │   ├── demos/                             # Animated WebP + MP4 showcases (01..08)
 │   └── *.png                              # High-res framed UI & real DSLR output captures
 └── vimona/
-    ├── app.py & window.py                 # GTK4 + Libadwaita shell, Controls & HF Models popovers
+    ├── app.py, window.py & ui_popovers.py # GTK4 + Libadwaita shell, Controls & HF Models popovers
+    ├── config.py, errors.py, logging_utils.py & preflight.py # Centralized VIMONA_* paths, errors, redacted logs, & startup checks
     ├── tokens.py                          # Graphite dark theme design tokens & GTK4 CSS system
     ├── widgets.py                         # Composer, Image/Video Gallery & Overnight Render Playlist
-    ├── hf_models.py                       # Hardware profiler (VRAM/DRM GTT) & curated HF downloader
+    ├── hf_models.py                       # Hardware profiler (VRAM/DRM GTT), SHA-256 verifier & curated HF downloader
     ├── controller.py                      # Mode routing, SlideCommit handling & turn orchestration
     ├── memory_relay.py                    # Mutual-exclusion RAM swap & hardware-tuned llama-server
-    ├── airgap.py                          # unshare -r -n network isolation & AF_UNIX socket bridge
+    ├── airgap.py                          # unshare -r -n -m network/mount isolation & authenticated AF_UNIX bridge
     ├── workflows.py                       # ComfyUI 2B sliding-window video & SDXL keyframe graphs
     ├── fast_media_engine.py               # DMD2/Lightning boosted sd-server & 720p DSLR ffmpeg finish
-    ├── safety_ml.py & safety_ml_weights.npz # 93 KB offline NumPy text + vision SafeBlur gate
-    ├── search_worker.py                   # Ephemeral /dev/shm headless Firefox reference extractor
-    ├── skills_loader.py & skills_manager.py # 469 skills, top-3 router, context compaction & manager UI
+    ├── safety_ml.py & safety_ml_weights.npz # Fail-closed offline NumPy text + vision SafeBlur gate
+    ├── search_worker.py                   # Ephemeral /dev/shm headless Firefox reference extractor (SSRF/magic-byte guarded)
+    ├── skills_loader.py & skills_manager.py # 469 skills, word-boundary router, schema validator & manager UI
     ├── perf_profile.py                    # Quiet/Eco (50% CPU + cooldowns) vs Turbo profile toggle
-    └── ram_manager.py                     # /proc RAM inspector with protected PID safeguards
+    └── ram_manager.py                     # /proc RAM inspector with pidfd + starttime protected PID safeguards
+tests/                                     # Formal unittest / pytest verification suite & CI workflow
 ```
 
 ---

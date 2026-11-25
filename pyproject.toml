@@ -1,7 +1,7 @@
 [project]
 name = "vimona"
 version = "1.0.0"
-description = "Offline GTK4 + Libadwaita AI chat, /dev/shm web research, and air-gapped image/video studio for 16 GB Linux machines."
+description = "Offline GTK4 + Libadwaita AI chat, /dev/shm web research, and air-gapped image/video studio for Linux."
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.11"
@@ -19,3 +19,32 @@ vimona = "vimona.app:main"
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["vimona*"]
+
+[tool.setuptools.package-data]
+vimona = [
+    "safety_ml_weights.npz",
+    "skills/*.md",
+    "skills/packs/*.json",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E9", "F", "B", "W"]
+ignore = ["B008"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+warn_return_any = true
+warn_unused_ignores = true
+exclude = ["scratch/", "dist/", "downloads/"]

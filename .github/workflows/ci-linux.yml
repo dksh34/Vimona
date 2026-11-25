@@ -1,0 +1,40 @@
+name: Vimona Linux CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-type-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system GTK4 + Libadwaita + Python deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            python3 python3-pip python3-gi python3-gi-cairo \
+            gir1.2-gtk-4.0 gir1.2-adw-1 libgirepository-2.0-dev \
+            xvfb ffmpeg util-linux
+
+      - name: Install Python test/lint dependencies
+        run: |
+          python3 -m pip install --break-system-packages \
+            numpy opencv-python-headless pillow pytest ruff mypy
+
+      - name: Lint with ruff
+        run: ruff check vimona tests
+
+      - name: Static syntax & type check with mypy
+        run: |
+          python3 -m py_compile vimona/*.py tests/*.py
+          mypy vimona
+
+      - name: Run headless preflight and formal unit test suite
+        run: |
+          python3 run_vimona.py --preflight --json
+          xvfb-run -a python3 -m unittest discover -s tests -v
+          xvfb-run -a pytest tests -v
