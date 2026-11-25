@@ -151,6 +151,7 @@ class RenderPlaylistJob:
     model: str  # "Pony V6 XL" | "Wan 2.1" | "light-uncensored"
     batch_count: int = 4
     clip_seconds: int = 4
+    steps_override: int | None = None
     status: str = "Queued"
     error: str = ""
     elapsed_s: float = 0.0

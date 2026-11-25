@@ -2514,10 +2514,10 @@ class FloatingComposer(Gtk.Box):
 
     def __init__(
         self,
-        on_submit: Callable[[str, str, int, int], None],
+        on_submit: Callable[..., None],
         on_stop: Callable[[], None],
         on_batch_changed: Callable[[int], None] | None = None,
-        on_queue: Callable[[str, str, int, int], None] | None = None,
+        on_queue: Callable[..., None] | None = None,
         on_skill_changed: Callable[[str], None] | None = None,
     ) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=0)
@@ -2533,6 +2533,10 @@ class FloatingComposer(Gtk.Box):
         self._active_skill = AVAILABLE_SKILLS[0][0]
         self._batch_count = 4
         self._clip_seconds = 4
+        self._clip_durations: list[int] = [4, 8, 12]
+        self._steps_override: int | None = None
+        self._steps_syncing = False
+        self._steps_warn_dismiss_id: int | None = None
         self._camera_angle = CAMERA_ANGLE_OPTIONS[0]
 
         self._aquarium = AquariumSimulation(fish_count=22)
@@ -2712,21 +2716,77 @@ class FloatingComposer(Gtk.Box):
         self._clip_buttons: dict[int, Gtk.Button] = {}
         self._clip_group = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=1)
         self._clip_group.add_css_class("selector-group")
-        c_pre = Gtk.Label(label="Video")
-        c_pre.add_css_class("selector-prefix")
-        self._clip_group.append(c_pre)
-        for sec in (4, 8, 16, 24):
-            btn = Gtk.Button(label=f"{sec}s")
-            btn.set_has_frame(False)
-            btn.add_css_class("selector-option")
-            if sec == self._clip_seconds:
-                btn.add_css_class("selected")
-            btn.set_cursor_from_name("pointer")
-            btn.set_tooltip_text(f"Video clip length: {sec} seconds ({sec // 4}× 4s windows)")
-            btn.connect("clicked", lambda _b, s=sec: self.set_clip_seconds(s))
-            self._clip_buttons[sec] = btn
-            self._clip_group.append(btn)
         row_media.append(self._clip_group)
+        self.update_video_durations(self._clip_durations)
+
+        self._div3 = Gtk.Box()
+        self._div3.add_css_class("toolbar-divider")
+        self._div3.set_valign(Gtk.Align.CENTER)
+        row_media.append(self._div3)
+
+        self._steps_group = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=3)
+        self._steps_group.add_css_class("selector-group")
+        s_pre = Gtk.Label(label="Steps")
+        s_pre.add_css_class("selector-prefix")
+        self._steps_group.append(s_pre)
+
+        self._steps_auto_btn = Gtk.Button(label="Auto")
+        self._steps_auto_btn.set_has_frame(False)
+        self._steps_auto_btn.add_css_class("selector-option")
+        self._steps_auto_btn.add_css_class("selected")
+        self._steps_auto_btn.set_cursor_from_name("pointer")
+        self._steps_auto_btn.set_tooltip_text("Use boosted 4–6 step Auto recipe")
+        self._steps_auto_btn.connect("clicked", lambda _b: self.set_steps_override(None))
+        self._steps_group.append(self._steps_auto_btn)
+
+        self._steps_entry = Gtk.Entry()
+        self._steps_entry.add_css_class("steps-entry")
+        self._steps_entry.set_placeholder_text("Custom")
+        self._steps_entry.set_width_chars(6)
+        self._steps_entry.set_max_width_chars(6)
+        self._steps_entry.set_max_length(8)
+        self._steps_entry.set_alignment(0.5)
+        self._steps_entry.set_input_purpose(Gtk.InputPurpose.DIGITS)
+        self._steps_entry.set_tooltip_text(
+            "Enter custom denoising steps (1–60) — process will take longer than boosted Auto"
+        )
+        self._steps_entry.connect("changed", self._on_steps_entry_changed)
+        self._steps_group.append(self._steps_entry)
+
+        self._steps_warn_popover = Gtk.Popover()
+        self._steps_warn_popover.set_parent(self._steps_entry)
+        self._steps_warn_popover.set_position(Gtk.PositionType.TOP)
+        self._steps_warn_popover.set_autohide(False)
+        self._steps_warn_popover.set_can_focus(False)
+        self._steps_warn_popover.add_css_class("steps-warn-popover")
+        warn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        warn_icon = SvgIcon("alert", size_px=15, color="#F59E0B")
+        warn_icon.set_valign(Gtk.Align.START)
+        warn_box.append(warn_icon)
+        warn_txt_col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        self._steps_warn_title = Gtk.Label(label="Custom Steps Active")
+        self._steps_warn_title.add_css_class("steps-warn-title")
+        self._steps_warn_title.set_xalign(0.0)
+        self._steps_warn_body = Gtk.Label(
+            label="The process will take longer than boosted Auto (4–6 steps)."
+        )
+        self._steps_warn_body.add_css_class("steps-warn-body")
+        self._steps_warn_body.set_xalign(0.0)
+        self._steps_warn_body.set_wrap(True)
+        self._steps_warn_body.set_max_width_chars(34)
+        warn_txt_col.append(self._steps_warn_title)
+        warn_txt_col.append(self._steps_warn_body)
+        warn_box.append(warn_txt_col)
+        warn_close = Gtk.Button(label="×")
+        warn_close.set_has_frame(False)
+        warn_close.add_css_class("mini-action-btn")
+        warn_close.set_valign(Gtk.Align.START)
+        warn_close.set_cursor_from_name("pointer")
+        warn_close.connect("clicked", lambda _b: self._hide_steps_warning())
+        warn_box.append(warn_close)
+        self._steps_warn_popover.set_child(warn_box)
+
+        row_media.append(self._steps_group)
         left_rows.append(row_media)
 
         toolbar.append(left_rows)
@@ -3028,6 +3088,126 @@ class FloatingComposer(Gtk.Box):
                 b.add_css_class("selected")
             else:
                 b.remove_css_class("selected")
+
+    def update_video_durations(self, durations: list[int], reason: str = "") -> None:
+        """Rebuild the Video duration pills to match current hardware & selected video model."""
+        valid = [int(d) for d in durations if int(d) > 0] or [4, 8, 12]
+        self._clip_durations = valid
+        child = self._clip_group.get_first_child()
+        while child is not None:
+            nxt = child.get_next_sibling()
+            self._clip_group.remove(child)
+            child = nxt
+        self._clip_buttons.clear()
+
+        if self._clip_seconds not in valid:
+            self._clip_seconds = min(valid, key=lambda d: abs(d - self._clip_seconds))
+
+        c_pre = Gtk.Label(label="Video")
+        c_pre.add_css_class("selector-prefix")
+        if reason:
+            c_pre.set_tooltip_text(reason)
+        self._clip_group.append(c_pre)
+        for sec in valid:
+            btn = Gtk.Button(label=f"{sec}s")
+            btn.set_has_frame(False)
+            btn.add_css_class("selector-option")
+            if sec == self._clip_seconds:
+                btn.add_css_class("selected")
+            btn.set_cursor_from_name("pointer")
+            tip = f"Video clip length: {sec}s"
+            if reason:
+                tip = f"{tip} · {reason}"
+            btn.set_tooltip_text(tip)
+            btn.connect("clicked", lambda _b, s=sec: self.set_clip_seconds(s))
+            self._clip_buttons[sec] = btn
+            self._clip_group.append(btn)
+        if reason:
+            self._clip_group.set_tooltip_text(reason)
+
+    def get_steps_override(self) -> int | None:
+        return self._steps_override
+
+    def _hide_steps_warning(self) -> None:
+        if self._steps_warn_dismiss_id is not None:
+            GLib.source_remove(self._steps_warn_dismiss_id)
+            self._steps_warn_dismiss_id = None
+        if hasattr(self, "_steps_warn_popover") and self._steps_warn_popover.get_visible():
+            self._steps_warn_popover.popdown()
+
+    def _show_steps_warning(self, steps: int) -> None:
+        if self._steps_warn_dismiss_id is not None:
+            GLib.source_remove(self._steps_warn_dismiss_id)
+            self._steps_warn_dismiss_id = None
+        self._steps_warn_title.set_text(f"Custom Steps: {steps}")
+        self._steps_warn_body.set_text(
+            f"Running {steps} custom steps — the process will take longer than boosted Auto."
+        )
+        if self._steps_entry.get_realized() or self.get_realized():
+            self._steps_warn_popover.popup()
+        self._steps_warn_dismiss_id = GLib.timeout_add(
+            4000, lambda: (self._hide_steps_warning(), False)[1]
+        )
+
+    def set_steps_override(self, steps: int | None, show_warning: bool = True) -> None:
+        self._steps_syncing = True
+        try:
+            if steps is None or int(steps) <= 0:
+                self._steps_override = None
+                self._steps_entry.set_text("")
+                self._steps_entry.remove_css_class("custom-active")
+                self._steps_auto_btn.add_css_class("selected")
+                self._hide_steps_warning()
+            else:
+                val = max(1, min(60, int(steps)))
+                self._steps_override = val
+                self._steps_entry.set_text(str(val))
+                self._steps_entry.add_css_class("custom-active")
+                self._steps_auto_btn.remove_css_class("selected")
+                if show_warning:
+                    self._show_steps_warning(val)
+        finally:
+            self._steps_syncing = False
+
+    def _on_steps_entry_changed(self, entry: Gtk.Entry) -> None:
+        if self._steps_syncing:
+            return
+        raw = entry.get_text().strip()
+        digits = "".join(ch for ch in raw if ch.isdigit())
+        if not digits:
+            self._steps_override = None
+            entry.remove_css_class("custom-active")
+            self._steps_auto_btn.add_css_class("selected")
+            self._hide_steps_warning()
+            if raw:
+                def _clear_later() -> bool:
+                    self._steps_syncing = True
+                    try:
+                        entry.set_text("")
+                    finally:
+                        self._steps_syncing = False
+                    return False
+
+                GLib.idle_add(_clear_later)
+            return
+        val = max(1, min(60, int(digits)))
+        target_txt = str(val)
+        if target_txt != raw:
+            def _sync_later(txt: str = target_txt) -> bool:
+                self._steps_syncing = True
+                try:
+                    if entry.get_text() != txt:
+                        entry.set_text(txt)
+                        entry.set_position(-1)
+                finally:
+                    self._steps_syncing = False
+                return False
+
+            GLib.idle_add(_sync_later)
+        self._steps_override = val
+        self._steps_auto_btn.remove_css_class("selected")
+        entry.add_css_class("custom-active")
+        self._show_steps_warning(val)
 
     def set_busy(self, busy: bool) -> None:
         self._is_busy = busy
@@ -3519,10 +3699,21 @@ class FloatingComposer(Gtk.Box):
         if res is not None:
             self._electric_border.trigger_pulse(res[0], res[1])
         self._textview.get_buffer().set_text("")
-        if self._is_busy and self._on_queue is not None:
-            self._on_queue(text, self._active_skill, self._batch_count, self._clip_seconds)
+        steps_ov = self._steps_override
+        self._hide_steps_warning()
+        cb = self._on_queue if (self._is_busy and self._on_queue is not None) else self._on_submit
+        import inspect
+        try:
+            sig = inspect.signature(cb)
+            accepts_steps = len(sig.parameters) >= 5 or any(
+                p.kind == inspect.Parameter.VAR_POSITIONAL for p in sig.parameters.values()
+            )
+        except (TypeError, ValueError):
+            accepts_steps = True
+        if accepts_steps:
+            cb(text, self._active_skill, self._batch_count, self._clip_seconds, steps_ov)
         else:
-            self._on_submit(text, self._active_skill, self._batch_count, self._clip_seconds)
+            cb(text, self._active_skill, self._batch_count, self._clip_seconds)
 
 
 # ---------------------------------------------------------------------------

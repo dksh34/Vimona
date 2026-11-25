@@ -358,6 +358,7 @@ class VimonaController:
         skill: str,
         batch_count: int,
         clip_seconds: int,
+        steps_override: int | None = None,
     ) -> None:
         self._cancel_event = threading.Event()
         if self.high_ram_override:
@@ -366,7 +367,7 @@ class VimonaController:
             self._ram_override_event.clear()
         worker = threading.Thread(
             target=self._run_turn,
-            args=(chat_id, prompt, skill, batch_count, clip_seconds, self._cancel_event),
+            args=(chat_id, prompt, skill, batch_count, clip_seconds, self._cancel_event, steps_override),
             daemon=True,
             name="vimona-turn",
         )
@@ -385,6 +386,7 @@ class VimonaController:
         batch_count: int,
         clip_seconds: int,
         cancel_ev: threading.Event,
+        steps_override: int | None = None,
     ) -> None:
         t0 = time.monotonic()
         try:
@@ -392,12 +394,16 @@ class VimonaController:
                 return
 
             if skill == "Web Search":
-                self._handle_direct_research(chat_id, prompt, skill, batch_count, clip_seconds, cancel_ev)
+                self._handle_direct_research(
+                    chat_id, prompt, skill, batch_count, clip_seconds, cancel_ev, steps_override=steps_override
+                )
                 return
 
             if skill in ("Make Images", "Make Video"):
                 video_sec = clip_seconds if skill == "Make Video" else 0
-                self._handle_direct_media(chat_id, prompt, skill, batch_count, video_sec, cancel_ev)
+                self._handle_direct_media(
+                    chat_id, prompt, skill, batch_count, video_sec, cancel_ev, steps_override=steps_override
+                )
                 return
 
             # Default "Chat & Ideas": ask llama-server with modular skills injected (live thinking stream)
@@ -445,6 +451,7 @@ class VimonaController:
                         render_prompt=r_prompt,
                         video_seconds=r_vs,
                         beats=r_beats,
+                        steps_override=steps_override,
                     )
                     return
 
@@ -472,6 +479,7 @@ class VimonaController:
                         cancel_ev=cancel_ev,
                         init_image_b64=init_b64,
                         init_strength=0.70,
+                        steps_override=steps_override,
                     )
                     return
 
@@ -552,6 +560,7 @@ class VimonaController:
         batch_count: int,
         clip_seconds: int,
         cancel_ev: threading.Event,
+        steps_override: int | None = None,
     ) -> None:
         url = ""
         query = prompt
@@ -563,7 +572,15 @@ class VimonaController:
             hist = self.window.get_chat_messages_for_llm(chat_id)
             query, _ = _resolve_followup_prompt(hist, prompt)
         self._execute_research_and_followup(
-            chat_id, prompt, query, url, skill, batch_count, clip_seconds, cancel_ev
+            chat_id,
+            prompt,
+            query,
+            url,
+            skill,
+            batch_count,
+            clip_seconds,
+            cancel_ev,
+            steps_override=steps_override,
         )
 
     def _execute_research_and_followup(
@@ -580,6 +597,7 @@ class VimonaController:
         render_prompt: str = "",
         video_seconds: int = 0,
         beats: list[str] | None = None,
+        steps_override: int | None = None,
     ) -> None:
         # Step 1: Gate ephemeral /dev/shm Firefox access behind interactive SlideCommit permission
         perm_id = str(uuid.uuid4())
@@ -805,6 +823,7 @@ class VimonaController:
                 cancel_ev=cancel_ev,
                 init_image_b64=ref_b64,
                 init_strength=0.74,
+                steps_override=steps_override,
             )
             return
 
@@ -873,6 +892,7 @@ class VimonaController:
         batch_count: int,
         video_seconds: int,
         cancel_ev: threading.Event,
+        steps_override: int | None = None,
     ) -> None:
         history = self.window.get_chat_messages_for_llm(chat_id)
         prior_anchor = _extract_prior_visual_anchor(history[:-1] if history else [])
@@ -944,6 +964,7 @@ class VimonaController:
             cancel_ev=cancel_ev,
             init_image_b64=init_b64,
             init_strength=0.70,
+            steps_override=steps_override,
         )
 
     def _execute_media_relay(
@@ -960,6 +981,7 @@ class VimonaController:
         cancel_ev: threading.Event,
         init_image_b64: str | None = None,
         init_strength: float = 0.72,
+        steps_override: int | None = None,
     ) -> None:
         if not self._wait_if_high_ram(cancel_ev):
             return
@@ -1019,6 +1041,9 @@ class VimonaController:
             user_prompt=positive_prompt,
             active_mode=skill,
         )
+        eff_overrides: dict[str, Any] = dict(node_overrides or {})
+        if isinstance(steps_override, int) and steps_override > 0:
+            eff_overrides["steps"] = max(1, min(60, int(steps_override)))
         effective_neg = ", ".join(p for p in (negative_prompt.strip(), neg_patch.strip()) if p)
 
         img_paths, video_path = self.relay.run_media_relay(
@@ -1033,7 +1058,7 @@ class VimonaController:
             cancel_event=cancel_ev,
             init_image_b64=init_image_b64,
             init_strength=init_strength,
-            node_overrides=node_overrides,
+            node_overrides=eff_overrides or None,
             on_stage=lambda st_lbl: GLib.idle_add(self.window.update_playlist_job_status, st_lbl),
         )
 

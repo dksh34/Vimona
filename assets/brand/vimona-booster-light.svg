@@ -36,7 +36,7 @@
     <rect x="18" y="18" width="144" height="24" rx="12" fill="#f1e8ff"/>
     <text x="90" y="34" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10.5" font-weight="700" fill="#6d28d9">IMAGE BOOST · 5-STEP</text>
     <text x="18" y="68" font-family="Inter, sans-serif" font-size="16.5" font-weight="700" fill="#14161f">sd-server DMD2 + Lightning</text>
-    <text x="18" y="92" font-family="ui-monospace, monospace" font-size="11.5" fill="#525a6e">Pony Q8 · RealVis Q4 · Juggernaut Q4</text>
+    <text x="18" y="92" font-family="ui-monospace, monospace" font-size="11.5" fill="#525a6e">RealVisXL Q4/Q8 · Juggernaut Q4 · DreamShaper</text>
     <line x1="18" y1="110" x2="330" y2="110" stroke="#14141c" stroke-opacity="0.08"/>
     <text x="18" y="133" font-family="Inter, sans-serif" font-size="12.5" fill="#333845">• DMD2 5-step (cfg 1.6) / Lightning 6-step</text>
     <text x="18" y="155" font-family="Inter, sans-serif" font-size="12.5" fill="#333845">• Auto --vae-tiling for unified iGPUs</text>
@@ -47,8 +47,8 @@
     <rect x="0" y="0" width="346" height="192" rx="16" fill="#ffffff" stroke="#059669" stroke-opacity="0.28"/>
     <rect x="18" y="18" width="148" height="24" rx="12" fill="#e6f7ef"/>
     <text x="92" y="34" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10.5" font-weight="700" fill="#047857">VIDEO BOOST · 720p24</text>
-    <text x="18" y="68" font-family="Inter, sans-serif" font-size="16.5" font-weight="700" fill="#14161f">ComfyUI Wan 2.1 + CausVid</text>
-    <text x="18" y="92" font-family="ui-monospace, monospace" font-size="11.5" fill="#4f645c">Wan VACE 1.3B + LTX-Video 2B</text>
+    <text x="18" y="68" font-family="Inter, sans-serif" font-size="16.5" font-weight="700" fill="#14161f">ComfyUI 2B Video + CausVid</text>
+    <text x="18" y="92" font-family="ui-monospace, monospace" font-size="11.5" fill="#4f645c">LTX-Video 2B · Cosmos 2B · HunyuanVideo</text>
     <line x1="18" y1="110" x2="328" y2="110" stroke="#14141c" stroke-opacity="0.08"/>
     <text x="18" y="133" font-family="Inter, sans-serif" font-size="12.5" fill="#333845">• UMT5 pinned CPU · CausVid 6-step LoRA</text>
     <text x="18" y="155" font-family="Inter, sans-serif" font-size="12.5" fill="#333845">• ffmpeg lanczos + unsharp 1280×720 24fps</text>

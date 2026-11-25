@@ -1287,6 +1287,61 @@ def get_recommended_models_for_hardware(hw: HardwareProfile) -> dict[str, HFMode
     return out
 
 
+def get_video_duration_options(
+    hw: HardwareProfile,
+    video_spec: HFModelSpec | None = None,
+) -> tuple[list[int], str]:
+    """Compute available video clip durations scaled by GPU hardware tier & video model footprint.
+
+    Lighter/quantized video models or stronger GPUs unlock longer sliding-window clip lengths;
+    heavier checkpoints or tighter memory envelopes scale durations down safely.
+    """
+    model_name = video_spec.name if video_spec is not None else "2B Video"
+    size_gb = float(video_spec.size_gb) if video_spec is not None else 3.2
+    quant_low = (video_spec.quant if video_spec is not None else "").lower()
+    is_ultra_light = size_gb <= 2.2 or "q4" in quant_low or "q5" in quant_low
+    is_light = size_gb <= 5.0
+    is_medium = 5.0 < size_gb <= 10.0
+
+    if hw.tier == "workstation" and hw.gpu_pool_gb >= 15.0:
+        if is_ultra_light:
+            durations = [4, 8, 12, 16, 24, 32]
+        elif is_light:
+            durations = [4, 8, 12, 16, 24]
+        elif is_medium:
+            durations = [4, 8, 12, 16]
+        else:
+            durations = [4, 8, 12]
+    elif hw.tier == "low" or hw.gpu_pool_gb < 7.0:
+        durations = [2, 4, 8] if is_ultra_light else [2, 4]
+    else:
+        # Balanced (e.g. 14–16 GB Vulkan APU or 8–12 GB dGPU)
+        if is_ultra_light:
+            durations = [4, 8, 12, 16]
+        elif is_light:
+            durations = [4, 8, 12]
+        elif is_medium:
+            durations = [4, 8]
+        else:
+            durations = [4]
+
+    tier_lbl = "Workstation" if hw.tier == "workstation" else ("Eco/Low" if hw.tier == "low" else "Balanced")
+    pool_lbl = f"{hw.gpu_pool_gb:.0f} GB {hw.backend.upper()}" if hw.gpu_pool_gb > 0 else f"{hw.total_ram_gb:.0f} GB RAM"
+    reason = f"Up to {durations[-1]}s · tuned for {model_name} ({size_gb:.1f} GB) on {tier_lbl} ({pool_lbl})"
+    return (durations, reason)
+
+
+def get_active_video_duration_options(hw: HardwareProfile | None = None) -> tuple[list[int], str]:
+    """Resolve the active video model + detected hardware and return tuned clip lengths."""
+    eff_hw = hw or detect_hardware_profile()
+    sel_id = get_selected_model_id("video", hw=eff_hw)
+    spec = _resolve_model_spec(sel_id, "video")
+    if spec is None:
+        models = get_models_for_category("video", hw=eff_hw)
+        spec = models[0] if models else None
+    return get_video_duration_options(eff_hw, spec)
+
+
 def fetch_hf_repo_meta(hf_repo: str, timeout_s: float = 3.0) -> dict[str, Any] | None:
     """Fetch public Hugging Face model metadata (`downloads`, `likes`) with caching."""
     with _CACHE_LOCK:

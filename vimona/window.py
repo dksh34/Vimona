@@ -44,6 +44,7 @@ from .hf_models import (
     find_local_model_path,
     get_models_for_category,
     get_selected_model_id,
+    get_video_duration_options,
     search_hf_hub_tuned,
     set_selected_model_id,
 )
@@ -1033,6 +1034,7 @@ class VimonaWindow(Adw.ApplicationWindow):
             on_skill_changed=self._on_composer_skill_changed,
         )
         composer_stack.append(self._composer)
+        self._sync_video_duration_options()
         dock_row.append(composer_stack)
 
         # Symmetrical right spacer keeps the prompt box dead-center on wide/maximized displays
@@ -2183,7 +2185,12 @@ class VimonaWindow(Adw.ApplicationWindow):
         )
 
     def _on_user_queue(
-        self, prompt: str, skill: str, batch_count: int, clip_seconds: int
+        self,
+        prompt: str,
+        skill: str,
+        batch_count: int,
+        clip_seconds: int,
+        steps_override: int | None = None,
     ) -> None:
         chat = self._active_chat
         if chat is None:
@@ -2206,6 +2213,7 @@ class VimonaWindow(Adw.ApplicationWindow):
             model="Wan 2.1" if "video" in skill.lower() else ("light-uncensored" if "chat" in skill.lower() or "search" in skill.lower() else "Pony V6 XL"),
             batch_count=batch_count,
             clip_seconds=clip_seconds,
+            steps_override=steps_override,
             status="Queued",
         )
         self._pending_queue.append(job)
@@ -2292,6 +2300,7 @@ class VimonaWindow(Adw.ApplicationWindow):
             nxt.skill,
             nxt.batch_count,
             nxt.clip_seconds,
+            nxt.steps_override,
         )
         return False
 
@@ -2541,7 +2550,14 @@ class VimonaWindow(Adw.ApplicationWindow):
     # Message Submission
     # -----------------------------------------------------------------------
 
-    def _on_user_submit(self, prompt: str, skill: str, batch_count: int, clip_seconds: int) -> None:
+    def _on_user_submit(
+        self,
+        prompt: str,
+        skill: str,
+        batch_count: int,
+        clip_seconds: int,
+        steps_override: int | None = None,
+    ) -> None:
         if self._active_chat is None:
             self.new_chat()
         chat = self._active_chat
@@ -2574,7 +2590,23 @@ class VimonaWindow(Adw.ApplicationWindow):
         self._suppress_auto_dequeue = False
         self._composer.set_busy(True)
         self._set_prompt_mascot_state("thinking", "Thinking…", force_live=True)
-        self._controller.handle_submit(chat.id, prompt, effective_skill, batch_count, clip_seconds)
+        if steps_override is not None:
+            self._controller.handle_submit(
+                chat.id,
+                prompt,
+                effective_skill,
+                batch_count,
+                clip_seconds,
+                steps_override=steps_override,
+            )
+        else:
+            self._controller.handle_submit(
+                chat.id,
+                prompt,
+                effective_skill,
+                batch_count,
+                clip_seconds,
+            )
 
     def _on_stop_clicked(self) -> None:
         self._suppress_auto_dequeue = True
@@ -2981,6 +3013,19 @@ class VimonaWindow(Adw.ApplicationWindow):
                 self._header_mode_btn.add_css_class("mode-chat")
         self._sync_hf_models_button_label(skill)
 
+    def _sync_video_duration_options(self) -> None:
+        if not hasattr(self, "_composer") or not hasattr(self, "_hw_profile"):
+            return
+        sel_id = get_selected_model_id("video", hw=self._hw_profile)
+        models = get_models_for_category("video", hw=self._hw_profile)
+        spec = (
+            next((m for m in models if m.id == sel_id), None)
+            or _resolve_model_spec(sel_id, "video")
+            or (models[0] if models else None)
+        )
+        durations, reason = get_video_duration_options(self._hw_profile, spec)
+        self._composer.update_video_durations(durations, reason=reason)
+
     def _sync_hf_models_button_label(self, skill: str) -> None:
         if not hasattr(self, "_hf_models_lbl"):
             return
@@ -2993,6 +3038,7 @@ class VimonaWindow(Adw.ApplicationWindow):
             self._hf_models_lbl.set_text(active.name)
         else:
             self._hf_models_lbl.set_text("Models")
+        self._sync_video_duration_options()
         if hasattr(self, "_hf_models_popover") and self._hf_models_popover.get_visible():
             self._rebuild_hf_models_popover(cat)
 
@@ -3301,8 +3347,13 @@ class VimonaWindow(Adw.ApplicationWindow):
         set_selected_model_id(spec.category, spec.id, spec_obj=spec)
         cur_skill = self._composer._active_skill if hasattr(self, "_composer") else "Chat & Ideas"
         self._sync_hf_models_button_label(cur_skill)
+        self._sync_video_duration_options()
         self._rebuild_hf_models_popover(spec.category)
-        self.show_toast(f"Selected {spec.name} ({spec.quant})")
+        if spec.category == "video":
+            durs, _ = get_video_duration_options(self._hw_profile, spec)
+            self.show_toast(f"Selected {spec.name} ({spec.quant}) · Video up to {durs[-1]}s")
+        else:
+            self.show_toast(f"Selected {spec.name} ({spec.quant})")
 
     def _download_and_select_hf_model(self, spec: HFModelSpec) -> None:
         if spec.id in self._hf_dl_progress:

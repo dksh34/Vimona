@@ -464,7 +464,11 @@ class FastVulkanImageServer:
 
         want_hires = bool(
             (overrides and overrides.get("dslr_booster"))
-            or (get_performance_mode() == "turbo" and not init_image_b64 and overrides is None)
+            or (
+                get_performance_mode() == "turbo"
+                and not init_image_b64
+                and not (overrides and overrides.get("dslr_booster") is False)
+            )
         )
         if want_hires and staged.is_file() and not (cancel_event and cancel_event.is_set()):
             try:

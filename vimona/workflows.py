@@ -109,7 +109,9 @@ def build_pony_keyframe_workflow(
                 "negative": ["6", 0],
                 "latent_image": ["7", 0],
                 "seed": actual_seed,
-                "steps": 6 if has_dmd2 else 18,
+                "steps": max(1, min(60, int(overrides["steps"])))
+                if (overrides and isinstance(overrides.get("steps"), (int, float)) and int(overrides["steps"]) > 0)
+                else (6 if has_dmd2 else 18),
                 "cfg": eff_cfg,
                 "sampler_name": eff_sampler,
                 "scheduler": "simple" if has_dmd2 else "normal",
@@ -270,7 +272,9 @@ def build_wan_vace_window_workflow(
                 "negative": ["8", 1],
                 "latent_image": ["8", 2],
                 "seed": actual_seed,
-                "steps": 6 if has_causvid else 12,
+                "steps": max(1, min(60, int(ov["steps"])))
+                if isinstance(ov.get("steps"), (int, float)) and int(ov["steps"]) > 0
+                else (6 if has_causvid else 12),
                 "cfg": cfg_val,
                 "sampler_name": sampler_name,
                 "scheduler": "simple",

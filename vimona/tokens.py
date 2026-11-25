@@ -2001,6 +2001,64 @@ button.selector-option.selected {{
     background-color: rgba(255, 255, 255, 0.14);
 }}
 
+entry.steps-entry {{
+    background-color: rgba(236, 239, 244, 0.05);
+    color: {c.text_primary};
+    border: 1px solid rgba(236, 239, 244, 0.10);
+    border-radius: 7px;
+    padding: 0px 6px;
+    min-height: 22px;
+    min-width: 52px;
+    font-size: 11.5px;
+    font-weight: 500;
+    caret-color: {c.text_primary};
+    box-shadow: none;
+    transition: border-color 130ms ease, background-color 130ms ease;
+}}
+
+entry.steps-entry:focus-within {{
+    border-color: rgba(245, 158, 11, 0.65);
+    background-color: rgba(245, 158, 11, 0.08);
+}}
+
+entry.steps-entry.custom-active {{
+    border-color: rgba(245, 158, 11, 0.72);
+    background-color: rgba(245, 158, 11, 0.14);
+    color: #FDE68A;
+    font-weight: 600;
+}}
+
+.composer-pill.aquarium-glass entry.steps-entry {{
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.16);
+    color: #FFFFFF;
+}}
+
+.composer-pill.aquarium-glass entry.steps-entry.custom-active {{
+    border-color: rgba(245, 158, 11, 0.85);
+    background-color: rgba(245, 158, 11, 0.20);
+    color: #FEF3C7;
+}}
+
+popover.steps-warn-popover > contents {{
+    background-color: rgba(34, 25, 12, 0.96);
+    border: 1px solid rgba(245, 158, 11, 0.55);
+    border-radius: 10px;
+    padding: 8px 11px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.48);
+}}
+
+.steps-warn-title {{
+    font-size: 12px;
+    font-weight: 650;
+    color: #FCD34D;
+}}
+
+.steps-warn-body {{
+    font-size: 11.5px;
+    color: #FDE68A;
+}}
+
 button.send-btn {{
     background-color: {c.btn_primary_bg};
     background-image: none;

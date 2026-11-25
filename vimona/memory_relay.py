@@ -660,7 +660,7 @@ class MemoryRelayManager:
                 shutil.copy2(anchor_src, anchor_dst)
                 temp_comfy_files.append(anchor_dst)
 
-                window_count = max(1, min(8, round(video_seconds / 2.0)))
+                window_count = max(1, min(16, round(video_seconds / 2.0)))
                 window_videos: list[Path] = []
                 control_start_name: str | None = anchor_name
 

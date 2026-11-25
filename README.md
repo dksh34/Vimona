@@ -10,6 +10,8 @@
 
 [![Powered by Hugging Face](https://img.shields.io/badge/Powered%20by-Hugging%20Face-FFD21E?style=flat-square&logo=huggingface&logoColor=black)](https://huggingface.co)
 [![Hardware-Tuned Models](https://img.shields.io/badge/Flagship-Hardware--Tuned%20Model%20Picking-10B981?style=flat-square)](#hardware-tuned-model-picking--boosting)
+[![Orchestration Harness](https://img.shields.io/badge/Orchestration-Zero--Overlap%20RAM%20Relay-6366F1?style=flat-square)](#orchestration--dual-booster-engines)
+[![Booster Engines](https://img.shields.io/badge/Booster%20Engines-DMD2%20%2B%20CausVid%20%2B%20DSLR-F59E0B?style=flat-square)](#orchestration--dual-booster-engines)
 [![Local AI Harness](https://img.shields.io/badge/Architecture-Local%20AI%20Harness-1E2430?style=flat-square)](#what-makes-vimona-a-harness-not-a-model-fork)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-1E2430?style=flat-square&logo=python&logoColor=93C5FD)](pyproject.toml)
 [![GTK4 + Libadwaita](https://img.shields.io/badge/Desktop-GTK4%20%2B%20Libadwaita-1E2430?style=flat-square&logo=gnome&logoColor=93C5FD)](vimona/window.py)
@@ -21,11 +23,12 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-1E2430?style=flat-square)](LICENSE)
 
 <h3>
-  A local AI orchestration harness <strong>powered by Hugging Face</strong> — featuring automatic <strong>Hardware-Tuned Model Picking</strong> tailored to your exact GPU, VRAM/GTT, and RAM.
+  A local AI orchestration harness <strong>powered by Hugging Face</strong> — featuring automatic <strong>Hardware-Tuned Model Picking</strong>, multi-stage <strong>Orchestration</strong>, and <strong>Dual Booster Engines</strong> tailored to your GPU, VRAM/GTT, and RAM.
 </h3>
 
 <p>
   <a href="#hardware-tuned-model-picking--boosting"><strong>Hardware-Tuned Picking</strong></a> &nbsp;·&nbsp;
+  <a href="#orchestration--dual-booster-engines"><strong>Orchestration &amp; Boosters</strong></a> &nbsp;·&nbsp;
   <a href="#what-makes-vimona-a-harness-not-a-model-fork"><strong>Why a Harness</strong></a> &nbsp;·&nbsp;
   <a href="#469-skills--context-engineering"><strong>469 Skills Engine</strong></a> &nbsp;·&nbsp;
   <a href="#interactive-workspace-showcase"><strong>Live Video Demos</strong></a> &nbsp;·&nbsp;
@@ -61,8 +64,8 @@
       Essentially a pure runtime harness orchestrating <strong>Hugging Face</strong> models across <code>llama.cpp</code>, <code>stable-diffusion.cpp</code>, <code>ComfyUI</code>, <code>469</code> context-routed skills, and <code>/dev/shm</code> Firefox cleanly under one roof.
     </td>
     <td width="33.3%" valign="top">
-      <h4>3. Boosted &amp; Air-Gapped Execution</h4>
-      Unloads text to <code>0.0 GB</code> before launching <code>5-step DMD2</code> images &amp; <code>6-step Wan 2.1 CausVid</code> <code>720p</code> video inside <code>unshare -r -n</code> (<code>ENETUNREACH</code>) over an <code>AF_UNIX</code> bridge.
+      <h4>3. Orchestration &amp; Booster Engines</h4>
+      Unloads text to <code>0.0 GB</code> before launching <code>4–6 step DMD2/Lightning</code> images, custom step counts, hardware-scaled video lengths, &amp; <code>6-step CausVid 720p</code> video inside <code>unshare -r -n</code> (<code>ENETUNREACH</code>).
     </td>
   </tr>
 </table>
@@ -72,37 +75,67 @@
 
 ---
 
-## Live DSLR Renders & `720p` Wan 2.1 Motion
+## Live DSLR Renders &amp; `720p` Boosted Motion
 
-Every frame below was generated locally on consumer unified-memory hardware using **Vimona's air-gapped render pipeline** — finished through `ffmpeg lanczos` upscaling, unsharp edge toning (`5:5:0.75`), and temporal histogram validation (`0.999` frame consistency).
+> [!NOTE]
+> **Made Entirely With Lightweight `2B`-Class Models:** Every single photo and video shown across the showcase stills and demo videos below was generated locally on consumer hardware using compact **`2B`-class diffusion models** accelerated by Vimona's orchestration pipeline and booster engines—proving you do not need massive `14B+` weights to get crisp DSLR results.
+
+Every frame below was generated locally on consumer unified-memory hardware using **Vimona's air-gapped orchestration &amp; booster pipeline** — finished through `ffmpeg lanczos` upscaling, unsharp edge toning (`5:5:0.75`), and temporal histogram validation (`0.999` frame consistency).
 
 <div align="center">
 
-<img src="assets/dslr-showcase-strip.png" width="96%" alt="Real local DSLR keyframes and Wan 2.1 720p Alpine frame rendered offline in Vimona"/>
+<img src="assets/dslr-showcase-strip.png" width="96%" alt="Real local DSLR keyframes and 720p Alpine video frame rendered offline with 2B models in Vimona"/>
 
 <br/><br/>
 
-<img src="assets/demos/07-comfyui-video-making.webp" width="92%" alt="Vimona ComfyUI + Wan 2.1 VACE 720p Alpine Dawn Video Showcase"/>
+<img src="assets/demos/07-comfyui-video-making.webp" width="92%" alt="Vimona ComfyUI 2B Video + CausVid 720p Alpine Dawn Video Showcase"/>
 
 <p>
   <a href="assets/demos/07-comfyui-video-making.mp4"><strong>Watch Full-Res MP4 Recording</strong></a> &nbsp;·&nbsp;
-  <code>Wan 2.1 VACE 1.3B</code> + <code>CausVid LoRA (0.45)</code> &nbsp;·&nbsp;
+  <code>2B Diffusion Video</code> + <code>CausVid Booster LoRA (0.45)</code> &nbsp;·&nbsp;
   <code>1280×720 @ 24 fps</code>
 </p>
 
 </div>
 
 <details>
-<summary>Inspect ComfyUI Node Graph, CausVid Recipe &amp; DSLR Post-Processing Flags</summary>
+<summary>Inspect ComfyUI Node Graph, Booster Engines &amp; DSLR Post-Processing Flags</summary>
 
 | Pipeline Stage | Runtime Configuration | Why It Matters on 16 GB Unified RAM |
 | :--- | :--- | :--- |
-| **Namespace Lock** | `unshare -r -n` + `/dev/shm/*.sock` | Drops LAN/WAN/DNS (`ENETUNREACH`); local IPC passes strictly via host-bound `AF_UNIX`. |
+| **Namespace Lock** | `unshare -r -n` + `/dev/shm/*.sock` | Drops outbound LAN/internet/DNS (`ENETUNREACH`); local IPC passes strictly via host-bound `AF_UNIX`. |
 | **UMT5 CPU Pinning** | `umt5_xxl_fp8_e4m3fn_scaled` offloaded to system RAM | Keeps `8 GB` GPU/GTT pool dedicated to latent denoising. |
-| **Video Diffusion Boost** | `wan2.1_vace_1.3B_fp16` + `CausVid` (`0.45`) | Generates coherent `640×368 @ 10 fps` motion in **6 steps** (`uni_pc`, `shift=5.5`, `cfg=1.1`). |
+| **Video Diffusion Boost** | `2B` Video Model + `CausVid` (`0.45`) | Generates coherent `640×368 @ 10 fps` motion in **6 steps** (`uni_pc`, `shift=5.5`, `cfg=1.1`), or custom user step count. |
 | **DSLR Video Finish** | `ffmpeg` `lanczos` + `unsharp=5:5:0.75` + `eq` | Crisp `1280×720` `24 fps` (`6500k` H.264) verified by `verify_video_temporal_consistency()`. |
 
 </details>
+
+---
+
+## Orchestration &amp; Dual Booster Engines
+
+Vimona's core value is **orchestrating small-footprint local models so consumer laptops outperform naive unoptimized setups**:
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h4>Orchestration Engine</h4>
+      <ul>
+        <li><strong>Zero-Overlap RAM Relay (<code>memory_relay.py</code>):</strong> Tears down <code>llama-server</code> to <code>0.0 GB</code> before image/video workers touch GPU memory, preventing unified-memory thrashing.</li>
+        <li><strong>Dynamic Duration &amp; Custom Step Controls:</strong> Available video clip lengths (<code>4s</code> up to <code>32s</code>) scale automatically with both your detected GPU hardware and selected video model weight—plus a custom <code>Steps</code> input (with automatic latency warning) when you want full manual denoising control over boosted <code>Auto</code>.</li>
+        <li><strong>Overnight Render Playlist + Context Routing:</strong> Queues mixed Chat/Image/Video jobs with reordering, thermal cooldowns, <code>/dev/shm</code> ephemeral research gating, and top-3 selection across <code>469</code> modular skills.</li>
+      </ul>
+    </td>
+    <td width="50%" valign="top">
+      <h4>Dual Booster Engines</h4>
+      <ul>
+        <li><strong>Image Booster Engine (<code>DMD2</code> + <code>Lightning</code> + <code>DSLR HiRes</code>):</strong> Runs <code>4–6 step</code> distilled denoising (<code>cfg 1.6</code>) on air-gapped <code>sd-server</code> with automatic spatial <code>--vae-tiling</code> and an optional `1.25×` DSLR detail refinement pass.</li>
+        <li><strong>Video Motion Booster Engine (<code>CausVid</code> + <code>24fps Optical Flow</code>):</strong> Pairs <code>6-step CausVid</code> temporal LoRA with chained sliding-window keyframes and <code>ffmpeg lanczos + unsharp</code> finishing for crisp <code>720p @ 24 fps</code> clips even from lightweight <code>2B</code> models.</li>
+        <li><strong>Hardware-Tuned Flag Injector:</strong> Scales <code>--ctx-size</code>, <code>--n-gpu-layers</code>, CPU pinning, and thread budgets automatically for Quiet/Eco or Turbo modes.</li>
+      </ul>
+    </td>
+  </tr>
+</table>
 
 ---
 
@@ -128,8 +161,8 @@ Before showing a single download button, the **Hardware Profiler** probes:
 | Detected Hardware Tier | What Vimona Picks Automatically (Text / Image / Video) | What It Hides &amp; Why | Runtime Server Flags Auto-Tuned |
 | :--- | :--- | :--- | :--- |
 | **Low-RAM / CPU** (`< 11 GB` RAM or `CPU` only) | `Qwen 2.5 1.5B/3B`, `Llama 3.2 3B`, `Phi-4 Mini`, `Gemma 3 4B`, `RealVisXL Q4` (`2.6 GB`), `DreamShaper Q4` | Hides `7B–70B`, FP16 SDXL, FLUX, SD 3.5 &amp; GPU video weights cleanly so swap never thrashes | `--ctx-size 2048`, `--n-gpu-layers 0`, `--offload-to-cpu`, `--vae-tiling` |
-| **Balanced Laptop / APU** (`15–16 GB` Vulkan UMA or `8 GB` dGPU) | `Qwen 2.5 7B/Coder 7B`, `DeepSeek-R1 7B`, `Qwen 3 8B`, `Mistral Nemo 12B`, `Pony Q8`, `RealVisXL Q4/Q8`, `Juggernaut Q4/Q8`, `SDXL Turbo Q8`, `Wan 2.1 1.3B`, `LTX-Video 2B` | Hides `1.5B` netbook clutter plus `14B–70B`, `FP16 SDXL`, `FLUX`, `SD 3.5` &amp; `14B` video that overflow `8 GB` GPU pools | `--ctx-size 4096`, `Vulkan0`/`CUDA`, `--vae-tiling`, `DMD2 5-step (cfg 1.6)` |
-| **Workstation / Server** (`24–64+ GB` RAM &amp; `16–48+ GB` VRAM) | `Qwen 2.5 14B/Coder 32B`, `Qwen 3 30B-A3B/32B`, `DeepSeek-R1 14B`, `Phi-4 14B`, `Llama 3.3 70B`, `RealVisXL/Juggernaut FP16`, `FLUX.1-dev/schnell`, `SD 3.5 Large`, `HunyuanVideo`, `Wan 2.1 14B` | Hides low-RAM `1.5B–4B` &amp; `Q4` entry fallbacks so flagship full-precision models lead | `--ctx-size 8192`, `--flash-attn on`, full-precision VRAM pipeline |
+| **Balanced Laptop / APU** (`15–16 GB` Vulkan UMA or `8 GB` dGPU) | `Qwen 2.5 7B/Coder 7B`, `DeepSeek-R1 7B`, `Qwen 3 8B`, `Mistral Nemo 12B`, `RealVisXL Q4/Q8`, `Juggernaut Q4/Q8`, `SDXL Turbo Q8`, `LTX-Video 2B`, `Cosmos 2B` | Hides `1.5B` netbook clutter plus `14B–70B`, `FP16 SDXL`, `FLUX`, `SD 3.5` &amp; `14B` video that overflow `8 GB` GPU pools | `--ctx-size 4096`, `Vulkan0`/`CUDA`, `--vae-tiling`, `DMD2 5-step (cfg 1.6)` |
+| **Workstation / Server** (`24–64+ GB` RAM &amp; `16–48+ GB` VRAM) | `Qwen 2.5 14B/Coder 32B`, `Qwen 3 30B-A3B/32B`, `DeepSeek-R1 14B`, `Phi-4 14B`, `Llama 3.3 70B`, `RealVisXL/Juggernaut FP16`, `FLUX.1-dev/schnell`, `SD 3.5 Large`, `HunyuanVideo`, `CogVideoX 5B` | Hides low-RAM `1.5B–4B` &amp; `Q4` entry fallbacks so flagship full-precision models lead | `--ctx-size 8192`, `--flash-attn on`, full-precision VRAM pipeline |
 
 <br/>
 
@@ -184,8 +217,8 @@ Rather than dumping massive static system prompts into a `4096`-token context wi
 
 | Skill Category | Count | Focus &amp; Capabilities Injected Automatically |
 | :--- | :---: | :--- |
-| **Image** (`image`) | **137** | `Pony V6 XL` score tag hierarchy (`score_9`…), skin realism, textures, fabrics, environments, styles, negative artifact suppression |
-| **Video** (`video`) | **124** | `Wan 2.1 VACE` 5-part temporal motion formula, I2V delta prompts, period/rhythm pacing, `CausVid` LoRA calibration, physics cues |
+| **Image** (`image`) | **137** | `SDXL` / `RealVisXL` score tag hierarchy (`score_9`…), skin realism, textures, fabrics, environments, styles, negative artifact suppression |
+| **Video** (`video`) | **124** | `2B–14B` 5-part temporal motion formula, I2V delta prompts, period/rhythm pacing, `CausVid` LoRA calibration, physics cues |
 | **Prompt Engineering** (`prompt`) | **50** | Structured reasoning patterns, constraint decomposition, tag weighting precision, anti-repetition formatting, few-shot scaffolds |
 | **Context Engineering** (`context`) | **50** | Pinned `[Previous Visual Prompt Spec]` &amp; `[Zero-Trace Web Research]` anchors, rolling history compaction, signal preservation |
 | **Engineering** (`engineering`) | **24** | Python asyncio, GTK4/Libadwaita idiomatic layout, systems debugging, SQL/API safety, test hardening |
@@ -199,6 +232,9 @@ Rather than dumping massive static system prompts into a `4096`-token context wi
 ---
 
 ## Interactive Workspace Showcase
+
+> [!TIP]
+> **All Showcase Media Generated by `2B` Models:** Every generated photo, keyframe strip, and video clip visible in the recordings below was created locally using compact **`2B`-class diffusion models** via Vimona's orchestration and dual booster engines.
 
 Click **MP4 Recording** under any demo card to inspect full-resolution footage recorded directly from the GTK4 canvas.
 
@@ -278,8 +314,8 @@ Choose the direct download package for your operating system—no terminal comma
     <td width="50%" valign="top">
       <h3>Linux (x86_64 Desktop App)</h3>
       <ul>
-        <li><strong>Standalone Executable:</strong> <a href="downloads/Vimona-Linux-x86_64.run"><strong>Download Vimona-Linux-x86_64.run</strong></a> (<code>454 KB</code> self-extracting bundle with metallic icon &amp; native ELF stub)</li>
-        <li><strong>Portable Archive:</strong> <a href="downloads/Vimona-Linux-x86_64.tar.gz"><strong>Download Vimona-Linux-x86_64.tar.gz</strong></a> (<code>451 KB</code> portable <code>Vimona.AppDir</code> bundle)</li>
+        <li><strong>Standalone Executable:</strong> <a href="downloads/Vimona-Linux-x86_64.run"><strong>Download Vimona-Linux-x86_64.run</strong></a> (<code>462 KB</code> self-extracting bundle with metallic icon &amp; native ELF stub)</li>
+        <li><strong>Portable Archive:</strong> <a href="downloads/Vimona-Linux-x86_64.tar.gz"><strong>Download Vimona-Linux-x86_64.tar.gz</strong></a> (<code>460 KB</code> portable <code>Vimona.AppDir</code> bundle)</li>
         <li><strong>System Desktop Installer:</strong> <a href="installers/install-linux.sh"><code>installers/install-linux.sh</code></a> (adds <code>Vimona</code> to GNOME / KDE app menus &amp; <code>hicolor</code> icons)</li>
       </ul>
       <sub><strong>How to run:</strong> Right-click <code>Vimona-Linux-x86_64.run</code> → <em>Properties</em> → enable <em>Executable as Program</em> → double-click to launch. Or download the automated AppImage / ELF build from the <a href=".github/workflows/build-linux-standalone.yml">Linux CI Workflow</a>.</sub>
@@ -336,7 +372,7 @@ vimona/
     ├── controller.py                      # Mode routing, SlideCommit handling & turn orchestration
     ├── memory_relay.py                    # Mutual-exclusion RAM swap & hardware-tuned llama-server
     ├── airgap.py                          # unshare -r -n network isolation & AF_UNIX socket bridge
-    ├── workflows.py                       # ComfyUI Wan 2.1 VACE 1.3B + Pony keyframe workflow graphs
+    ├── workflows.py                       # ComfyUI 2B sliding-window video & SDXL keyframe graphs
     ├── fast_media_engine.py               # DMD2/Lightning boosted sd-server & 720p DSLR ffmpeg finish
     ├── safety_ml.py & safety_ml_weights.npz # 93 KB offline NumPy text + vision SafeBlur gate
     ├── search_worker.py                   # Ephemeral /dev/shm headless Firefox reference extractor
@@ -352,11 +388,11 @@ vimona/
 Vimona is a local AI harness powered directly by Hugging Face and extraordinary open-source infrastructure:
 
 - **[Hugging Face Hub (`huggingface.co`)](https://huggingface.co)** — Powers Vimona's curated model catalog, live model repository metadata API (`likes`, `downloads`), and resumable-safe direct `GGUF`/`safetensors` downloads matched cleanly by hardware tier.
-- **[ComfyUI (`comfyanonymous/ComfyUI` & Comfy-Org)](https://github.com/comfyanonymous/ComfyUI)** — Powers Vimona's air-gapped node graph backend (`WanVaceToVideo`, `ModelSamplingSD3`, `--lowvram` offloading, CPU UMT5 scheduling, and `VHS_VideoCombine`). Running `Wan 2.1` smoothly inside `16 GB` unified RAM would not be possible without ComfyUI.
+- **[ComfyUI (`comfyanonymous/ComfyUI` & Comfy-Org)](https://github.com/comfyanonymous/ComfyUI)** — Powers Vimona's air-gapped node graph backend (`ModelSamplingSD3`, `--lowvram` offloading, CPU UMT5 scheduling, and `VHS_VideoCombine`). Running `2B` diffusion video smoothly inside `16 GB` unified RAM would not be possible without ComfyUI.
 - **[llama.cpp (`ggml-org/llama.cpp`)](https://github.com/ggml-org/llama.cpp)** — High-speed Vulkan & CUDA `GGUF` inference server (`llama-server`) for local reasoning, coding, and skill routing.
 - **[stable-diffusion.cpp (`leejet/stable-diffusion.cpp`)](https://github.com/leejet/stable-diffusion.cpp)** — Fast Vulkan/GGUF diffusion server (`sd-server`) driving 4–6 step `DMD2` & `Lightning` image boosting with spatial VAE tiling.
-- **[Wan 2.1 (`Wan-Video/Wan2.1`)](https://github.com/Wan-Video/Wan2.1)** & **[CausVid (`tianweiy/CausVid`)](https://github.com/tianweiy/CausVid)** — Diffusion video synthesis and 6-step distilled acceleration.
-- **Community Model Authors** — Curators & quantizers behind `Qwen 2.5 / Qwen 3`, `Gemma 3`, `Llama 3.1`, `Pony Diffusion V6 XL`, `RealVisXL V5.0 Lightning`, `Juggernaut XL v9`, `LTX-Video`, and GGUF quantizations (`bartowski`, `city96`, `off-grid-ai`, `RunDiffusion`, `SG161222`).
+- **[LTX-Video (`Lightricks/LTX-Video`)](https://github.com/Lightricks/LTX-Video)** & **[CausVid (`tianweiy/CausVid`)](https://github.com/tianweiy/CausVid)** — Lightweight `2B` video synthesis and 6-step distilled acceleration.
+- **Community Model Authors** — Curators & quantizers behind `Qwen 2.5 / Qwen 3`, `Gemma 3`, `Llama 3.1`, `RealVisXL V5.0 Lightning`, `Juggernaut XL v9`, `DreamShaper XL`, `FLUX.1`, and GGUF quantizations (`bartowski`, `city96`, `off-grid-ai`, `RunDiffusion`, `SG161222`).
 - **[GTK4](https://www.gtk.org/), [Libadwaita](https://gnome.pages.gitlab.gnome.org/libadwaita/), [PyGObject](https://pygobject.gnome.org/), [NumPy](https://numpy.org/), [OpenCV](https://opencv.org/) & [FFmpeg](https://ffmpeg.org/)** — Native hardware-accelerated UI, offline ML scoring, and 720p temporal finishing.
 
 ---
