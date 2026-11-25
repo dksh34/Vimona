@@ -1,7 +1,8 @@
-"""Hardware-aware Hugging Face curated model catalog, matcher, and downloader."""
+"""Hardware-aware Hugging Face catalog, live Hub discovery, matcher, and downloader."""
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 import json
 import os
@@ -11,6 +12,7 @@ import re
 import subprocess
 import threading
 import urllib.error
+import urllib.parse
 import urllib.request
 from typing import Any, Callable
 
@@ -18,6 +20,8 @@ MODELS_STATE_FILE = Path("~/.local/share/vimona/models_config.json").expanduser(
 LOCAL_MODELS_DIR = Path("~/.local/share/vimona/models").expanduser()
 
 _HF_META_CACHE: dict[str, dict[str, Any]] = {}
+_HF_SEARCH_CACHE: dict[tuple[str, str, str], list["HFModelSpec"]] = {}
+_DYNAMIC_HF_MODELS: dict[str, "HFModelSpec"] = {}
 _CACHE_LOCK = threading.Lock()
 
 
@@ -98,58 +102,62 @@ class HFModelSpec:
 
 
 CURATED_HF_MODELS: tuple[HFModelSpec, ...] = (
-    # --- Lightweight & Workstation Text Models ---
+    # --- Text Models: Every Tier (1.5B -> 70B) ---
     HFModelSpec(
-        id="hf_qwen25_7b_q4",
-        name="Qwen 2.5 7B Instruct",
+        id="hf_qwen25_1_5b_q4",
+        name="Qwen 2.5 1.5B Instruct",
         category="text",
-        hf_repo="bartowski/Qwen2.5-7B-Instruct-GGUF",
-        hf_file="Qwen2.5-7B-Instruct-Q4_K_M.gguf",
-        size_gb=4.7,
-        min_ram_gb=11.0,
+        hf_repo="Qwen/Qwen2.5-1.5B-Instruct-GGUF",
+        hf_file="qwen2.5-1.5b-instruct-q4_k_m.gguf",
+        size_gb=1.0,
+        min_ram_gb=4.0,
+        max_ram_gb=10.5,
         quant="Q4_K_M GGUF",
-        summary="Balanced reasoning, coding & tool use tuned for 14–16 GB RAM",
-        tags=("recommended", "coding", "chat"),
-        tuning_note="Tuned 7B Q4",
+        summary="Ultra-tiny 1.0 GB engine tuned strictly for 4–8 GB netbooks & CPUs",
+        tags=("ultra-light", "fast"),
+        tuning_note="Nano 1.5B",
     ),
     HFModelSpec(
-        id="hf_qwen3_8b_q4",
-        name="Qwen 3 8B",
+        id="hf_llama32_3b_q4",
+        name="Llama 3.2 3B Instruct",
         category="text",
-        hf_repo="Qwen/Qwen3-8B-GGUF",
-        hf_file="Qwen3-8B-Q4_K_M.gguf",
-        size_gb=5.0,
-        min_ram_gb=11.5,
+        hf_repo="bartowski/Llama-3.2-3B-Instruct-GGUF",
+        hf_file="Llama-3.2-3B-Instruct-Q4_K_M.gguf",
+        size_gb=1.9,
+        min_ram_gb=4.5,
+        max_ram_gb=11.5,
         quant="Q4_K_M GGUF",
-        summary="Crisp structured thinking & multi-turn instruction accuracy",
-        tags=("reasoning", "chat"),
-        tuning_note="Tuned 8B Q4",
+        summary="Featherweight 1.9 GB assistant for 8 GB laptops & CPU-only mode",
+        tags=("ultra-light", "chat"),
+        tuning_note="Low-RAM 3B",
     ),
     HFModelSpec(
-        id="hf_llama31_8b_q4",
-        name="Llama 3.1 8B Instruct",
+        id="hf_phi4_mini_q4",
+        name="Phi-4 Mini Instruct",
         category="text",
-        hf_repo="bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
-        hf_file="Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
-        size_gb=4.9,
-        min_ram_gb=11.5,
+        hf_repo="unsloth/Phi-4-mini-instruct-GGUF",
+        hf_file="Phi-4-mini-instruct-Q4_K_M.gguf",
+        size_gb=2.3,
+        min_ram_gb=5.5,
+        max_ram_gb=18.0,
         quant="Q4_K_M GGUF",
-        summary="Fast fluent prose & general workstation dialogue",
-        tags=("chat", "writing"),
-        tuning_note="Tuned 8B Q4",
+        summary="Compact 3.8B logic & tool-calling model tuned for constrained RAM",
+        tags=("ultra-light", "reasoning"),
+        tuning_note="Compact Phi-4",
     ),
     HFModelSpec(
-        id="hf_qwen25_coder_7b_q4",
-        name="Qwen 2.5 Coder 7B",
+        id="hf_qwen3_4b_q4",
+        name="Qwen 3 4B",
         category="text",
-        hf_repo="bartowski/Qwen2.5-Coder-7B-Instruct-GGUF",
-        hf_file="Qwen2.5-Coder-7B-Instruct-Q4_K_M.gguf",
-        size_gb=4.7,
-        min_ram_gb=11.0,
+        hf_repo="Qwen/Qwen3-4B-GGUF",
+        hf_file="Qwen3-4B-Q4_K_M.gguf",
+        size_gb=2.3,
+        min_ram_gb=5.5,
+        max_ram_gb=18.0,
         quant="Q4_K_M GGUF",
-        summary="High-accuracy Python, GTK4, SQL & systems debugging",
-        tags=("coding",),
-        tuning_note="Tuned 7B Coder",
+        summary="Fast thinking & structured prompting in a 2.3 GB laptop footprint",
+        tags=("ultra-light", "eco", "reasoning"),
+        tuning_note="Eco 4B",
     ),
     HFModelSpec(
         id="hf_gemma3_4b_q4",
@@ -175,9 +183,119 @@ CURATED_HF_MODELS: tuple[HFModelSpec, ...] = (
         min_ram_gb=5.5,
         max_ram_gb=11.5,
         quant="Q6_K GGUF",
-        summary="Compact 3B engine tuned strictly for <= 11 GB RAM systems",
+        summary="High-precision 3B engine tuned strictly for <= 11 GB RAM systems",
         tags=("ultra-light", "fast"),
         tuning_note="Low-RAM 3B",
+    ),
+    HFModelSpec(
+        id="hf_deepseek_r1_7b_q4",
+        name="DeepSeek-R1 Distill Qwen 7B",
+        category="text",
+        hf_repo="bartowski/DeepSeek-R1-Distill-Qwen-7B-GGUF",
+        hf_file="DeepSeek-R1-Distill-Qwen-7B-Q4_K_M.gguf",
+        size_gb=4.4,
+        min_ram_gb=10.5,
+        quant="Q4_K_M GGUF",
+        summary="Step-by-step chain-of-thought reasoning & math on 14–16 GB RAM",
+        tags=("reasoning",),
+        tuning_note="Reasoning 7B",
+    ),
+    HFModelSpec(
+        id="hf_qwen25_7b_q4",
+        name="Qwen 2.5 7B Instruct",
+        category="text",
+        hf_repo="bartowski/Qwen2.5-7B-Instruct-GGUF",
+        hf_file="Qwen2.5-7B-Instruct-Q4_K_M.gguf",
+        size_gb=4.7,
+        min_ram_gb=11.0,
+        quant="Q4_K_M GGUF",
+        summary="Balanced reasoning, coding & tool use tuned for 14–16 GB RAM",
+        tags=("recommended", "coding", "chat"),
+        tuning_note="Tuned 7B Q4",
+    ),
+    HFModelSpec(
+        id="hf_qwen25_coder_7b_q4",
+        name="Qwen 2.5 Coder 7B",
+        category="text",
+        hf_repo="bartowski/Qwen2.5-Coder-7B-Instruct-GGUF",
+        hf_file="Qwen2.5-Coder-7B-Instruct-Q4_K_M.gguf",
+        size_gb=4.7,
+        min_ram_gb=11.0,
+        quant="Q4_K_M GGUF",
+        summary="High-accuracy Python, GTK4, SQL & systems debugging",
+        tags=("coding",),
+        tuning_note="Tuned 7B Coder",
+    ),
+    HFModelSpec(
+        id="hf_llama31_8b_q4",
+        name="Llama 3.1 8B Instruct",
+        category="text",
+        hf_repo="bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
+        hf_file="Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
+        size_gb=4.9,
+        min_ram_gb=11.5,
+        quant="Q4_K_M GGUF",
+        summary="Fast fluent prose & general workstation dialogue",
+        tags=("chat", "writing"),
+        tuning_note="Tuned 8B Q4",
+    ),
+    HFModelSpec(
+        id="hf_qwen3_8b_q4",
+        name="Qwen 3 8B",
+        category="text",
+        hf_repo="Qwen/Qwen3-8B-GGUF",
+        hf_file="Qwen3-8B-Q4_K_M.gguf",
+        size_gb=5.0,
+        min_ram_gb=11.5,
+        quant="Q4_K_M GGUF",
+        summary="Crisp structured thinking & multi-turn instruction accuracy",
+        tags=("recommended", "reasoning", "chat"),
+        tuning_note="Tuned 8B Q4",
+    ),
+    HFModelSpec(
+        id="hf_mistral_nemo_12b_q4",
+        name="Mistral Nemo 12B Instruct",
+        category="text",
+        hf_repo="bartowski/Mistral-Nemo-Instruct-2407-GGUF",
+        hf_file="Mistral-Nemo-Instruct-2407-Q4_0.gguf",
+        size_gb=6.6,
+        min_ram_gb=14.0,
+        min_gpu_pool_gb=7.5,
+        quant="Q4_0 GGUF",
+        summary="Long-context 12B prose & multilingual synthesis",
+        tags=("writing", "chat"),
+        backends=("cuda", "vulkan"),
+        tuning_note="Balanced 12B",
+    ),
+    HFModelSpec(
+        id="hf_deepseek_r1_14b_q4",
+        name="DeepSeek-R1 Distill Qwen 14B",
+        category="text",
+        hf_repo="bartowski/DeepSeek-R1-Distill-Qwen-14B-GGUF",
+        hf_file="DeepSeek-R1-Distill-Qwen-14B-Q4_K_M.gguf",
+        size_gb=8.4,
+        min_ram_gb=20.0,
+        min_gpu_pool_gb=12.0,
+        quant="Q4_K_M GGUF",
+        summary="Deep workstation analytical reasoning (needs 20+ GB RAM/VRAM)",
+        tags=("heavy", "reasoning"),
+        backends=("cuda", "vulkan"),
+        tuning_note="Workstation 14B",
+    ),
+    HFModelSpec(
+        id="hf_phi4_14b_q4",
+        name="Phi-4 14B",
+        category="text",
+        hf_repo="bartowski/phi-4-GGUF",
+        hf_file="phi-4-Q4_K_M.gguf",
+        size_gb=8.4,
+        min_ram_gb=20.0,
+        min_gpu_pool_gb=12.0,
+        quant="Q4_K_M GGUF",
+        summary="High-density STEM & coding precision for 24+ GB workstations",
+        tags=("heavy", "coding"),
+        backends=("cuda", "vulkan"),
+        tuning_note="Workstation 14B",
     ),
     HFModelSpec(
         id="hf_qwen25_14b_q4",
@@ -190,27 +308,71 @@ CURATED_HF_MODELS: tuple[HFModelSpec, ...] = (
         min_gpu_pool_gb=12.0,
         quant="Q4_K_M GGUF",
         summary="High-capacity 14B workstation model (needs 20+ GB RAM/VRAM)",
-        tags=("heavy",),
+        tags=("heavy", "recommended"),
         backends=("cuda", "vulkan"),
         tuning_note="Workstation 14B",
     ),
-    # --- Hardware-Tuned Vulkan GGUF & Workstation Image Models ---
     HFModelSpec(
-        id="hf_pony_v6_xl_q8",
-        name="Pony Diffusion V6 XL",
-        category="image",
-        hf_repo="off-grid-ai/pony-diffusion-v6-xl-GGUF",
-        hf_file="pony-diffusion-v6-xl-Q8_0.gguf",
-        size_gb=3.9,
-        min_ram_gb=10.5,
-        min_gpu_pool_gb=5.5,
-        max_ram_gb=22.0,
-        quant="Q8_0 GGUF (Vulkan)",
-        summary="Tuned Vulkan Q8_0 keyframe engine: sharp composition & DSLR versatility",
-        tags=("recommended", "active-default"),
-        backends=("vulkan", "cuda"),
-        tuning_note="Vulkan Q8 GGUF",
+        id="hf_qwen3_30b_a3b_q4",
+        name="Qwen 3 30B-A3B MoE",
+        category="text",
+        hf_repo="Qwen/Qwen3-30B-A3B-GGUF",
+        hf_file="Qwen3-30B-A3B-Q4_K_M.gguf",
+        size_gb=17.3,
+        min_ram_gb=28.0,
+        min_gpu_pool_gb=20.0,
+        quant="Q4_K_M GGUF (MoE)",
+        summary="Ultra-fast 3B-active Mixture-of-Experts on 24+ GB GPUs / 32+ GB RAM",
+        tags=("heavy", "recommended"),
+        backends=("cuda", "vulkan"),
+        tuning_note="Pro MoE 30B",
     ),
+    HFModelSpec(
+        id="hf_qwen25_coder_32b_q4",
+        name="Qwen 2.5 Coder 32B",
+        category="text",
+        hf_repo="bartowski/Qwen2.5-Coder-32B-Instruct-GGUF",
+        hf_file="Qwen2.5-Coder-32B-Instruct-Q4_0.gguf",
+        size_gb=17.4,
+        min_ram_gb=28.0,
+        min_gpu_pool_gb=20.0,
+        quant="Q4_0 GGUF",
+        summary="Flagship 32B systems engineering & refactor engine (24+ GB VRAM)",
+        tags=("heavy", "coding"),
+        backends=("cuda", "vulkan"),
+        tuning_note="Pro 32B Coder",
+    ),
+    HFModelSpec(
+        id="hf_qwen3_32b_q4",
+        name="Qwen 3 32B",
+        category="text",
+        hf_repo="Qwen/Qwen3-32B-GGUF",
+        hf_file="Qwen3-32B-Q4_K_M.gguf",
+        size_gb=18.4,
+        min_ram_gb=30.0,
+        min_gpu_pool_gb=22.0,
+        quant="Q4_K_M GGUF",
+        summary="Dense 32B flagship reasoning for 24+ GB VRAM workstations",
+        tags=("heavy",),
+        backends=("cuda", "vulkan"),
+        tuning_note="Pro 32B Dense",
+    ),
+    HFModelSpec(
+        id="hf_llama33_70b_q4",
+        name="Llama 3.3 70B Instruct",
+        category="text",
+        hf_repo="bartowski/Llama-3.3-70B-Instruct-GGUF",
+        hf_file="Llama-3.3-70B-Instruct-Q4_0.gguf",
+        size_gb=37.4,
+        min_ram_gb=56.0,
+        min_gpu_pool_gb=42.0,
+        quant="Q4_0 GGUF",
+        summary="Datacenter/multi-GPU 70B powerhouse (needs 48+ GB VRAM / 64 GB UMA)",
+        tags=("heavy",),
+        backends=("cuda", "vulkan"),
+        tuning_note="Ultra 70B",
+    ),
+    # --- Image Models: Every Tier (2.6 GB Q4 -> FLUX & SD 3.5 Large) ---
     HFModelSpec(
         id="hf_realvis_xl_v5_lightning_q4",
         name="RealVisXL V5.0 Lightning Q4",
@@ -224,6 +386,22 @@ CURATED_HF_MODELS: tuple[HFModelSpec, ...] = (
         quant="Q4_K_S GGUF (4-step)",
         summary="2.6 GB quantized DSLR portraits & scenes tuned for iGPUs & low VRAM",
         tags=("recommended", "photoreal", "ultra-light"),
+        backends=("vulkan", "cuda", "cpu"),
+        tuning_note="iGPU Q4 GGUF",
+    ),
+    HFModelSpec(
+        id="hf_dreamshaper_xl_turbo_q4",
+        name="DreamShaper XL Turbo Q4",
+        category="image",
+        hf_repo="off-grid-ai/dreamshaper-xl-v2-turbo-GGUF",
+        hf_file="dreamshaper-xl-v2-turbo-Q4_K_S.gguf",
+        size_gb=2.6,
+        min_ram_gb=7.5,
+        min_gpu_pool_gb=3.5,
+        max_ram_gb=20.0,
+        quant="Q4_K_S GGUF (6-step)",
+        summary="2.6 GB fast editorial & cinematic concept art tuned for laptops",
+        tags=("art", "fast"),
         backends=("vulkan", "cuda", "cpu"),
         tuning_note="iGPU Q4 GGUF",
     ),
@@ -242,6 +420,115 @@ CURATED_HF_MODELS: tuple[HFModelSpec, ...] = (
         tags=("photoreal", "cinema"),
         backends=("vulkan", "cuda"),
         tuning_note="iGPU Q4 GGUF",
+    ),
+    HFModelSpec(
+        id="hf_sdxl_turbo_q8",
+        name="SDXL Turbo 1.0 Q8",
+        category="image",
+        hf_repo="OlegSkutte/sdxl-turbo-GGUF",
+        hf_file="sd_xl_turbo_1.0.q8_0.gguf",
+        size_gb=3.8,
+        min_ram_gb=10.5,
+        min_gpu_pool_gb=5.5,
+        max_ram_gb=22.0,
+        quant="Q8_0 GGUF (1-step)",
+        summary="3.8 GB instant 1–4 step draft synthesis for Vulkan iGPUs",
+        tags=("fast",),
+        backends=("vulkan", "cuda"),
+        tuning_note="Vulkan Q8 Draft",
+    ),
+    HFModelSpec(
+        id="hf_pony_v6_xl_q8",
+        name="Pony Diffusion V6 XL",
+        category="image",
+        hf_repo="off-grid-ai/pony-diffusion-v6-xl-GGUF",
+        hf_file="pony-diffusion-v6-xl-Q8_0.gguf",
+        size_gb=3.9,
+        min_ram_gb=10.5,
+        min_gpu_pool_gb=5.5,
+        max_ram_gb=22.0,
+        quant="Q8_0 GGUF (Vulkan)",
+        summary="Tuned Vulkan Q8_0 keyframe engine: sharp composition & DSLR versatility",
+        tags=("recommended", "active-default"),
+        backends=("vulkan", "cuda"),
+        tuning_note="Vulkan Q8 GGUF",
+    ),
+    HFModelSpec(
+        id="hf_realvis_xl_v5_lightning_q8",
+        name="RealVisXL V5.0 Lightning Q8",
+        category="image",
+        hf_repo="off-grid-ai/realvisxl-v5.0-lightning-GGUF",
+        hf_file="realvisxl-v5.0-lightning-Q8_0.gguf",
+        size_gb=3.9,
+        min_ram_gb=11.0,
+        min_gpu_pool_gb=6.0,
+        max_ram_gb=22.0,
+        quant="Q8_0 GGUF (4-step)",
+        summary="Near-lossless Q8 DSLR photorealism fitting cleanly inside 8 GB GPU pool",
+        tags=("photoreal", "recommended"),
+        backends=("vulkan", "cuda"),
+        tuning_note="Vulkan Q8 DSLR",
+    ),
+    HFModelSpec(
+        id="hf_juggernaut_xl_q8",
+        name="Juggernaut XL v9 Q8",
+        category="image",
+        hf_repo="off-grid-ai/juggernaut-xl-v9-GGUF",
+        hf_file="juggernaut-xl-v9-Q8_0.gguf",
+        size_gb=4.1,
+        min_ram_gb=12.0,
+        min_gpu_pool_gb=6.5,
+        max_ram_gb=22.0,
+        quant="Q8_0 GGUF",
+        summary="High-precision Q8 automotive & dramatic lighting tuned for 8–12 GB GPUs",
+        tags=("photoreal", "cinema"),
+        backends=("vulkan", "cuda"),
+        tuning_note="Vulkan Q8 GGUF",
+    ),
+    HFModelSpec(
+        id="hf_flux1_schnell_q3",
+        name="FLUX.1-schnell Q3",
+        category="image",
+        hf_repo="city96/FLUX.1-schnell-gguf",
+        hf_file="flux1-schnell-Q3_K_S.gguf",
+        size_gb=4.9,
+        min_ram_gb=16.0,
+        min_gpu_pool_gb=9.5,
+        quant="Q3_K_S GGUF (4-step)",
+        summary="4-step quantized FLUX typography & prompt adherence (10+ GB GPU / 16+ GB RAM)",
+        tags=("heavy", "fast"),
+        backends=("cuda", "vulkan"),
+        tuning_note="Mid-Tier FLUX",
+    ),
+    HFModelSpec(
+        id="hf_sd35_medium_q4",
+        name="Stable Diffusion 3.5 Medium",
+        category="image",
+        hf_repo="gpustack/stable-diffusion-v3-5-medium-GGUF",
+        hf_file="stable-diffusion-v3-5-medium-pure-Q4_0.gguf",
+        size_gb=4.9,
+        min_ram_gb=16.0,
+        min_gpu_pool_gb=10.0,
+        quant="Q4_0 GGUF",
+        summary="Clean DiT typography & composition for 12+ GB VRAM / 16+ GB workstations",
+        tags=("heavy",),
+        backends=("cuda", "vulkan"),
+        tuning_note="Mid-Tier SD3.5",
+    ),
+    HFModelSpec(
+        id="hf_flux1_schnell_q4",
+        name="FLUX.1-schnell Q4",
+        category="image",
+        hf_repo="city96/FLUX.1-schnell-gguf",
+        hf_file="flux1-schnell-Q4_K_S.gguf",
+        size_gb=6.3,
+        min_ram_gb=20.0,
+        min_gpu_pool_gb=12.0,
+        quant="Q4_K_S GGUF (4-step)",
+        summary="Fast 4-step high-fidelity FLUX synthesis for 12+ GB VRAM rigs",
+        tags=("heavy", "recommended"),
+        backends=("cuda", "vulkan"),
+        tuning_note="Workstation FLUX",
     ),
     HFModelSpec(
         id="hf_realvis_xl_v5_lightning",
@@ -284,25 +571,73 @@ CURATED_HF_MODELS: tuple[HFModelSpec, ...] = (
         min_gpu_pool_gb=14.0,
         quant="Q4_K_S GGUF",
         summary="High-capacity prompt adherence & text (needs 22+ GB RAM w/ T5)",
-        tags=("heavy",),
+        tags=("heavy", "recommended"),
         backends=("cuda", "vulkan"),
         tuning_note="Workstation FLUX",
     ),
-    # --- Video Models (Shown Automatically in Video Chat) ---
     HFModelSpec(
-        id="hf_wan21_vace_1_3b",
-        name="Wan 2.1 VACE 1.3B",
+        id="hf_sd35_large_q8",
+        name="Stable Diffusion 3.5 Large Q8",
+        category="image",
+        hf_repo="gpustack/stable-diffusion-v3-5-large-GGUF",
+        hf_file="stable-diffusion-v3-5-large-Q8_0.gguf",
+        size_gb=14.9,
+        min_ram_gb=28.0,
+        min_gpu_pool_gb=20.0,
+        quant="Q8_0 GGUF",
+        summary="8B-parameter studio DiT fidelity for 24+ GB RTX / workstation cards",
+        tags=("heavy",),
+        backends=("cuda", "vulkan"),
+        tuning_note="Pro 24GB+ DiT",
+    ),
+    # --- Video Models: Every Tier (0.9 GB Q4 -> 14B & HunyuanVideo) ---
+    HFModelSpec(
+        id="hf_wan21_t2v_1_3b_q4",
+        name="Wan 2.1 T2V 1.3B Q4",
         category="video",
-        hf_repo="Comfy-Org/Wan_2.1_ComfyUI_repackaged",
-        hf_file="split_files/diffusion_models/wan2.1_vace_1.3B_fp16.safetensors",
-        size_gb=4.0,
-        min_ram_gb=12.0,
-        min_gpu_pool_gb=6.0,
-        quant="FP16 (6-step CausVid)",
-        summary="Tuned 720p I2V & keyframe animation for 16 GB iGPU & dGPU rigs",
-        tags=("recommended", "active-default"),
+        hf_repo="samuelchristlie/Wan2.1-T2V-1.3B-GGUF",
+        hf_file="Wan2.1-T2V-1.3B-Q4_K_M.gguf",
+        size_gb=0.9,
+        min_ram_gb=8.0,
+        min_gpu_pool_gb=3.5,
+        max_ram_gb=19.0,
+        quant="Q4_K_M GGUF",
+        summary="0.9 GB quantized text-to-video tuned for 8–12 GB laptops & low VRAM",
+        tags=("ultra-light", "fast"),
         backends=("vulkan", "cuda"),
-        tuning_note="Tuned 1.3B VACE",
+        tuning_note="Ultra-Light Video",
+    ),
+    HFModelSpec(
+        id="hf_ltx_video_2b_q4",
+        name="LTX-Video 2B Q4",
+        category="video",
+        hf_repo="city96/LTX-Video-0.9.5-gguf",
+        hf_file="ltx-video-2b-v0.9.5-Q4_K_M.gguf",
+        size_gb=1.2,
+        min_ram_gb=8.5,
+        min_gpu_pool_gb=4.0,
+        max_ram_gb=19.0,
+        quant="Q4_K_M GGUF",
+        summary="1.2 GB temporal-coherent video generation for 8–16 GB notebooks",
+        tags=("ultra-light", "fast"),
+        backends=("vulkan", "cuda"),
+        tuning_note="iGPU Q4 Video",
+    ),
+    HFModelSpec(
+        id="hf_wan21_vace_1_3b_q4",
+        name="Wan 2.1 VACE 1.3B Q4",
+        category="video",
+        hf_repo="samuelchristlie/Wan2.1-VACE-1.3B-GGUF",
+        hf_file="Wan2.1-VACE-1.3B-Q4_K_M.gguf",
+        size_gb=1.4,
+        min_ram_gb=9.5,
+        min_gpu_pool_gb=4.5,
+        max_ram_gb=20.0,
+        quant="Q4_K_M GGUF",
+        summary="1.4 GB quantized I2V/keyframe anchor motion for 12–16 GB iGPUs",
+        tags=("fast",),
+        backends=("vulkan", "cuda"),
+        tuning_note="iGPU Q4 VACE",
     ),
     HFModelSpec(
         id="hf_wan21_t2v_1_3b",
@@ -336,19 +671,34 @@ CURATED_HF_MODELS: tuple[HFModelSpec, ...] = (
         tuning_note="Tuned 2B FP8",
     ),
     HFModelSpec(
-        id="hf_wan21_i2v_14b_q4",
-        name="Wan 2.1 I2V 14B 480p",
+        id="hf_wan21_vace_1_3b",
+        name="Wan 2.1 VACE 1.3B",
         category="video",
-        hf_repo="city96/Wan2.1-I2V-14B-480P-gguf",
-        hf_file="wan2.1-i2v-14b-480p-Q4_K_M.gguf",
-        size_gb=9.2,
-        min_ram_gb=22.0,
-        min_gpu_pool_gb=14.0,
+        hf_repo="Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+        hf_file="split_files/diffusion_models/wan2.1_vace_1.3B_fp16.safetensors",
+        size_gb=4.0,
+        min_ram_gb=12.0,
+        min_gpu_pool_gb=6.0,
+        quant="FP16 (6-step CausVid)",
+        summary="Tuned 720p I2V & keyframe animation for 16 GB iGPU & dGPU rigs",
+        tags=("recommended", "active-default"),
+        backends=("vulkan", "cuda"),
+        tuning_note="Tuned 1.3B VACE",
+    ),
+    HFModelSpec(
+        id="hf_hunyuan_video_q4",
+        name="HunyuanVideo 720p Q4",
+        category="video",
+        hf_repo="city96/HunyuanVideo-gguf",
+        hf_file="hunyuan-video-t2v-720p-Q4_K_M.gguf",
+        size_gb=7.3,
+        min_ram_gb=20.0,
+        min_gpu_pool_gb=12.0,
         quant="Q4_K_M GGUF",
-        summary="Flagship 14B physical motion fidelity (needs 22+ GB RAM / 14+ GB VRAM)",
-        tags=("heavy",),
+        summary="Cinema 13B lighting & human physics tuned for 16+ GB VRAM rigs",
+        tags=("heavy", "cinema"),
         backends=("cuda", "vulkan"),
-        tuning_note="Workstation 14B",
+        tuning_note="Workstation 13B",
     ),
     HFModelSpec(
         id="hf_wan21_t2v_14b_q4",
@@ -356,7 +706,7 @@ CURATED_HF_MODELS: tuple[HFModelSpec, ...] = (
         category="video",
         hf_repo="city96/Wan2.1-T2V-14B-gguf",
         hf_file="wan2.1-t2v-14b-Q4_K_M.gguf",
-        size_gb=8.8,
+        size_gb=9.4,
         min_ram_gb=22.0,
         min_gpu_pool_gb=14.0,
         quant="Q4_K_M GGUF",
@@ -364,6 +714,36 @@ CURATED_HF_MODELS: tuple[HFModelSpec, ...] = (
         tags=("heavy",),
         backends=("cuda", "vulkan"),
         tuning_note="Workstation 14B",
+    ),
+    HFModelSpec(
+        id="hf_wan21_i2v_14b_q4",
+        name="Wan 2.1 I2V 14B 480p",
+        category="video",
+        hf_repo="city96/Wan2.1-I2V-14B-480P-gguf",
+        hf_file="wan2.1-i2v-14b-480p-Q4_K_M.gguf",
+        size_gb=10.6,
+        min_ram_gb=22.0,
+        min_gpu_pool_gb=14.0,
+        quant="Q4_K_M GGUF",
+        summary="Flagship 14B physical motion fidelity (needs 22+ GB RAM / 14+ GB VRAM)",
+        tags=("heavy", "recommended"),
+        backends=("cuda", "vulkan"),
+        tuning_note="Workstation 14B",
+    ),
+    HFModelSpec(
+        id="hf_wan21_i2v_720p_14b_fp8",
+        name="Wan 2.1 I2V 720p 14B FP8",
+        category="video",
+        hf_repo="Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+        hf_file="split_files/diffusion_models/wan2.1_i2v_720p_14B_fp8_e4m3fn.safetensors",
+        size_gb=15.3,
+        min_ram_gb=32.0,
+        min_gpu_pool_gb=22.0,
+        quant="FP8 E4M3FN",
+        summary="Native 720p 14B I2V workstation powerhouse (needs 24+ GB VRAM)",
+        tags=("heavy",),
+        backends=("cuda", "vulkan"),
+        tuning_note="Pro 24GB+ FP8",
     ),
 )
 
@@ -628,27 +1008,50 @@ def _save_models_config(cfg: dict[str, str]) -> None:
     tmp.replace(MODELS_STATE_FILE)
 
 
+def _resolve_model_spec(model_id: str, category: str | None = None) -> HFModelSpec | None:
+    spec = next((m for m in CURATED_HF_MODELS if m.id == model_id), None)
+    if spec is None:
+        with _CACHE_LOCK:
+            spec = _DYNAMIC_HF_MODELS.get(model_id)
+    if spec is not None and category is not None and spec.category != category.lower():
+        return None
+    return spec
+
+
 def get_selected_model_id(category: str, hw: HardwareProfile | None = None) -> str:
     cfg = _load_models_config()
     key = category.lower()
     prof = hw or detect_hardware_profile()
     tuned = get_models_for_category(key, hw=prof)
     saved = cfg.get(key)
-    if saved and any(m.id == saved for m in tuned):
-        return saved
+    if saved:
+        if any(m.id == saved for m in tuned):
+            return saved
+        dyn = _resolve_model_spec(saved, key)
+        if dyn is not None and is_model_tuned_for_hardware(dyn, prof):
+            return saved
+        if saved.startswith("hf_hub_") and cfg.get(f"{key}_repo"):
+            return saved
     if tuned:
         return tuned[0].id
     rec = get_recommended_models_for_hardware(prof)
     return rec[key].id if key in rec else ""
 
 
-def set_selected_model_id(category: str, model_id: str) -> HFModelSpec | None:
+def set_selected_model_id(category: str, model_id: str, spec_obj: HFModelSpec | None = None) -> HFModelSpec | None:
     key = category.lower()
-    spec = next((m for m in CURATED_HF_MODELS if m.id == model_id and m.category == key), None)
+    if spec_obj is not None and spec_obj.id == model_id and spec_obj.category == key:
+        with _CACHE_LOCK:
+            _DYNAMIC_HF_MODELS[spec_obj.id] = spec_obj
+        spec: HFModelSpec | None = spec_obj
+    else:
+        spec = _resolve_model_spec(model_id, key)
     if spec is None:
         return None
     cfg = _load_models_config()
     cfg[key] = model_id
+    cfg[f"{key}_repo"] = spec.hf_repo
+    cfg[f"{key}_file"] = spec.hf_file
     local_p = find_local_model_path(spec)
     if local_p is not None:
         cfg[f"{key}_path"] = str(local_p)
@@ -666,10 +1069,184 @@ def get_selected_model_path(category: str) -> Path | None:
             return p
     sel_id = cfg.get(key, "")
     if sel_id:
-        spec = next((m for m in CURATED_HF_MODELS if m.id == sel_id), None)
+        spec = _resolve_model_spec(sel_id)
         if spec is not None:
             return find_local_model_path(spec)
     return None
+
+
+def _pick_quant_file_for_hardware(
+    files: list[dict[str, Any]],
+    hw: HardwareProfile,
+    category: str,
+) -> tuple[str, float, str] | None:
+    """Pick the best GGUF/Safetensors weight file in a Hugging Face repo for `hw`."""
+    candidates: list[tuple[str, float, str]] = []
+    for item in files:
+        p = str(item.get("path") or "")
+        if not p.endswith((".gguf", ".safetensors")):
+            continue
+        low = p.lower()
+        if any(bad in low for bad in ("mmproj", "imatrix", "vae", "clip", "t5xxl")):
+            continue
+        size_b = int(item.get("size") or 0)
+        if size_b < 200 * 1024 * 1024:
+            continue
+        size_gb = round(size_b / (1024.0 ** 3), 1)
+        m_q = re.search(r"(q\d_k_[ms]|q\d_0|q\d_1|q\d|fp16|fp8|bf16)", low)
+        quant = m_q.group(1).upper() if m_q else ("FP16" if low.endswith(".safetensors") else "GGUF")
+        candidates.append((p, size_gb, quant))
+    if not candidates:
+        return None
+
+    # Filter files that cannot fit inside total system RAM cleanly
+    budget = hw.gpu_pool_gb if (category in ("image", "video") and hw.backend != "cpu") else hw.total_ram_gb
+    max_file_gb = max(1.2, min(hw.total_ram_gb * 0.65, budget * 0.85 if budget > 0 else hw.total_ram_gb * 0.5))
+    fitting = [c for c in candidates if c[1] <= max_file_gb]
+    if not fitting:
+        return None
+
+    # Prefer balanced Q4_K_M / Q4_K_S on low/balanced tiers, higher precision Q8/Q6/FP16 on workstations
+    if hw.tier == "workstation":
+        pref = ("Q8_0", "Q6_K", "Q5_K_M", "Q4_K_M", "FP16", "FP8", "Q4_K_S", "Q4_0")
+    else:
+        pref = ("Q4_K_M", "Q4_K_S", "Q4_0", "Q5_K_M", "Q3_K_M", "Q8_0", "FP8", "FP16")
+    pref_idx = {q: i for i, q in enumerate(pref)}
+    fitting.sort(key=lambda c: (pref_idx.get(c[2], 99), c[1] if hw.tier != "workstation" else -c[1]))
+    return fitting[0]
+
+
+def search_hf_hub_tuned(
+    query: str,
+    category: str,
+    hw: HardwareProfile | None = None,
+    limit: int = 8,
+    timeout_s: float = 3.5,
+) -> list[HFModelSpec]:
+    """Query Hugging Face Hub API live and return ONLY models tuned for `hw`."""
+    q = query.strip()
+    if len(q) < 2:
+        return []
+    key = category.lower()
+    prof = hw or detect_hardware_profile()
+    cache_key = (key, q.lower(), f"{prof.tier}:{prof.backend}:{round(prof.total_ram_gb)}:{round(prof.gpu_pool_gb)}")
+    with _CACHE_LOCK:
+        if cache_key in _HF_SEARCH_CACHE:
+            return list(_HF_SEARCH_CACHE[cache_key])
+
+    suffix = "gguf" if "gguf" not in q.lower() else ""
+    search_term = f"{q} {suffix}".strip() if suffix else q
+    url = (
+        f"https://huggingface.co/api/models?search={urllib.parse.quote(search_term)}"
+        f"&sort=downloads&direction=-1&limit=18"
+    )
+    req = urllib.request.Request(url, headers={"User-Agent": "Vimona/1.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout_s) as resp:
+            raw_list = json.loads(resp.read().decode("utf-8"))
+    except Exception:
+        return []
+    if not isinstance(raw_list, list):
+        return []
+
+    curated_repos = {m.hf_repo.lower() for m in CURATED_HF_MODELS}
+    candidate_repos: list[dict[str, Any]] = []
+    for item in raw_list:
+        if not isinstance(item, dict):
+            continue
+        repo_id = str(item.get("id") or "")
+        if not repo_id or repo_id.lower() in curated_repos or item.get("gated") or item.get("private"):
+            continue
+        tags = {str(t).lower() for t in (item.get("tags") or [])}
+        pipe = str(item.get("pipeline_tag") or "").lower()
+        rid_low = repo_id.lower()
+        if key == "text":
+            if pipe and pipe not in ("text-generation", "conversational"):
+                continue
+            if any(x in rid_low for x in ("flux", "sdxl", "pony", "realvis", "juggernaut", "wan2", "ltx", "hunyuan")):
+                continue
+        elif key == "image":
+            if not (
+                pipe == "text-to-image"
+                or tags & {"diffusers", "stable-diffusion", "stable-diffusion-xl", "flux", "text-to-image"}
+                or any(k in rid_low for k in ("sdxl", "flux", "pony", "realvis", "juggernaut", "dreamshaper", "illustrious", "sd3", "diffusion"))
+            ):
+                continue
+        elif key == "video":
+            if not (
+                pipe in ("text-to-video", "image-to-video")
+                or tags & {"text-to-video", "image-to-video"}
+                or any(k in rid_low for k in ("wan2", "wan-", "ltx", "hunyuan", "cogvideo", "mochi", "video"))
+            ):
+                continue
+        candidate_repos.append(item)
+        if len(candidate_repos) >= 10:
+            break
+
+    def _inspect_repo(item: dict[str, Any]) -> HFModelSpec | None:
+        repo_id = str(item["id"])
+        turl = f"https://huggingface.co/api/models/{repo_id}/tree/main"
+        treq = urllib.request.Request(turl, headers={"User-Agent": "Vimona/1.0"})
+        try:
+            with urllib.request.urlopen(treq, timeout=2.5) as resp:
+                files = json.loads(resp.read().decode("utf-8"))
+        except Exception:
+            return None
+        if not isinstance(files, list):
+            return None
+        picked = _pick_quant_file_for_hardware(files, prof, key)
+        if picked is None:
+            return None
+        fpath, size_gb, quant = picked
+        if key == "text":
+            min_ram = max(4.0, round(size_gb * 1.55 + 2.5, 1))
+            min_gpu = 0.0
+            backends: tuple[str, ...] = ("cuda", "vulkan", "cpu")
+        else:
+            min_ram = max(6.5, round(size_gb * 1.9 + 2.5, 1))
+            min_gpu = max(3.0, round(size_gb * 1.15 + 0.8, 1))
+            backends = ("cuda", "vulkan")
+
+        dl_cnt = int(item.get("downloads") or 0)
+        likes_cnt = int(item.get("likes") or 0)
+        with _CACHE_LOCK:
+            _HF_META_CACHE[repo_id] = {"id": repo_id, "downloads": dl_cnt, "likes": likes_cnt}
+
+        short_nm = repo_id.split("/", 1)[-1].replace("-GGUF", "").replace("-gguf", "").replace("-", " ").strip()
+        spec_id = f"hf_hub_{re.sub(r'[^a-z0-9]+', '_', repo_id.lower()).strip('_')}"
+        spec = HFModelSpec(
+            id=spec_id,
+            name=short_nm[:44],
+            category=key,
+            hf_repo=repo_id,
+            hf_file=fpath,
+            size_gb=size_gb,
+            min_ram_gb=min_ram,
+            min_gpu_pool_gb=min_gpu,
+            quant=f"{quant} GGUF" if "GGUF" not in quant and fpath.endswith(".gguf") else quant,
+            summary=f"Live Hugging Face Hub weight ({size_gb:.1f} GB) tuned to your hardware envelope",
+            tags=("hub-live",),
+            backends=backends,
+            tuning_note=f"HF {quant}",
+        )
+        if not is_model_tuned_for_hardware(spec, prof):
+            return None
+        return spec
+
+    results: list[HFModelSpec] = []
+    if candidate_repos:
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            for sp in pool.map(_inspect_repo, candidate_repos):
+                if sp is not None:
+                    with _CACHE_LOCK:
+                        _DYNAMIC_HF_MODELS[sp.id] = sp
+                    results.append(sp)
+                    if len(results) >= limit:
+                        break
+
+    with _CACHE_LOCK:
+        _HF_SEARCH_CACHE[cache_key] = list(results)
+    return results
 
 
 def get_models_for_category(
@@ -751,7 +1328,7 @@ def download_hf_model(
     dest_dir.mkdir(parents=True, exist_ok=True)
     dest_path = dest_dir / Path(spec.hf_file).name
     if dest_path.is_file():
-        set_selected_model_id(spec.category, spec.id)
+        set_selected_model_id(spec.category, spec.id, spec_obj=spec)
         return dest_path
 
     part_path = dest_path.with_suffix(dest_path.suffix + ".part")
@@ -782,5 +1359,5 @@ def download_hf_model(
         part_path.unlink(missing_ok=True)
         raise
 
-    set_selected_model_id(spec.category, spec.id)
+    set_selected_model_id(spec.category, spec.id, spec_obj=spec)
     return dest_path

@@ -113,7 +113,7 @@ Every frame below was generated locally on consumer unified-memory hardware usin
 Before showing a single download button, the **Hardware Profiler** probes:
 1. **System Memory:** `MemTotal` &amp; `MemAvailable` via `/proc/meminfo` (or Windows `GlobalMemoryStatusEx`), reserving ~`2.5 GB` OS headroom on unified-memory PCs.
 2. **GPU Addressable Pool:** Exact discrete VRAM via `nvidia-smi` **plus Linux DRM `mem_info_vram_total` and `mem_info_gtt_total`** (catching unified APU pools accurately—e.g. `0.5 GB` carveout + `7.5 GB` GTT = **`8.0 GB GPU Pool`** on Ryzen AI 5 / Radeon 840M).
-3. **Strict Model Filter + Live Hub Stats:** Only curated **Hugging Face Hub** weights that fit your backend (`Vulkan` / `CUDA` / `CPU`), GPU pool, and RAM tier stay visible (`is_model_tuned_for_hardware`), showing real-time `HF ♥` &amp; downloads and auto-configuring runtime flags (`--ctx-size`, `--vae-tiling`, `--offload-to-cpu`, `--n-gpu-layers`).
+3. **Full Multi-Tier Catalog (`43` Curated) + Live Hugging Face Hub Search:** Spans **`43` multi-tier weights (`1.5B → 70B` LLM, `SDXL Q4/Q8 → FLUX & SD 3.5 Large`, `0.9 GB Q4 Video → 14B & HunyuanVideo`)** plus a **live Hugging Face Hub search bar** inside the popup—filtering every result through `is_model_tuned_for_hardware()` so **only models matching your backend, GPU pool, and RAM tier appear**.
 
 <div align="center">
 
@@ -127,9 +127,9 @@ Before showing a single download button, the **Hardware Profiler** probes:
 
 | Detected Hardware Tier | What Vimona Picks Automatically (Text / Image / Video) | What It Hides &amp; Why | Runtime Server Flags Auto-Tuned |
 | :--- | :--- | :--- | :--- |
-| **Low-RAM / CPU** (`< 11 GB` RAM or `CPU` only) | `Qwen 2.5 3B` / `Gemma 3 4B`, `RealVisXL Lightning Q4` (`2.6 GB`) | Hides `7B–14B`, FP16 SDXL, FLUX &amp; video weights cleanly so swap never thrashes | `--ctx-size 2048`, `--n-gpu-layers 0`, `--offload-to-cpu`, `--vae-tiling` |
-| **Balanced Laptop / APU** (`15–16 GB` Vulkan UMA or `8 GB` dGPU) | `Qwen 2.5 7B / Coder 7B`, `Qwen 3 8B`, `Pony V6 XL Q8` (`3.9 GB`), `RealVisXL Q4` (`2.6 GB`), `Juggernaut Q4` (`2.8 GB`), `Wan 2.1 1.3B` | Hides `14B` models &amp; `6.5+ GB` unquantized FP16 duplicates that overflow `8 GB` GTT/VRAM | `--ctx-size 4096`, `Vulkan0`/`CUDA`, `--vae-tiling`, `DMD2 5-step (cfg 1.6)` |
-| **Workstation** (`24+ GB` RAM &amp; `16+ GB` VRAM) | `Qwen 2.5 14B`, `RealVisXL FP16`, `Juggernaut XL FP16`, `FLUX.1-dev Q4`, `Wan 2.1 14B` | Hides low-RAM `3B`/`Q4` entry clutter so full-capacity flagship models lead | `--ctx-size 8192`, `--flash-attn on`, full-precision VRAM pipeline |
+| **Low-RAM / CPU** (`< 11 GB` RAM or `CPU` only) | `Qwen 2.5 1.5B/3B`, `Llama 3.2 3B`, `Phi-4 Mini`, `Gemma 3 4B`, `RealVisXL Q4` (`2.6 GB`), `DreamShaper Q4` | Hides `7B–70B`, FP16 SDXL, FLUX, SD 3.5 &amp; GPU video weights cleanly so swap never thrashes | `--ctx-size 2048`, `--n-gpu-layers 0`, `--offload-to-cpu`, `--vae-tiling` |
+| **Balanced Laptop / APU** (`15–16 GB` Vulkan UMA or `8 GB` dGPU) | `Qwen 2.5 7B/Coder 7B`, `DeepSeek-R1 7B`, `Qwen 3 8B`, `Mistral Nemo 12B`, `Pony Q8`, `RealVisXL Q4/Q8`, `Juggernaut Q4/Q8`, `SDXL Turbo Q8`, `Wan 2.1 1.3B`, `LTX-Video 2B` | Hides `1.5B` netbook clutter plus `14B–70B`, `FP16 SDXL`, `FLUX`, `SD 3.5` &amp; `14B` video that overflow `8 GB` GPU pools | `--ctx-size 4096`, `Vulkan0`/`CUDA`, `--vae-tiling`, `DMD2 5-step (cfg 1.6)` |
+| **Workstation / Server** (`24–64+ GB` RAM &amp; `16–48+ GB` VRAM) | `Qwen 2.5 14B/Coder 32B`, `Qwen 3 30B-A3B/32B`, `DeepSeek-R1 14B`, `Phi-4 14B`, `Llama 3.3 70B`, `RealVisXL/Juggernaut FP16`, `FLUX.1-dev/schnell`, `SD 3.5 Large`, `HunyuanVideo`, `Wan 2.1 14B` | Hides low-RAM `1.5B–4B` &amp; `Q4` entry fallbacks so flagship full-precision models lead | `--ctx-size 8192`, `--flash-attn on`, full-precision VRAM pipeline |
 
 <br/>
 

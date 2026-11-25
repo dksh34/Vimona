@@ -36,6 +36,7 @@ from .hf_models import (
     CURATED_HF_MODELS,
     HardwareProfile,
     HFModelSpec,
+    _resolve_model_spec,
     detect_hardware_profile,
     download_hf_model,
     evaluate_model_fit,
@@ -43,6 +44,7 @@ from .hf_models import (
     find_local_model_path,
     get_models_for_category,
     get_selected_model_id,
+    search_hf_hub_tuned,
     set_selected_model_id,
 )
 from .slide_commit import SlideCommitWidget
@@ -2986,7 +2988,7 @@ class VimonaWindow(Adw.ApplicationWindow):
         self._hf_model_tab = cat
         sel_id = get_selected_model_id(cat, hw=self._hw_profile)
         models = get_models_for_category(cat, hw=self._hw_profile)
-        active = next((m for m in models if m.id == sel_id), models[0] if models else None)
+        active = next((m for m in models if m.id == sel_id), None) or _resolve_model_spec(sel_id, cat) or (models[0] if models else None)
         if active is not None:
             self._hf_models_lbl.set_text(active.name)
         else:
@@ -3036,8 +3038,12 @@ class VimonaWindow(Adw.ApplicationWindow):
 
     def _rebuild_hf_models_popover(self, category: str) -> None:
         self._hf_model_tab = category
+        self._hf_search_query = getattr(self, "_hf_search_query", "")
+        self._hf_search_timer = getattr(self, "_hf_search_timer", 0)
+        self._hf_live_results = getattr(self, "_hf_live_results", {})
+
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        root.set_size_request(445, 505)
+        root.set_size_request(445, 535)
 
         # Header + Hardware summary banner
         top = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
@@ -3060,7 +3066,7 @@ class VimonaWindow(Adw.ApplicationWindow):
         hw_banner.append(hw_lbl)
         root.append(hw_banner)
 
-        # Mode category tabs (automatically lands on Video for Video Chat, Image for Images, Text for Chat)
+        # Mode category tabs
         tabs = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         for cat_key, cat_title in (("text", "Text Models"), ("image", "Image Models"), ("video", "Video Models")):
             tb = Gtk.Button(label=cat_title)
@@ -3069,9 +3075,18 @@ class VimonaWindow(Adw.ApplicationWindow):
             if cat_key == category:
                 tb.add_css_class("selected")
             tb.set_cursor_from_name("pointer")
-            tb.connect("clicked", lambda _b, c=cat_key: self._rebuild_hf_models_popover(c))
+            tb.connect("clicked", lambda _b, c=cat_key: (setattr(self, "_hf_search_query", ""), self._rebuild_hf_models_popover(c)))
             tabs.append(tb)
         root.append(tabs)
+
+        # Live Hugging Face Hub hardware-tuned search input
+        search_entry = Gtk.SearchEntry()
+        search_entry.add_css_class("vimona-search-entry")
+        search_entry.set_placeholder_text("Search all of Hugging Face (hardware-tuned)…")
+        search_entry.set_text(self._hf_search_query)
+        search_entry.connect("search-changed", lambda e, c=category: self._on_hf_search_changed(c, e.get_text()))
+        self._hf_search_entry = search_entry
+        root.append(search_entry)
 
         scroll = Gtk.ScrolledWindow()
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
@@ -3080,31 +3095,109 @@ class VimonaWindow(Adw.ApplicationWindow):
 
         cards = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         cards.set_margin_end(6)
-        selected_id = get_selected_model_id(category, hw=self._hw_profile)
-        models = get_models_for_category(category, hw=self._hw_profile)
-        total_in_cat = sum(1 for m in CURATED_HF_MODELS if m.category == category.lower())
-        hidden_cnt = max(0, total_in_cat - len(models))
+        self._hf_cards_box = cards
+        self._populate_hf_cards(category, search_pending=False)
 
-        if hidden_cnt > 0:
-            flt_lbl = Gtk.Label(
-                label=(
-                    f"Showing {len(models)} tuned {category} model{'s' if len(models) != 1 else ''} "
-                    f"({hidden_cnt} heavy/unsuited hidden)"
-                )
+        scroll.set_child(cards)
+        root.append(scroll)
+        self._hf_models_popover.set_child(root)
+
+    def _on_hf_search_changed(self, category: str, text: str) -> None:
+        self._hf_search_query = text.strip()
+        if getattr(self, "_hf_search_timer", 0):
+            try:
+                GLib.source_remove(self._hf_search_timer)
+            except Exception:
+                pass
+            self._hf_search_timer = 0
+        q = self._hf_search_query
+        need_hub = len(q) >= 2 and (category, q.lower()) not in self._hf_live_results
+        self._populate_hf_cards(category, search_pending=need_hub)
+        if need_hub:
+            def _kick() -> bool:
+                self._hf_search_timer = 0
+                threading.Thread(
+                    target=self._run_hf_hub_search,
+                    args=(category, q),
+                    daemon=True,
+                ).start()
+                return False
+
+            self._hf_search_timer = GLib.timeout_add(300, _kick)
+
+    def _run_hf_hub_search(self, category: str, query: str) -> None:
+        found = search_hf_hub_tuned(query, category, hw=self._hw_profile, limit=8)
+        self._hf_live_results[(category, query.lower())] = found
+
+        def _apply() -> bool:
+            if (
+                getattr(self, "_hf_model_tab", "") == category
+                and getattr(self, "_hf_search_query", "").lower() == query.lower()
+                and hasattr(self, "_hf_cards_box")
+                and self._hf_cards_box.get_parent() is not None
+            ):
+                self._populate_hf_cards(category, search_pending=False)
+            return False
+
+        GLib.idle_add(_apply)
+
+    def _populate_hf_cards(self, category: str, search_pending: bool = False) -> None:
+        cards = self._hf_cards_box
+        ch = cards.get_first_child()
+        while ch is not None:
+            nxt = ch.get_next_sibling()
+            cards.remove(ch)
+            ch = nxt
+
+        selected_id = get_selected_model_id(category, hw=self._hw_profile)
+        curated_tuned = get_models_for_category(category, hw=self._hw_profile)
+        total_in_cat = sum(1 for m in CURATED_HF_MODELS if m.category == category.lower())
+        q = getattr(self, "_hf_search_query", "").strip().lower()
+
+        if q:
+            local_hits = [
+                m
+                for m in curated_tuned
+                if q in m.name.lower() or q in m.hf_repo.lower() or q in m.summary.lower() or any(q in t for t in m.tags)
+            ]
+            live_hits = [
+                m for m in self._hf_live_results.get((category, q), []) if m.id not in {x.id for x in local_hits}
+            ]
+            models = local_hits + live_hits
+            note_txt = (
+                f"Searching Hugging Face Hub for '{q}' (hardware-tuned)…"
+                if search_pending
+                else f"Showing {len(models)} hardware-tuned '{q}' match{'es' if len(models) != 1 else ''} across curated + Hugging Face Hub"
             )
-            flt_lbl.add_css_class("hf-filter-note")
-            flt_lbl.set_xalign(0.0)
-            flt_lbl.set_ellipsize(Pango.EllipsizeMode.END)
-            cards.append(flt_lbl)
+        else:
+            models = curated_tuned
+            hidden_cnt = max(0, total_in_cat - len(models))
+            note_txt = (
+                f"Showing {len(models)} hardware-tuned {category} models ({hidden_cnt} oversized/unsuited hidden) · search above for any HF Hub weight"
+                if hidden_cnt > 0
+                else f"Showing {len(models)} hardware-tuned {category} models"
+            )
+
+        flt_lbl = Gtk.Label(label=note_txt)
+        flt_lbl.add_css_class("hf-filter-note")
+        flt_lbl.set_wrap(True)
+        flt_lbl.set_xalign(0.0)
+        cards.append(flt_lbl)
 
         if not models:
             empty_card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
             empty_card.add_css_class("hf-model-card")
-            et = Gtk.Label(label=f"No {category} models match this hardware cleanly")
+            et = Gtk.Label(
+                label=(
+                    "Querying Hugging Face Hub…"
+                    if search_pending
+                    else f"No {category} models match this hardware cleanly"
+                )
+            )
             et.add_css_class("hf-model-title")
             et.set_xalign(0.0)
             ed = Gtk.Label(
-                label=f"Detected {self._hw_profile.summary_label} lacks sufficient GPU/RAM headroom for {category} weights."
+                label=f"Only weights fitting {self._hw_profile.summary_label} are shown to avoid swap thrashing or OOM crashes."
             )
             ed.add_css_class("hf-desc-lbl")
             ed.set_wrap(True)
@@ -3204,12 +3297,8 @@ class VimonaWindow(Adw.ApplicationWindow):
             card.append(act_row)
             cards.append(card)
 
-        scroll.set_child(cards)
-        root.append(scroll)
-        self._hf_models_popover.set_child(root)
-
     def _select_hf_model(self, spec: HFModelSpec) -> None:
-        set_selected_model_id(spec.category, spec.id)
+        set_selected_model_id(spec.category, spec.id, spec_obj=spec)
         cur_skill = self._composer._active_skill if hasattr(self, "_composer") else "Chat & Ideas"
         self._sync_hf_models_button_label(cur_skill)
         self._rebuild_hf_models_popover(spec.category)
