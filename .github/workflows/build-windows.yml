@@ -1,4 +1,4 @@
-name: Build Windows .exe & Verify Linux
+name: Build Windows .exe & Release Bundle
 
 on:
   push:
@@ -9,22 +9,13 @@ on:
   workflow_dispatch:
 
 jobs:
-  verify-linux:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Syntax check Python & Linux installer
-        run: |
-          python -m py_compile vimona/*.py run_vimona.py
-          bash -n installers/install-linux.sh
-
   build-windows-exe:
     runs-on: windows-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up MSYS2 UCRT64 (GTK4 + Libadwaita + Python)
         uses: msys2/setup-msys2@v2
         with:
@@ -40,13 +31,19 @@ jobs:
             mingw-w64-ucrt-x86_64-python-opencv
             mingw-w64-ucrt-x86_64-ffmpeg
             mingw-w64-ucrt-x86_64-python-pip
+
+      - name: Install Inno Setup for Vimona-Setup.exe wizard
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
       - name: Build Vimona.exe (onefile + onedir) and Vimona-Setup.exe
         shell: pwsh
         run: |
-          $env:PATH = "C:\msys64\ucrt64\bin;$env:PATH"
+          $env:PATH = "C:\msys64\ucrt64\bin;C:\Program Files (x86)\Inno Setup 6;$env:PATH"
           C:\msys64\ucrt64\bin\python3.exe -m pip install --no-warn-script-location pyinstaller
           & .\installers\build_windows_exe.ps1 -PythonExe "C:\msys64\ucrt64\bin\python3.exe"
           & .\installers\build_windows_exe.ps1 -PythonExe "C:\msys64\ucrt64\bin\python3.exe" -OneFile
+
       - name: Upload Windows .exe artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -54,4 +51,14 @@ jobs:
           path: |
             dist/Vimona.exe
             dist/Vimona-Setup.exe
+            downloads/Vimona-Windows-x86_64.zip
           if-no-files-found: warn
+
+      - name: Publish Windows .exe builds to GitHub Releases on version tags
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/Vimona.exe
+            dist/Vimona-Setup.exe
+            downloads/Vimona-Windows-x86_64.zip

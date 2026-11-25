@@ -18,7 +18,7 @@
 [![ComfyUI Engine](https://img.shields.io/badge/Engine-ComfyUI%20%2B%20sd.cpp-1E2430?style=flat-square)](https://github.com/comfyanonymous/ComfyUI)
 [![469 Skills](https://img.shields.io/badge/Skills-469%20Indexed-1E2430?style=flat-square)](vimona/skills_loader.py)
 [![Linux Standalone](https://img.shields.io/badge/Download-Linux%20.run%20App-1E2430?style=flat-square&logo=linux&logoColor=FDE047)](downloads/Vimona-Linux-x86_64.run)
-[![Windows CI](https://img.shields.io/badge/Download-Windows%20.exe-1E2430?style=flat-square&logo=windows&logoColor=93C5FD)](.github/workflows/build-windows.yml)
+[![Windows Download](https://img.shields.io/badge/Download-Windows%2010%2F11%20Bundle-1E2430?style=flat-square&logo=windows&logoColor=93C5FD)](downloads/Vimona-Windows-x86_64.zip)
 [![macOS Help Wanted](https://img.shields.io/badge/macOS-Packagers%20Welcome-1E2430?style=flat-square&logo=apple&logoColor=EDEDED)](#call-for-testers--macos-build)
 [![License: MIT](https://img.shields.io/badge/License-MIT-1E2430?style=flat-square)](LICENSE)
 
@@ -71,7 +71,7 @@
 </table>
 
 > [!IMPORTANT]
-> **HELP TEST EVERY OS BUILD · MACOS PACKAGERS NEEDED:** Please test the **Linux** standalone `.run` app and **Windows** `.exe` / `Vimona-Setup.exe` installers on your hardware and open an issue with your GPU/RAM behavior—and if you use **macOS (Apple Silicon / Intel)**, we would love a PR compiling a native standalone `Vimona.app` / `.dmg` desktop bundle! [**Jump to Testing &amp; macOS Callout ↓**](#call-for-testers--macos-build)
+> **HELP TEST EVERY OS BUILD · MACOS PACKAGERS NEEDED:** Please test the direct **Linux** (`Vimona-Linux-x86_64.run`) and **Windows** (`Vimona-Windows-x86_64.zip`) packages on your hardware and open an issue with your GPU/RAM behavior—and if you use **macOS (Apple Silicon / Intel)**, we would love a PR compiling a native standalone `Vimona.app` / `.dmg` desktop bundle! [**Jump to Testing &amp; macOS Callout ↓**](#call-for-testers--macos-build)
 
 ---
 
@@ -352,13 +352,12 @@ Choose the direct download package for your operating system—no terminal comma
       <sub><strong>How to run:</strong> Right-click <code>Vimona-Linux-x86_64.run</code> → <em>Properties</em> → enable <em>Executable as Program</em> → double-click to launch. Or download the automated AppImage / ELF build from the <a href=".github/workflows/build-linux-standalone.yml">Linux CI Workflow</a>.</sub>
     </td>
     <td width="50%" valign="top">
-      <h3>Windows 10 / 11 (<code>.exe</code> &amp; Setup Wizard)</h3>
+      <h3>Windows 10 / 11 (Direct Desktop Bundle &amp; <code>.exe</code>)</h3>
       <ul>
-        <li><strong>Automated CI Downloads:</strong> Open <a href=".github/workflows/build-windows.yml"><strong>Windows <code>.exe</code> Release Artifacts</strong></a> on GitHub Actions to download pre-built <code>Vimona.exe</code> &amp; <code>Vimona-Setup.exe</code></li>
-        <li><strong>Setup Wizard Script:</strong> <a href="installers/install-windows.ps1"><code>installers/install-windows.ps1</code></a> (right-click → <em>Run with PowerShell</em>)</li>
-        <li><strong>Packaging Recipe:</strong> <a href="installers/build_windows_exe.ps1"><code>build_windows_exe.ps1</code></a> &amp; <a href="installers/vimona-setup.iss"><code>vimona-setup.iss</code></a> bundled with multi-size <a href="assets/vimona.ico"><code>vimona.ico</code></a></li>
+        <li><strong>Windows App Bundle (Direct Download):</strong> <a href="downloads/Vimona-Windows-x86_64.zip"><strong>Download Vimona-Windows-x86_64.zip</strong></a> (<code>527 KB</code> standalone Windows package with double-click <code>Install-Vimona.bat</code>, <code>Launch-Vimona.bat</code>, GTK4 bootstrap, &amp; metallic <code>vimona.ico</code> shortcuts)</li>
+        <li><strong>Compiled <code>.exe</code> Releases:</strong> <a href="https://github.com/dksh34/Vimona/releases/latest"><strong>GitHub Releases (<code>Vimona-Setup.exe</code> &amp; <code>Vimona.exe</code>)</strong></a> (published on tagged releases via Windows CI)</li>
       </ul>
-      <sub><strong>How to run:</strong> Download <code>Vimona-Setup.exe</code> from CI artifacts, double-click to install with the metallic Desktop &amp; Start Menu shortcut icon, and launch Vimona.</sub>
+      <sub><strong>How to run:</strong> Extract <code>Vimona-Windows-x86_64.zip</code> and double-click <code>Install-Vimona.bat</code> (adds Start Menu &amp; Desktop icon and launches Vimona cleanly) or <code>Launch-Vimona.bat</code>.</sub>
     </td>
   </tr>
 </table>
@@ -463,7 +462,7 @@ Released under the **[MIT License](LICENSE)** — Copyright (c) 2026 Dksh. Free 
     </td>
     <td width="33.3%" valign="top">
       <h3>Windows Testers</h3>
-      <strong>Packages:</strong> <a href=".github/workflows/build-windows.yml"><code>Vimona.exe</code> &amp; <code>Vimona-Setup.exe</code></a><br/><br/>
+      <strong>Packages:</strong> <a href="downloads/Vimona-Windows-x86_64.zip"><code>Vimona-Windows-x86_64.zip</code></a> &amp; <a href="https://github.com/dksh34/Vimona/releases/latest"><code>Releases (.exe)</code></a><br/><br/>
       <strong>What to check:</strong>
       <ul>
         <li>Clean launch on Windows 10 &amp; Windows 11 with MSYS2 GTK4 runtime</li>
