@@ -17,7 +17,7 @@
 [![GTK4 + Libadwaita](https://img.shields.io/badge/Desktop-GTK4%20%2B%20Libadwaita-1E2430?style=flat-square&logo=gnome&logoColor=93C5FD)](vimona/window.py)
 [![ComfyUI Engine](https://img.shields.io/badge/Engine-ComfyUI%20%2B%20sd.cpp-1E2430?style=flat-square)](https://github.com/comfyanonymous/ComfyUI)
 [![469 Skills](https://img.shields.io/badge/Skills-469%20Indexed-1E2430?style=flat-square)](vimona/skills_loader.py)
-[![Linux Standalone](https://img.shields.io/badge/Download-Linux%20.run%20App-1E2430?style=flat-square&logo=linux&logoColor=FDE047)](downloads/Vimona-Linux-x86_64.run)
+[![Linux Release](https://img.shields.io/badge/Download-Linux%20(.deb%20%7C%20.rpm%20%7C%20Arch%20%7C%20AppImage)-1E2430?style=flat-square&logo=linux&logoColor=FDE047)](https://github.com/dksh34/Vimona/releases/latest)
 [![Windows Download](https://img.shields.io/badge/Download-Windows%2010%2F11%20Bundle-1E2430?style=flat-square&logo=windows&logoColor=93C5FD)](downloads/Vimona-Windows-x86_64.zip)
 [![macOS Help Wanted](https://img.shields.io/badge/macOS-Packagers%20Welcome-1E2430?style=flat-square&logo=apple&logoColor=EDEDED)](#call-for-testers--macos-build)
 [![License: MIT](https://img.shields.io/badge/License-MIT-1E2430?style=flat-square)](LICENSE)
@@ -71,7 +71,7 @@
 </table>
 
 > [!IMPORTANT]
-> **HELP TEST EVERY OS BUILD · MACOS PACKAGERS NEEDED:** Please test the direct **Linux** (`Vimona-Linux-x86_64.run`) and **Windows** (`Vimona-Windows-x86_64.zip`) packages on your hardware and open an issue with your GPU/RAM behavior—and if you use **macOS (Apple Silicon / Intel)**, we would love a PR compiling a native standalone `Vimona.app` / `.dmg` desktop bundle! [**Jump to Testing &amp; macOS Callout ↓**](#call-for-testers--macos-build)
+> **HELP TEST EVERY OS BUILD · MACOS PACKAGERS NEEDED:** Please test the **Linux** packages (<a href="https://github.com/dksh34/Vimona/releases/latest">GitHub Releases: <code>.deb</code>, <code>.rpm</code>, Arch <code>.pkg.tar.zst</code>, <code>.AppImage</code></a>) and **Windows** (<code>Vimona-Windows-x86_64.zip</code> / <code>.exe</code>) on your hardware and open an issue with your GPU/RAM behavior—and if you use **macOS (Apple Silicon / Intel)**, we would love a PR compiling a native standalone `Vimona.app` / `.dmg` desktop bundle! [**Jump to Testing &amp; macOS Callout ↓**](#call-for-testers--macos-build)
 
 ---
 
@@ -343,13 +343,19 @@ Choose the direct download package for your operating system—no terminal comma
 <table>
   <tr>
     <td width="50%" valign="top">
-      <h3>Linux (x86_64 Desktop App)</h3>
+      <h3>Linux (Multi-Distro Packages &amp; Standalone)</h3>
       <ul>
-        <li><strong>Standalone Executable:</strong> <a href="downloads/Vimona-Linux-x86_64.run"><strong>Download Vimona-Linux-x86_64.run</strong></a> (<code>506 KB</code> self-extracting bundle with metallic icon &amp; native ELF stub)</li>
-        <li><strong>Portable Archive:</strong> <a href="downloads/Vimona-Linux-x86_64.tar.gz"><strong>Download Vimona-Linux-x86_64.tar.gz</strong></a> (<code>503 KB</code> portable <code>Vimona.AppDir</code> bundle)</li>
-        <li><strong>System Desktop Installer:</strong> <a href="installers/install-linux.sh"><code>installers/install-linux.sh</code></a> (adds <code>Vimona</code> to GNOME / KDE app menus &amp; <code>hicolor</code> icons)</li>
+        <li><strong>Distro Release Packages (Recommended):</strong> <a href="https://github.com/dksh34/Vimona/releases/latest"><strong>GitHub Releases — All Linux Distros</strong></a>
+          <ul>
+            <li><strong>Debian / Ubuntu / Mint / Pop!_OS:</strong> <code>vimona_1.0.0_amd64.deb</code></li>
+            <li><strong>Fedora / RHEL / Nobara / openSUSE:</strong> <code>vimona-1.0.0-1.x86_64.rpm</code></li>
+            <li><strong>Arch / Manjaro / CachyOS:</strong> <code>vimona-1.0.0-1-x86_64.pkg.tar.zst</code></li>
+            <li><strong>Universal Linux:</strong> <code>Vimona-x86_64.AppImage</code></li>
+          </ul>
+        </li>
+        <li><strong>Direct Portable Bundles:</strong> <a href="downloads/Vimona-Linux-x86_64.run"><code>Vimona-Linux-x86_64.run</code></a> (<code>506 KB</code>) &amp; <a href="downloads/Vimona-Linux-x86_64.tar.gz"><code>Vimona-Linux-x86_64.tar.gz</code></a> (<code>503 KB</code>)</li>
       </ul>
-      <sub><strong>How to run:</strong> Right-click <code>Vimona-Linux-x86_64.run</code> → <em>Properties</em> → enable <em>Executable as Program</em> → double-click to launch. Or download the automated AppImage / ELF build from the <a href=".github/workflows/build-linux-standalone.yml">Linux CI Workflow</a>.</sub>
+      <sub><strong>How to run:</strong> Install the matching <code>.deb</code>, <code>.rpm</code>, or <code>.pkg.tar.zst</code> package from <a href="https://github.com/dksh34/Vimona/releases/latest"><strong>Releases</strong></a>—or mark <code>Vimona-x86_64.AppImage</code> / <code>Vimona-Linux-x86_64.run</code> executable and launch directly.</sub>
     </td>
     <td width="50%" valign="top">
       <h3>Windows 10 / 11 (Direct Desktop Bundle &amp; <code>.exe</code>)</h3>
@@ -452,7 +458,7 @@ Released under the **[MIT License](LICENSE)** — Copyright (c) 2026 Dksh. Free 
   <tr>
     <td width="33.3%" valign="top">
       <h3>Linux Testers</h3>
-      <strong>Packages:</strong> <a href="downloads/Vimona-Linux-x86_64.run"><code>Vimona-Linux-x86_64.run</code></a> &amp; <a href="downloads/Vimona-Linux-x86_64.tar.gz"><code>.tar.gz</code></a><br/><br/>
+      <strong>Packages:</strong> <a href="https://github.com/dksh34/Vimona/releases/latest"><code>Releases (.deb / .rpm / Arch / AppImage)</code></a> &amp; <a href="downloads/Vimona-Linux-x86_64.run"><code>.run</code></a><br/><br/>
       <strong>What to check:</strong>
       <ul>
         <li>Distro launch (<code>Fedora</code>, <code>Ubuntu</code>, <code>Debian</code>, <code>Arch</code>, Wayland &amp; X11)</li>
