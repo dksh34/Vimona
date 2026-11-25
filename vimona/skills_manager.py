@@ -18,11 +18,14 @@ from .skills_loader import (
     SKILL_CATEGORIES,
     SkillSpec,
     delete_custom_skill,
+    detect_skill_conflicts,
     export_skill_file,
     import_skill_file,
     load_all_skills,
+    preview_skill_import,
     save_custom_skill,
     set_skill_enabled,
+    validate_comfyui_overrides,
 )
 from .tokens import COLORS
 
@@ -451,7 +454,13 @@ class SkillsManagerOverlay(Gtk.Revealer):
             try:
                 overrides["cfg"] = float(cfg_txt)
             except ValueError:
-                pass
+                self._on_toast("CFG override must be a valid number")
+                return
+        try:
+            overrides = validate_comfyui_overrides(overrides)
+        except ValueError as exc:
+            self._on_toast(f"Invalid override: {exc}")
+            return
 
         spec = SkillSpec(
             id="",
@@ -483,10 +492,59 @@ class SkillsManagerOverlay(Gtk.Revealer):
                 return self._do_import_path(Path(p))
         return False
 
-    def _do_import_path(self, path: Path) -> bool:
+    def _do_import_path(self, path: Path, skip_confirm: bool = False) -> bool:
         try:
-            spec = import_skill_file(path)
-            self._on_toast(f"Imported skill: {spec.name}")
+            preview = preview_skill_import(path)
+        except Exception as exc:
+            self._on_toast(f"Import invalid: {exc}")
+            return False
+
+        if skip_confirm:
+            return self._commit_skill_import(path)
+
+        spec: SkillSpec = preview["spec"]
+        warns: list[str] = list(preview.get("warnings") or [])
+        warn_text = ("\n\nWarnings:\n- " + "\n- ".join(warns)) if warns else ""
+        trig_preview = ", ".join(spec.trigger_keywords[:8]) or "none"
+        instr_preview = (spec.system_instructions or "")[:240]
+        if len(spec.system_instructions or "") > 240:
+            instr_preview += "…"
+
+        dlg = Gtk.AlertDialog()
+        dlg.set_message(f"Import Skill '{spec.name}' (v{spec.version})?")
+        dlg.set_detail(
+            f"Author: {spec.author} · Category: {spec.category}\n"
+            f"ID: {preview['effective_id']}\n"
+            f"Triggers: {trig_preview}\n\n"
+            f"Instructions preview:\n{instr_preview}{warn_text}"
+        )
+        dlg.set_buttons(["Cancel", "Install Skill"])
+        dlg.set_cancel_button(0)
+        dlg.set_default_button(1)
+
+        def _on_choice(d: Gtk.AlertDialog, res: Gio.AsyncResult) -> None:
+            try:
+                idx = d.choose_finish(res)
+            except GLib.Error:
+                return
+            if idx == 1:
+                self._commit_skill_import(path)
+
+        dlg.choose(self._window, None, _on_choice)
+        return True
+
+    def _commit_skill_import(self, path: Path) -> bool:
+        try:
+            spec = import_skill_file(path, confirmed=True)
+            conflicts = [
+                c
+                for c in detect_skill_conflicts(load_all_skills())
+                if c.get("type") == "override_conflict" and spec.id in (c.get("skills") or [])
+            ]
+            if conflicts:
+                self._on_toast(f"Imported '{spec.name}' (warning: override conflict on '{conflicts[0]['key']}')")
+            else:
+                self._on_toast(f"Imported skill: {spec.name}")
             self.refresh()
             return True
         except Exception as exc:

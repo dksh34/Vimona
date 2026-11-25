@@ -22,13 +22,23 @@ from .tokens import COLORS
 
 
 def is_explicit_media(file_path: str | None, prompt_hint: str = "", title: str = "") -> bool:
-    """Classify image or video sensitivity using the compact SafeBlur Micro-ML engine (no LLM)."""
-    flagged, _score = get_safety_ml_engine().classify_file(
+    """Classify image or video sensitivity (failing closed if vision classifier unavailable, `G1`, `G2`)."""
+    res = get_safety_ml_engine().assess_file(
         str(file_path or ""),
         prompt_hint or "",
         title or "",
     )
-    return flagged
+    return res.flagged
+
+
+def get_safeblur_engine_badge() -> str:
+    """Return honest status label describing SafeBlur ML availability & limitations (`G2`, `G13`)."""
+    eng = get_safety_ml_engine()
+    if eng.status == "ready":
+        return "SafeBlur ML Active (heuristic+MLP guard)"
+    if eng.status == "partial_unavailable":
+        return "SafeBlur Vision Unavailable (fail-closed)"
+    return "SafeBlur Weights Unavailable (fail-closed)"
 
 
 class _BlurLayer(Gtk.Box):

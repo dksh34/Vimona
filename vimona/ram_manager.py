@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import os
 from pathlib import Path
 import re
+import shlex
 import signal
 import threading
 import time
@@ -23,14 +24,27 @@ from .tokens import COLORS
 
 
 _PROTECTED_MODEL_PIDS_LOCK = threading.Lock()
-_PROTECTED_MODEL_PIDS: dict[int, str] = {}
+_PROTECTED_MODEL_PIDS: dict[int, tuple[str, int | None]] = {}
+
+
+def _read_pid_start_ticks(pid: int) -> int | None:
+    try:
+        raw = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8", errors="ignore")
+        rp = raw.rfind(")")
+        if rp < 0:
+            return None
+        fields = raw[rp + 2 :].split()
+        return int(fields[19]) if len(fields) > 19 else None
+    except Exception:
+        return None
 
 
 def register_protected_pid(pid: int, reason: str = "Model engine (locked)") -> None:
-    """Protect a model-running PID and its children from being killed via RAM tools."""
+    """Protect a model-running PID (bound to its kernel starttime) until verified exit (`E10`, `K1`)."""
     if pid and pid > 2:
+        st_ticks = _read_pid_start_ticks(int(pid))
         with _PROTECTED_MODEL_PIDS_LOCK:
-            _PROTECTED_MODEL_PIDS[int(pid)] = reason
+            _PROTECTED_MODEL_PIDS[int(pid)] = (reason, st_ticks)
 
 
 def unregister_protected_pid(pid: int | None) -> None:
@@ -40,8 +54,25 @@ def unregister_protected_pid(pid: int | None) -> None:
 
 
 def _get_protected_pid_map() -> dict[int, str]:
+    """Return currently valid protected PIDs, purging exited/reused entries (`E10`, `K1`)."""
+    out: dict[int, str] = {}
+    stale: list[int] = []
     with _PROTECTED_MODEL_PIDS_LOCK:
-        return dict(_PROTECTED_MODEL_PIDS)
+        items = list(_PROTECTED_MODEL_PIDS.items())
+    for pid, (reason, rec_ticks) in items:
+        cur_ticks = _read_pid_start_ticks(pid)
+        if cur_ticks is None:
+            stale.append(pid)
+            continue
+        if rec_ticks is not None and cur_ticks != rec_ticks:
+            stale.append(pid)
+            continue
+        out[pid] = reason
+    if stale:
+        with _PROTECTED_MODEL_PIDS_LOCK:
+            for spid in stale:
+                _PROTECTED_MODEL_PIDS.pop(spid, None)
+    return out
 
 
 @dataclass
@@ -52,6 +83,9 @@ class InstalledAppUsage:
     rss_mb: float
     pids: tuple[int, ...]
     category: str = "Installed App"
+    anon_rss_mb: float = 0.0
+    shared_mb: float = 0.0
+    pid_identities: tuple[tuple[int, int | None], ...] = ()
 
 
 @dataclass
@@ -63,6 +97,10 @@ class ProcessRamUsage:
     uid: int
     protected: bool
     protection_reason: str = ""
+    anon_rss_mb: float = 0.0
+    shared_mb: float = 0.0
+    start_ticks: int | None = None
+    exe_path: str = ""
 
 
 @dataclass
@@ -225,30 +263,33 @@ def _read_text(path: Path) -> str:
 
 
 def _extract_exec_candidates(exec_line: str) -> tuple[str, ...]:
-    # Strip field codes (%f, %F, %u, %U, etc.) and quotes
-    cleaned = re.sub(r"%[A-Za-z]", "", exec_line).strip()
-    parts = [p.strip("\"'") for p in cleaned.split() if p.strip()]
+    """Parse XDG Desktop Entry `Exec=` strings via Freedesktop unescaping & shlex (`K8`)."""
+    # Unescape Desktop Entry backslash sequences (`\s`, `\n`, `\"`, `\\`) before tokenization
+    unescaped = (
+        exec_line.replace("\\\\", "\\")
+        .replace("\\s", " ")
+        .replace("\\t", " ")
+    )
+    cleaned = re.sub(r"%[fFuUdDnNickvm]", "", unescaped).strip()
+    try:
+        parts = shlex.split(cleaned, posix=True)
+    except ValueError:
+        parts = [p.strip("\"'") for p in cleaned.split() if p.strip()]
     out: list[str] = []
-    skip_next = False
     for tok in parts:
-        if skip_next:
-            skip_next = False
-            continue
-        if tok == "--command":
-            skip_next = False
+        if not tok:
             continue
         if "=" in tok and not tok.startswith("/"):
             continue
         if tok.startswith("-"):
-            if tok.startswith("--file-forwarding") or tok.startswith("--branch"):
-                continue
             continue
         base = Path(tok).name.lower()
         if base in _EXEC_WRAPPERS:
             continue
+        if base in ("bash", "sh", "-c"):
+            continue
         if base and base not in out:
             out.append(base)
-            # Also add prefix without version suffix (e.g. python3.12 -> ignore, or gimp-2.10 -> gimp)
             stem = re.sub(r"-\d+(\.\d+)*$", "", base)
             if stem and stem != base and stem not in out:
                 out.append(stem)
@@ -413,6 +454,108 @@ def _current_uid() -> int:
     return os.getuid() if hasattr(os, "getuid") else 0
 
 
+def _parse_proc_status_mem(status_txt: str) -> tuple[int, str, float, float, float]:
+    """Return `(uid, comm, rss_mb, anon_rss_mb, shared_mb)` accurately from `/proc/<pid>/status` (`K10`)."""
+    proc_uid = -1
+    rss_kb = 0
+    anon_kb = 0
+    file_kb = 0
+    shmem_kb = 0
+    comm = ""
+    for ln in status_txt.splitlines():
+        if ln.startswith("Uid:"):
+            parts = ln.split()
+            if len(parts) >= 2 and parts[1].isdigit():
+                proc_uid = int(parts[1])
+        elif ln.startswith("VmRSS:"):
+            parts = ln.split()
+            if len(parts) >= 2 and parts[1].isdigit():
+                rss_kb = int(parts[1])
+        elif ln.startswith("RssAnon:"):
+            parts = ln.split()
+            if len(parts) >= 2 and parts[1].isdigit():
+                anon_kb = int(parts[1])
+        elif ln.startswith("RssFile:"):
+            parts = ln.split()
+            if len(parts) >= 2 and parts[1].isdigit():
+                file_kb = int(parts[1])
+        elif ln.startswith("RssShmem:"):
+            parts = ln.split()
+            if len(parts) >= 2 and parts[1].isdigit():
+                shmem_kb = int(parts[1])
+        elif ln.startswith("Name:"):
+            comm = ln.split(":", 1)[1].strip()
+    rss_mb = rss_kb / 1024.0
+    anon_mb = (anon_kb / 1024.0) if anon_kb > 0 else rss_mb
+    shared_mb = (file_kb + shmem_kb) / 1024.0
+    return (proc_uid, comm, rss_mb, anon_mb, shared_mb)
+
+
+def _send_sigterm_verified(
+    pid: int,
+    *,
+    expected_uid: int,
+    expected_start_ticks: int | None = None,
+    expected_name: str = "",
+) -> tuple[bool, str]:
+    """Verify UID, starttime & identity and send SIGTERM atomically via pidfd when available (`K1`–`K3`)."""
+    entry = Path(f"/proc/{pid}")
+    if not entry.is_dir():
+        return False, f"Process {pid} already exited."
+    status_txt = _read_text(entry / "status")
+    if not status_txt:
+        return False, f"Process {pid} vanished during check."
+    cur_uid, cur_comm, _r, _a, _s = _parse_proc_status_mem(status_txt)
+    if cur_uid != expected_uid:
+        return False, f"UID mismatch on PID {pid}; refusing signal."
+    cur_ticks = _read_pid_start_ticks(pid)
+    if expected_start_ticks is not None and (cur_ticks is None or cur_ticks != expected_start_ticks):
+        return False, f"PID {pid} was reused after scan; aborted safely."
+    if expected_name and cur_comm and expected_name.lower() != cur_comm.lower():
+        # Verify exe basename wasn't completely swapped
+        try:
+            exe_b = Path(os.readlink(entry / "exe")).name.lower()
+        except OSError:
+            exe_b = ""
+        if expected_name.lower() not in (cur_comm.lower(), exe_b):
+            return False, f"PID {pid} identity changed ({cur_comm}); aborted safely."
+
+    live_prot, live_reason = _is_pid_protected_live(pid)
+    if live_prot:
+        return False, f"Protected process ({live_reason}) cannot be killed."
+
+    # Prefer Linux pidfd_open + pidfd_send_signal to prevent post-verification PID-reuse race (`K3`)
+    if hasattr(os, "pidfd_open") and hasattr(signal, "pidfd_send_signal"):
+        pfd = -1
+        try:
+            pfd = os.pidfd_open(pid, 0)
+            # Re-check starttime while holding open pidfd to close race window completely
+            if expected_start_ticks is not None and _read_pid_start_ticks(pid) != expected_start_ticks:
+                return False, f"PID {pid} exited/reused before signal; aborted safely."
+            signal.pidfd_send_signal(pfd, signal.SIGTERM, None, 0)
+            return True, f"Sent graceful terminate signal via pidfd to {cur_comm or pid} (PID {pid})"
+        except ProcessLookupError:
+            return False, f"Process {pid} already exited."
+        except PermissionError:
+            return False, f"Permission denied for PID {pid}."
+        except OSError:
+            pass
+        finally:
+            if pfd >= 0:
+                try:
+                    os.close(pfd)
+                except OSError:
+                    pass
+
+    try:
+        os.kill(pid, signal.SIGTERM)
+        return True, f"Sent terminate signal to {cur_comm or pid} (PID {pid})"
+    except ProcessLookupError:
+        return False, f"Process {pid} already exited."
+    except PermissionError:
+        return False, f"Permission denied for PID {pid}."
+
+
 def scan_installed_running_apps(min_rss_mb: float = 8.0) -> list[InstalledAppUsage]:
     """Scan `/proc` for currently running user-installed desktop apps ONLY.
 
@@ -426,7 +569,7 @@ def scan_installed_running_apps(min_rss_mb: float = 8.0) -> list[InstalledAppUsa
     uid = _current_uid()
     my_pid = os.getpid()
     by_id, by_bin = _load_installed_desktop_catalog()
-    grouped: dict[str, list[tuple[int, float, _DesktopAppMeta, str]]] = {}
+    grouped: dict[str, list[tuple[int, float, float, float, int | None, _DesktopAppMeta, str]]] = {}
 
     for entry in proc_root.iterdir():
         if not entry.name.isdigit():
@@ -439,22 +582,8 @@ def scan_installed_running_apps(min_rss_mb: float = 8.0) -> list[InstalledAppUsa
         if not status_txt:
             continue
 
-        proc_uid = -1
-        rss_kb = 0
-        comm = ""
-        for ln in status_txt.splitlines():
-            if ln.startswith("Uid:"):
-                parts = ln.split()
-                if len(parts) >= 2 and parts[1].isdigit():
-                    proc_uid = int(parts[1])
-            elif ln.startswith("VmRSS:"):
-                parts = ln.split()
-                if len(parts) >= 2 and parts[1].isdigit():
-                    rss_kb = int(parts[1])
-            elif ln.startswith("Name:"):
-                comm = ln.split(":", 1)[1].strip()
-
-        if proc_uid != uid or rss_kb <= 0:
+        proc_uid, comm, rss_mb, anon_mb, shared_mb = _parse_proc_status_mem(status_txt)
+        if proc_uid != uid or rss_mb <= 0:
             continue
 
         raw_cmd = ""
@@ -491,17 +620,22 @@ def scan_installed_running_apps(min_rss_mb: float = 8.0) -> list[InstalledAppUsa
         if meta is None:
             continue
 
-        rss_mb = rss_kb / 1024.0
-        grouped.setdefault(meta.app_id, []).append((pid, rss_mb, meta, comm))
+        st_ticks = _read_pid_start_ticks(pid)
+        grouped.setdefault(meta.app_id, []).append(
+            (pid, rss_mb, anon_mb, shared_mb, st_ticks, meta, comm)
+        )
 
     apps: list[InstalledAppUsage] = []
     for app_id, proc_items in grouped.items():
         total_mb = sum(item[1] for item in proc_items)
         if total_mb < min_rss_mb:
             continue
-        meta = proc_items[0][2]
+        total_anon = sum(item[2] for item in proc_items)
+        total_shared = sum(item[3] for item in proc_items)
+        meta = proc_items[0][5]
         pids = tuple(sorted(item[0] for item in proc_items))
-        main_bin = meta.exec_names[0] if meta.exec_names else proc_items[0][3]
+        identities = tuple((item[0], item[4]) for item in proc_items)
+        main_bin = meta.exec_names[0] if meta.exec_names else proc_items[0][6]
         apps.append(
             InstalledAppUsage(
                 app_id=app_id,
@@ -510,6 +644,9 @@ def scan_installed_running_apps(min_rss_mb: float = 8.0) -> list[InstalledAppUsa
                 rss_mb=total_mb,
                 pids=pids,
                 category=meta.category,
+                anon_rss_mb=total_anon,
+                shared_mb=total_shared,
+                pid_identities=identities,
             )
         )
 
@@ -518,18 +655,18 @@ def scan_installed_running_apps(min_rss_mb: float = 8.0) -> list[InstalledAppUsa
 
 
 def close_installed_app(app: InstalledAppUsage) -> tuple[bool, int]:
-    """Send graceful SIGTERM to non-protected PIDs of an installed user application."""
+    """Send verified graceful SIGTERM via pidfd/starttime validation to an installed app (`K1`–`K3`)."""
     signaled = 0
+    uid = _current_uid()
+    id_map = dict(app.pid_identities) if app.pid_identities else {}
     for pid in app.pids:
-        if _is_pid_protected_live(pid)[0]:
-            continue
-        try:
-            os.kill(pid, signal.SIGTERM)
+        ok, _msg = _send_sigterm_verified(
+            pid,
+            expected_uid=uid,
+            expected_start_ticks=id_map.get(pid),
+        )
+        if ok:
             signaled += 1
-        except ProcessLookupError:
-            pass
-        except PermissionError:
-            pass
     return (signaled > 0), signaled
 
 
@@ -791,25 +928,8 @@ def scan_all_processes_by_ram(min_rss_mb: float = 4.0) -> list[ProcessRamUsage]:
         if not status_txt:
             continue
 
-        proc_uid = -1
-        rss_kb = 0
-        comm = ""
-        for ln in status_txt.splitlines():
-            if ln.startswith("Uid:"):
-                parts = ln.split()
-                if len(parts) >= 2 and parts[1].isdigit():
-                    proc_uid = int(parts[1])
-            elif ln.startswith("VmRSS:"):
-                parts = ln.split()
-                if len(parts) >= 2 and parts[1].isdigit():
-                    rss_kb = int(parts[1])
-            elif ln.startswith("Name:"):
-                comm = ln.split(":", 1)[1].strip()
-
-        if rss_kb <= 0:
-            continue
-        rss_mb = rss_kb / 1024.0
-        if rss_mb < min_rss_mb:
+        proc_uid, comm, rss_mb, anon_mb, shared_mb = _parse_proc_status_mem(status_txt)
+        if rss_mb <= 0 or rss_mb < min_rss_mb:
             continue
 
         raw_cmd = ""
@@ -841,8 +961,8 @@ def scan_all_processes_by_ram(min_rss_mb: float = 4.0) -> list[ProcessRamUsage]:
             ppid_map=ppid_map,
         )
 
-        if pid <= 2 or not cmd_args:
-            protected, reason = True, "Kernel thread"
+        if pid <= 2 or not cmd_args or not comm:
+            protected, reason = True, "Kernel / vanished thread"
         elif is_model:
             protected, reason = True, model_reason
         elif pid in ancestors:
@@ -859,7 +979,10 @@ def scan_all_processes_by_ram(min_rss_mb: float = 4.0) -> list[ProcessRamUsage]:
             protected, reason = True, "Desktop / OS core"
         elif "vimona" in cmd_full.lower():
             protected, reason = True, "Vimona UI"
+        elif not exe_base and low in _EXEC_WRAPPERS:
+            protected, reason = True, "Uncertain launcher process"
 
+        st_ticks = _read_pid_start_ticks(pid)
         out.append(
             ProcessRamUsage(
                 pid=pid,
@@ -869,6 +992,10 @@ def scan_all_processes_by_ram(min_rss_mb: float = 4.0) -> list[ProcessRamUsage]:
                 uid=proc_uid,
                 protected=protected,
                 protection_reason=reason,
+                anon_rss_mb=anon_mb,
+                shared_mb=shared_mb,
+                start_ticks=st_ticks,
+                exe_path=exe_base,
             )
         )
 
@@ -877,19 +1004,15 @@ def scan_all_processes_by_ram(min_rss_mb: float = 4.0) -> list[ProcessRamUsage]:
 
 
 def safe_kill_process(proc: ProcessRamUsage) -> tuple[bool, str]:
-    """Terminate a non-critical user process cleanly without risking a system crash."""
+    """Terminate a verified non-critical user process via starttime/pidfd safety (`K1`–`K3`)."""
     if proc.protected or proc.uid != _current_uid() or proc.pid in _get_ancestor_pids() or proc.pid <= 2:
         return False, f"Protected process ({proc.protection_reason or 'OS / Model critical'}) cannot be killed."
-    live_prot, live_reason = _is_pid_protected_live(proc.pid)
-    if live_prot:
-        return False, f"Protected process ({live_reason}) cannot be killed."
-    try:
-        os.kill(proc.pid, signal.SIGTERM)
-        return True, f"Sent terminate signal to {proc.name} (PID {proc.pid})"
-    except ProcessLookupError:
-        return False, f"Process {proc.name} already exited."
-    except PermissionError:
-        return False, f"Permission denied for PID {proc.pid}."
+    return _send_sigterm_verified(
+        proc.pid,
+        expected_uid=proc.uid,
+        expected_start_ticks=proc.start_ticks,
+        expected_name=proc.name,
+    )
 
 
 def find_unnecessary_processes(min_rss_mb: float = 4.0) -> list[ProcessRamUsage]:
@@ -1210,8 +1333,13 @@ class InstalledAppsRamWindow(Adw.Window):
             info.append(name_lbl)
 
             ram_str = f"{app.rss_mb / 1024.0:.2f} GB" if app.rss_mb >= 1024.0 else f"{app.rss_mb:.0f} MB"
+            priv_str = (
+                f"{app.anon_rss_mb:.0f} MB priv · {app.shared_mb:.0f} MB shared"
+                if app.shared_mb > 1.0
+                else "private RSS"
+            )
             proc_txt = "1 window/process" if len(app.pids) == 1 else f"{len(app.pids)} processes"
-            meta_lbl = Gtk.Label(label=f"{ram_str} RAM · {proc_txt} · {app.category}")
+            meta_lbl = Gtk.Label(label=f"{ram_str} RSS ({priv_str}) · {proc_txt} · {app.category}")
             meta_lbl.add_css_class("gallery-card-meta")
             meta_lbl.set_xalign(0.0)
             info.append(meta_lbl)
@@ -1256,7 +1384,12 @@ class InstalledAppsRamWindow(Adw.Window):
             info.append(title_lbl)
 
             ram_str = f"{proc.rss_mb / 1024.0:.2f} GB" if proc.rss_mb >= 1024.0 else f"{proc.rss_mb:.0f} MB"
-            sub = f"{ram_str} RAM · {proc.cmd_preview}"
+            priv_tag = (
+                f" ({proc.anon_rss_mb:.0f}M priv / {proc.shared_mb:.0f}M shm)"
+                if proc.shared_mb > 1.0
+                else ""
+            )
+            sub = f"{ram_str} RSS{priv_tag} · {proc.cmd_preview}"
             meta_lbl = Gtk.Label(label=sub)
             meta_lbl.add_css_class("gallery-card-meta")
             meta_lbl.set_xalign(0.0)
@@ -1286,15 +1419,26 @@ class InstalledAppsRamWindow(Adw.Window):
             self._list_box.append(row)
 
     def _on_close_app_clicked(self, app: InstalledAppUsage) -> None:
-        ok, _count = close_installed_app(app)
+        ok, count = close_installed_app(app)
         if ok:
+            self._hint_lbl.set_text(
+                f"Sent graceful terminate signal to {count} process(es) of {app.name}; verifying reclaim…"
+            )
             if self._on_app_closed is not None:
                 self._on_app_closed(app.name, app.rss_mb)
-            GLib.timeout_add(450, lambda: (self.refresh(), False)[1])
+            GLib.timeout_add(550, lambda: (self.refresh(), False)[1])
+        else:
+            self._hint_lbl.set_text(
+                f"Skipped {app.name}: protected, already exited, or PID changed since scan."
+            )
+            GLib.timeout_add(350, lambda: (self.refresh(), False)[1])
 
     def _on_kill_process_clicked(self, proc: ProcessRamUsage) -> None:
-        ok, _msg = safe_kill_process(proc)
+        ok, msg = safe_kill_process(proc)
+        self._hint_lbl.set_text(msg)
         if ok:
             if self._on_app_closed is not None:
                 self._on_app_closed(f"{proc.name} (PID {proc.pid})", proc.rss_mb)
-            GLib.timeout_add(400, lambda: (self.refresh(), False)[1])
+            GLib.timeout_add(450, lambda: (self.refresh(), False)[1])
+        else:
+            GLib.timeout_add(350, lambda: (self.refresh(), False)[1])

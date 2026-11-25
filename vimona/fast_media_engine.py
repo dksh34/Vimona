@@ -30,7 +30,11 @@ import urllib.error
 import urllib.request
 from typing import Any, Callable
 
-from .airgap import AirGappedProcess, launch_airgapped_http_service
+from .airgap import (
+    AirGappedProcess,
+    kill_process_tree_verified,
+    launch_airgapped_http_service,
+)
 from .perf_profile import (
     apply_auxiliary_thread_limit,
     get_performance_mode,
@@ -89,40 +93,15 @@ def _pick_free_port(preferred: int = 18234) -> int:
 def _kill_proc_group(proc: subprocess.Popen[Any] | None) -> None:
     if proc is None:
         return
-    unregister_protected_pid(proc.pid)
-    if proc.poll() is not None:
-        return
     try:
-        if hasattr(os, "killpg") and hasattr(os, "getpgid"):
-            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
-        else:
-            proc.terminate()
-    except OSError:
-        try:
-            proc.terminate()
-        except OSError:
-            return
-    deadline = time.monotonic() + 5.0
-    while time.monotonic() < deadline:
-        if proc.poll() is not None:
-            break
-        time.sleep(0.1)
-    if proc.poll() is None:
-        try:
-            if hasattr(os, "killpg") and hasattr(os, "getpgid"):
-                os.killpg(os.getpgid(proc.pid), getattr(signal, "SIGKILL", signal.SIGTERM))
-            else:
-                proc.kill()
-        except OSError:
+        if proc.poll() is None:
+            kill_process_tree_verified(proc.pid, term_timeout_s=5.0, kill_timeout_s=2.0)
             try:
-                proc.kill()
-            except OSError:
+                proc.wait(timeout=2.0)
+            except subprocess.TimeoutExpired:
                 pass
-        try:
-            proc.wait(timeout=3.0)
-        except subprocess.TimeoutExpired:
-            pass
-    time.sleep(0.15)
+    finally:
+        unregister_protected_pid(proc.pid)
 
 
 def format_pony_prompt(positive_prompt: str) -> str:
@@ -283,9 +262,9 @@ class FastVulkanImageServer:
             return self._ag_proc.poll() is None
         return self._proc is not None and self._proc.poll() is None
 
-    def start(self, timeout_s: float = 45.0) -> None:
+    def start(self, timeout_s: float = 45.0, cancel_event: threading.Event | None = None) -> None:
         with self._lock:
-            if self._shutting_down:
+            if self._shutting_down or (cancel_event and cancel_event.is_set()):
                 return
             if self.is_running() and self._refresh_caps():
                 return
@@ -294,7 +273,7 @@ class FastVulkanImageServer:
             if not SD_SERVER_BIN.is_file():
                 raise FileNotFoundError(f"sd-server missing at {SD_SERVER_BIN}")
             if not ckpt.is_file():
-                raise FileNotFoundError(f"Pony GGUF checkpoint missing at {ckpt}")
+                raise FileNotFoundError(f"Checkpoint missing at {ckpt}")
 
             LOG_DIR.mkdir(parents=True, exist_ok=True)
             self._port = _pick_free_port(18234)
@@ -329,25 +308,35 @@ class FastVulkanImageServer:
             if hw is not None and hw.gpu_pool_gb < 5.5:
                 cmd.append("--offload-to-cpu")
             log_fh = open(LOG_DIR / "sd-server.log", "w", encoding="utf-8")
-            self._ag_proc = launch_airgapped_http_service(
-                cmd=cmd,
-                inner_port=inner_port,
-                outer_port=self._port,
-                protection_label="Vulkan Image AI (air-gapped, locked)",
-                log_fh=log_fh,
-            )
+            try:
+                self._ag_proc = launch_airgapped_http_service(
+                    cmd=cmd,
+                    inner_port=inner_port,
+                    outer_port=self._port,
+                    protection_label="Vulkan Image AI (net-isolated, locked)",
+                    log_fh=log_fh,
+                )
+            finally:
+                try:
+                    log_fh.close()
+                except OSError:
+                    pass
             self._proc = self._ag_proc.proc
 
         deadline = time.monotonic() + timeout_s
         while time.monotonic() < deadline:
-            if self._shutting_down:
+            if self._shutting_down or (cancel_event and cancel_event.is_set()):
+                self.stop()
                 return
             if self._ag_proc is not None and self._ag_proc.poll() is not None:
-                raise RuntimeError(f"sd-server exited with code {self._ag_proc.returncode}")
+                rc = self._ag_proc.returncode
+                self.stop()
+                raise RuntimeError(f"sd-server exited with code {rc}")
             if self._refresh_caps():
                 return
             time.sleep(0.25)
-        raise TimeoutError("Timed out waiting for air-gapped sd-server Vulkan capabilities.")
+        self.stop()
+        raise TimeoutError("Timed out waiting for isolated sd-server Vulkan capabilities.")
 
     def stop(self) -> None:
         with self._lock:
@@ -363,11 +352,25 @@ class FastVulkanImageServer:
         self._shutting_down = True
         self.stop()
 
+    def _sd_headers(self, extra: dict[str, str] | None = None) -> dict[str, str]:
+        hdrs = dict(extra or {})
+        if self._ag_proc is not None:
+            hdrs.update(self._ag_proc.request_headers())
+        return hdrs
+
     def _refresh_caps(self) -> bool:
         try:
-            with urllib.request.urlopen(
-                f"http://127.0.0.1:{self._port}/sdcpp/v1/capabilities", timeout=2.0
-            ) as resp:
+            if self._ag_proc is not None:
+                st, raw = self._ag_proc.http_request("GET", "/sdcpp/v1/capabilities", timeout=2.0)
+                if 200 <= st < 300:
+                    self._caps = json.loads(raw.decode("utf-8"))
+                    return True
+                return False
+            req = urllib.request.Request(
+                f"http://127.0.0.1:{self._port}/sdcpp/v1/capabilities",
+                headers=self._sd_headers(),
+            )
+            with urllib.request.urlopen(req, timeout=2.0) as resp:
                 if 200 <= resp.status < 300:
                     self._caps = json.loads(resp.read().decode("utf-8"))
                     return True
@@ -553,13 +556,26 @@ class FastVulkanImageServer:
             payload["strength"] = max(0.40, min(0.90, float(init_strength)))
             if recipe["steps"] <= 6:
                 sample_params["sample_steps"] = 7
-        req = urllib.request.Request(
-            f"http://127.0.0.1:{self._port}/sdcpp/v1/img_gen",
-            data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-        )
-        with urllib.request.urlopen(req, timeout=20.0) as resp:
-            job_meta = json.loads(resp.read().decode("utf-8"))
+        body_bytes = json.dumps(payload).encode("utf-8")
+        if self._ag_proc is not None:
+            st, raw_body = self._ag_proc.http_request(
+                "POST",
+                "/sdcpp/v1/img_gen",
+                body=body_bytes,
+                headers={"Content-Type": "application/json"},
+                timeout=20.0,
+            )
+            if not (200 <= st < 300):
+                raise RuntimeError(f"sd-server rejected img_gen ({st})")
+            job_meta = json.loads(raw_body.decode("utf-8"))
+        else:
+            req = urllib.request.Request(
+                f"http://127.0.0.1:{self._port}/sdcpp/v1/img_gen",
+                data=body_bytes,
+                headers=self._sd_headers({"Content-Type": "application/json"}),
+            )
+            with urllib.request.urlopen(req, timeout=20.0) as resp:
+                job_meta = json.loads(resp.read().decode("utf-8"))
         job_id = job_meta["id"]
 
         last_step = 0
@@ -568,21 +584,37 @@ class FastVulkanImageServer:
             while True:
                 if self._shutting_down or (cancel_event and cancel_event.is_set()):
                     try:
-                        creq = urllib.request.Request(
-                            f"http://127.0.0.1:{self._port}/sdcpp/v1/jobs/{job_id}/cancel",
-                            data=b"{}",
-                            headers={"Content-Type": "application/json"},
-                        )
-                        urllib.request.urlopen(creq, timeout=3.0).read()
+                        if self._ag_proc is not None:
+                            self._ag_proc.http_request(
+                                "POST",
+                                f"/sdcpp/v1/jobs/{job_id}/cancel",
+                                body=b"{}",
+                                headers={"Content-Type": "application/json"},
+                                timeout=3.0,
+                            )
+                        else:
+                            creq = urllib.request.Request(
+                                f"http://127.0.0.1:{self._port}/sdcpp/v1/jobs/{job_id}/cancel",
+                                data=b"{}",
+                                headers=self._sd_headers({"Content-Type": "application/json"}),
+                            )
+                            urllib.request.urlopen(creq, timeout=3.0).read()
                     except Exception:
                         pass
                     return (None, actual_seed, recipe["label"])
 
-                with urllib.request.urlopen(
-                    f"http://127.0.0.1:{self._port}/sdcpp/v1/jobs/{job_id}",
-                    timeout=5.0,
-                ) as jresp:
-                    jdata = json.loads(jresp.read().decode("utf-8"))
+                if self._ag_proc is not None:
+                    jst, jraw = self._ag_proc.http_request("GET", f"/sdcpp/v1/jobs/{job_id}", timeout=5.0)
+                    if not (200 <= jst < 300):
+                        raise RuntimeError(f"sd-server status poll error ({jst})")
+                    jdata = json.loads(jraw.decode("utf-8"))
+                else:
+                    jreq = urllib.request.Request(
+                        f"http://127.0.0.1:{self._port}/sdcpp/v1/jobs/{job_id}",
+                        headers=self._sd_headers(),
+                    )
+                    with urllib.request.urlopen(jreq, timeout=5.0) as jresp:
+                        jdata = json.loads(jresp.read().decode("utf-8"))
 
                 status = str(jdata.get("status", ""))
                 prev = jdata.get("preview")

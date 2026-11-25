@@ -1,7 +1,8 @@
-"""Zero-overlap 16 GB shared-RAM process relay & Fedora memory telemetry.
+"""Zero-overlap shared-memory / VRAM process relay & Linux memory telemetry.
 
-Ensures llama-server (text director) and ComfyUI (image/video diffusion) NEVER
-reside in system RAM at the same time on a 16 GB AMD Ryzen laptop.
+Coordinates mutual exclusion so text inference (`llama-server`) and media
+diffusion (`sd-server` / `ComfyUI`) never contend for unified/system memory
+simultaneously, verifying process exit and memory reclamation across handoffs.
 """
 
 from __future__ import annotations
@@ -22,7 +23,9 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .airgap import (
+    AirGapIsolationError,
     AirGappedProcess,
+    kill_process_tree_verified,
     launch_airgapped_http_service,
     purge_legacy_burner_profile,
 )
@@ -60,6 +63,24 @@ def _pick_free_port(preferred: int) -> int:
             return int(s.getsockname()[1])
 
 
+class HandoffError(RuntimeError):
+    """Raised when an engine handoff fails, times out, or leaves live descendants (`E5`, `E6`)."""
+
+
+class InsufficientMemoryError(HandoffError):
+    """Raised when available host RAM cannot safely host the target engine (`E12`)."""
+
+
+@dataclass(frozen=True)
+class MemoryHandoffMetrics:
+    before_avail_gb: float
+    after_avail_gb: float
+    reclaimed_gb: float
+    duration_s: float
+    engine_exited: bool
+    descendants_gone: bool
+
+
 @dataclass(frozen=True)
 class MemoryTelemetry:
     owner: str  # "idle" | "text" | "media" | "transition" | "research"
@@ -68,6 +89,7 @@ class MemoryTelemetry:
     available_gb: float
     detail: str
     active_model: str = ""
+    last_handoff: MemoryHandoffMetrics | None = None
 
 
 def read_proc_meminfo() -> tuple[float, float, float]:
@@ -83,64 +105,79 @@ def read_proc_meminfo() -> tuple[float, float, float]:
             if num.isdigit():
                 vals_kb[key] = int(num)
     except OSError:
-        return (0.0, 16.0, 16.0)
+        return (0.0, 8.0, 4.0)
 
-    total_kb = vals_kb.get("MemTotal", 16 * 1024 * 1024)
+    total_kb = vals_kb.get("MemTotal") or 0
+    if total_kb <= 0:
+        return (0.0, 8.0, 4.0)
     avail_kb = vals_kb.get("MemAvailable", vals_kb.get("MemFree", total_kb))
     used_kb = max(0, total_kb - avail_kb)
     gb = 1024.0 * 1024.0
     return (used_kb / gb, total_kb / gb, avail_kb / gb)
 
 
-def _terminate_proc_group(proc: subprocess.Popen[Any] | None, name: str) -> None:
-    """Terminate a child process group cleanly and wait until 100% of RAM is freed."""
+def _terminate_proc_group(
+    proc: subprocess.Popen[Any] | None,
+    name: str,
+    *,
+    max_handoff_timeout_s: float = 12.0,
+) -> MemoryHandoffMetrics:
+    """Terminate an engine and ALL descendants, verify exit, measure RAM reclamation (`E1`–`E10`)."""
+    t0 = time.monotonic()
+    _u, _t, before_avail = read_proc_meminfo()
     if proc is None:
-        return
-    unregister_protected_pid(proc.pid)
-    if proc.poll() is not None:
-        return
+        return MemoryHandoffMetrics(before_avail, before_avail, 0.0, 0.0, True, True)
+
+    descendants_gone = True
     try:
-        if hasattr(os, "killpg") and hasattr(os, "getpgid"):
-            pgid = os.getpgid(proc.pid)
-            os.killpg(pgid, signal.SIGTERM)
-        else:
-            proc.terminate()
-    except OSError:
-        try:
-            proc.terminate()
-        except OSError:
-            return
-
-    deadline = time.monotonic() + 6.0
-    while time.monotonic() < deadline:
-        if proc.poll() is not None:
-            break
-        time.sleep(0.1)
-
-    if proc.poll() is None:
-        try:
-            if hasattr(os, "killpg") and hasattr(os, "getpgid"):
-                os.killpg(os.getpgid(proc.pid), getattr(signal, "SIGKILL", signal.SIGTERM))
-            else:
-                proc.kill()
-        except OSError:
+        if proc.poll() is None:
+            descendants_gone = kill_process_tree_verified(
+                proc.pid,
+                term_timeout_s=min(6.0, max_handoff_timeout_s * 0.6),
+                kill_timeout_s=min(4.0, max_handoff_timeout_s * 0.4),
+            )
             try:
-                proc.kill()
-            except OSError:
+                proc.wait(timeout=1.5)
+            except subprocess.TimeoutExpired:
                 pass
-        try:
-            proc.wait(timeout=3.0)
-        except subprocess.TimeoutExpired:
-            pass
-    # Brief settle for kernel page reclamation
-    time.sleep(0.25)
+    finally:
+        if proc.poll() is not None and descendants_gone:
+            unregister_protected_pid(proc.pid)
+
+    exited = proc.poll() is not None
+    if not exited or not descendants_gone:
+        raise HandoffError(
+            f"Failed to stop {name} (PID {proc.pid}) within {max_handoff_timeout_s:.1f}s timeout."
+        )
+
+    # Wait briefly while polling MemAvailable until kernel page reclamation stabilizes (`E3`, `E4`)
+    _u2, _t2, after_avail = read_proc_meminfo()
+    prev_avail = after_avail
+    settle_deadline = time.monotonic() + 1.2
+    while time.monotonic() < settle_deadline:
+        time.sleep(0.12)
+        _u2, _t2, cur_avail = read_proc_meminfo()
+        after_avail = cur_avail
+        if (cur_avail - prev_avail) < 0.03 and (cur_avail - before_avail) >= 0.0:
+            break
+        prev_avail = cur_avail
+
+    return MemoryHandoffMetrics(
+        before_avail_gb=before_avail,
+        after_avail_gb=after_avail,
+        reclaimed_gb=round(after_avail - before_avail, 3),
+        duration_s=round(time.monotonic() - t0, 3),
+        engine_exited=True,
+        descendants_gone=True,
+    )
 
 
 class MemoryRelayManager:
-    """Coordinates exclusive ownership of 16 GB RAM between llama-server and ComfyUI."""
+    """Coordinates verified mutual-exclusion between text LLM and media diffusion engines."""
 
     def __init__(self) -> None:
         self._lock = threading.RLock()
+        self._engine_slot = threading.Lock()
         self._owner: str = "idle"
         self._detail: str = "All engines offline"
         self._active_model: str = "All offline (chat to wake text AI)"
@@ -151,8 +188,37 @@ class MemoryRelayManager:
         self._llama_port: int = 18081
         self._comfy_port: int = 18188
         self._shutting_down = False
+        self._last_handoff: MemoryHandoffMetrics | None = None
+
+    def _reconcile_dead_processes(self) -> None:
+        """Recover relay state if a child engine terminated unexpectedly (`E11`)."""
+        if self._llama_proc is not None and self._llama_proc.poll() is not None:
+            rc = self._llama_proc.returncode
+            unregister_protected_pid(self._llama_proc.pid)
+            self._llama_proc = None
+            if self._comfy_proc is None and not self._fast_img_server.is_running():
+                self._set_owner(
+                    "idle",
+                    f"Text engine exited cleanly" if rc == 0 else f"Text engine stopped ({rc})",
+                )
+        if self._comfy_ag is not None and self._comfy_ag.poll() is not None:
+            rc = self._comfy_ag.returncode
+            try:
+                self._comfy_ag.terminate_cleanly()
+            except Exception:
+                pass
+            self._comfy_ag = None
+            self._comfy_proc = None
+            if self._llama_proc is None:
+                self._set_owner("idle", f"Media engine stopped ({rc})")
+        elif self._comfy_proc is not None and self._comfy_proc.poll() is not None:
+            unregister_protected_pid(self._comfy_proc.pid)
+            self._comfy_proc = None
+            if self._llama_proc is None:
+                self._set_owner("idle", "Media engine stopped")
 
     def get_telemetry(self) -> MemoryTelemetry:
+        self._reconcile_dead_processes()
         used, total, avail = read_proc_meminfo()
         return MemoryTelemetry(
             owner=self._owner,
@@ -161,6 +227,7 @@ class MemoryRelayManager:
             available_gb=avail,
             detail=self._detail,
             active_model=self._active_model,
+            last_handoff=self._last_handoff,
         )
 
     def _set_owner(self, owner: str, detail: str, active_model: str | None = None) -> None:
@@ -180,27 +247,47 @@ class MemoryRelayManager:
     # Text Engine (llama-server via AMD Vulkan)
     # -----------------------------------------------------------------------
 
-    def ensure_llm_running(self, timeout_s: float = 45.0) -> None:
-        """Stop ComfyUI if running and start llama-server with Vulkan + no-mmap."""
+    def _check_min_available_ram(self, min_avail_gb: float, target_name: str) -> None:
+        """Distinguish host memory pressure from failed handoff before starting an engine (`E12`)."""
+        _u, total, avail = read_proc_meminfo()
+        if total > 0 and avail < min_avail_gb:
+            raise InsufficientMemoryError(
+                f"Cannot launch {target_name}: only {avail:.2f} GB RAM available "
+                f"(need >= {min_avail_gb:.1f} GB free; close heavy apps or lower batch/tier)."
+            )
+
+    def ensure_llm_running(
+        self,
+        timeout_s: float = 45.0,
+        cancel_event: threading.Event | None = None,
+    ) -> None:
+        """Verify media engines are stopped & memory reclaimed before starting llama-server (`E1`–`E12`)."""
         with self._lock:
-            if self._shutting_down:
+            self._reconcile_dead_processes()
+            if self._shutting_down or (cancel_event and cancel_event.is_set()):
                 return
             if self._fast_img_server.is_running():
                 self._set_owner("transition", "Stopping image engine…")
                 self._fast_img_server.stop()
+            if cancel_event and cancel_event.is_set():
+                return
             if self._comfy_ag is not None or self._comfy_proc is not None:
                 self._set_owner("transition", "Stopping media engine…")
                 if self._comfy_ag is not None:
                     self._comfy_ag.terminate_cleanly()
                     self._comfy_ag = None
                 else:
-                    _terminate_proc_group(self._comfy_proc, "comfyui")
+                    self._last_handoff = _terminate_proc_group(self._comfy_proc, "comfyui")
                 self._comfy_proc = None
+            if cancel_event and cancel_event.is_set():
+                return
 
             if self._llama_proc is not None and self._llama_proc.poll() is None:
                 if self._http_ok(f"http://{LLAMA_HOST}:{self._llama_port}/health"):
-                    self._set_owner("text", "Text engine", "light-uncensored.gguf (Vulkan0)")
+                    self._set_owner("text", "Text engine", "local-llm")
                     return
+                self._last_handoff = _terminate_proc_group(self._llama_proc, "llama-server-unhealthy")
+                self._llama_proc = None
 
             if not LLAMA_SERVER_BIN.is_file():
                 raise FileNotFoundError(f"llama-server not found at {LLAMA_SERVER_BIN}")
@@ -213,6 +300,9 @@ class MemoryRelayManager:
                 hw = None
             if not active_llm_path.is_file():
                 raise FileNotFoundError(f"LLM model not found at {active_llm_path}")
+
+            model_size_gb = active_llm_path.stat().st_size / (1024.0 ** 3)
+            self._check_min_available_ram(min(2.5, max(0.8, model_size_gb * 0.5)), "llama-server")
 
             LOG_DIR.mkdir(parents=True, exist_ok=True)
             self._llama_port = _pick_free_port(18081)
@@ -246,36 +336,51 @@ class MemoryRelayManager:
             else:
                 cmd.extend(["--n-gpu-layers", "0"])
             log_fh = open(LOG_DIR / "llama-server.log", "w", encoding="utf-8")
-            self._llama_proc = subprocess.Popen(
-                cmd,
-                stdout=log_fh,
-                stderr=subprocess.STDOUT,
-                start_new_session=True,
-            )
+            try:
+                self._llama_proc = subprocess.Popen(
+                    cmd,
+                    stdout=log_fh,
+                    stderr=subprocess.STDOUT,
+                    start_new_session=True,
+                )
+            finally:
+                try:
+                    log_fh.close()
+                except OSError:
+                    pass
             register_protected_pid(self._llama_proc.pid, "Text AI (locked)")
 
         deadline = time.monotonic() + timeout_s
         while time.monotonic() < deadline:
-            if self._shutting_down:
+            if self._shutting_down or (cancel_event and cancel_event.is_set()):
+                self.stop_llm()
                 return
-            if self._llama_proc is not None and self._llama_proc.poll() is not None:
+            proc_ref = self._llama_proc
+            if proc_ref is not None and proc_ref.poll() is not None:
+                rc = proc_ref.returncode
+                unregister_protected_pid(proc_ref.pid)
+                self._llama_proc = None
                 self._set_owner("idle", "LLM failed to start")
-                raise RuntimeError(f"llama-server exited with code {self._llama_proc.returncode}")
+                raise RuntimeError(f"llama-server exited with code {rc}")
             if self._http_ok(f"http://{LLAMA_HOST}:{self._llama_port}/health"):
-                self._set_owner("text", "Text engine", "light-uncensored.gguf (Vulkan0)")
+                self._set_owner("text", "Text engine", active_llm_path.name)
                 return
             time.sleep(0.35)
 
+        self.stop_llm()
         raise TimeoutError("Timed out waiting for llama-server health endpoint.")
 
-    def stop_llm(self) -> None:
+    def stop_llm(self) -> MemoryHandoffMetrics | None:
         with self._lock:
+            metrics = None
             if self._llama_proc is not None:
                 self._set_owner("transition", "Releasing text RAM…")
-                _terminate_proc_group(self._llama_proc, "llama-server")
+                metrics = _terminate_proc_group(self._llama_proc, "llama-server")
+                self._last_handoff = metrics
                 self._llama_proc = None
             if self._comfy_proc is None:
                 self._set_owner("idle", "All engines offline", "All offline (chat to wake text AI)")
+            return metrics
 
     @staticmethod
     def _normalize_messages(messages: list[dict[str, str]]) -> list[dict[str, str]]:
@@ -307,104 +412,126 @@ class MemoryRelayManager:
         on_stream_delta: Callable[[str, str], None] | None = None,
         cancel_event: threading.Event | None = None,
     ) -> tuple[str, str]:
-        """Query local llama-server (streaming reasoning & content when callback supplied)."""
-        use_stream = on_stream_delta is not None
-        norm_msgs = self._normalize_messages(messages)
-        for attempt in range(2):
-            self.ensure_llm_running()
-            payload = {
-                "messages": norm_msgs,
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-                "cache_prompt": True,
-                "stream": use_stream,
-            }
-            req = urllib.request.Request(
-                f"http://{LLAMA_HOST}:{self._llama_port}/v1/chat/completions",
-                data=json.dumps(payload).encode("utf-8"),
-                headers={"Content-Type": "application/json"},
-            )
-            try:
-                if not use_stream:
-                    with urllib.request.urlopen(req, timeout=180) as resp:
-                        data = json.loads(resp.read().decode("utf-8"))
-                    choices = data.get("choices") or []
-                    if not choices:
-                        return ("", "")
-                    msg = choices[0].get("message", {})
-                    content = str(msg.get("content") or "").strip()
-                    reasoning = str(msg.get("reasoning_content") or "").strip()
-                    return (content, reasoning)
-
-                reasoning_acc: list[str] = []
-                content_acc: list[str] = []
-                last_emit = 0.0
-                with urllib.request.urlopen(req, timeout=180) as resp:
-                    for raw_line in resp:
-                        if cancel_event and cancel_event.is_set():
-                            break
-                        line = raw_line.decode("utf-8", errors="ignore").strip()
-                        if not line.startswith("data:"):
-                            continue
-                        chunk_str = line[5:].strip()
-                        if chunk_str == "[DONE]":
-                            break
-                        try:
-                            chunk = json.loads(chunk_str)
-                        except json.JSONDecodeError:
-                            continue
-                        choices = chunk.get("choices") or []
+        """Query local llama-server (mutex-protected across concurrent requests, `E8`, `E9`)."""
+        if not self._engine_slot.acquire(timeout=2.0):
+            raise HandoffError("Inference engine is currently busy with another request.")
+        try:
+            use_stream = on_stream_delta is not None
+            norm_msgs = self._normalize_messages(messages)
+            for attempt in range(2):
+                if cancel_event and cancel_event.is_set():
+                    return ("", "")
+                self.ensure_llm_running(cancel_event=cancel_event)
+                if cancel_event and cancel_event.is_set():
+                    return ("", "")
+                payload = {
+                    "messages": norm_msgs,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                    "cache_prompt": True,
+                    "stream": use_stream,
+                }
+                req = urllib.request.Request(
+                    f"http://{LLAMA_HOST}:{self._llama_port}/v1/chat/completions",
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                )
+                try:
+                    if not use_stream:
+                        with urllib.request.urlopen(req, timeout=180) as resp:
+                            data = json.loads(resp.read().decode("utf-8"))
+                        choices = data.get("choices") or []
                         if not choices:
-                            continue
-                        delta = choices[0].get("delta") or {}
-                        r_tok = delta.get("reasoning_content")
-                        c_tok = delta.get("content")
-                        if isinstance(r_tok, str) and r_tok:
-                            reasoning_acc.append(r_tok)
-                        if isinstance(c_tok, str) and c_tok:
-                            content_acc.append(c_tok)
-                        now = time.monotonic()
-                        if on_stream_delta is not None and (now - last_emit) >= 0.07:
-                            last_emit = now
-                            on_stream_delta("".join(reasoning_acc), "".join(content_acc))
-                full_r = "".join(reasoning_acc).strip()
-                full_c = "".join(content_acc).strip()
-                if on_stream_delta is not None:
-                    on_stream_delta(full_r, full_c)
-                return (full_c, full_r)
-            except urllib.error.HTTPError:
-                if attempt == 0 and not self._shutting_down:
-                    # Bypass peg-gemma4 strict parser failure by streaming raw deltas or plain output
-                    use_stream = True
-                    continue
-                raise
-            except (http.client.RemoteDisconnected, ConnectionResetError, urllib.error.URLError):
-                if attempt == 0 and not self._shutting_down:
-                    self.stop_llm()
-                    continue
-                raise
-        return ("", "")
+                            return ("", "")
+                        msg = choices[0].get("message", {})
+                        content = str(msg.get("content") or "").strip()
+                        reasoning = str(msg.get("reasoning_content") or "").strip()
+                        return (content, reasoning)
+
+                    reasoning_acc: list[str] = []
+                    content_acc: list[str] = []
+                    last_emit = 0.0
+                    with urllib.request.urlopen(req, timeout=180) as resp:
+                        for raw_line in resp:
+                            if cancel_event and cancel_event.is_set():
+                                break
+                            line = raw_line.decode("utf-8", errors="ignore").strip()
+                            if not line.startswith("data:"):
+                                continue
+                            chunk_str = line[5:].strip()
+                            if chunk_str == "[DONE]":
+                                break
+                            try:
+                                chunk = json.loads(chunk_str)
+                            except json.JSONDecodeError:
+                                continue
+                            choices = chunk.get("choices") or []
+                            if not choices:
+                                continue
+                            delta = choices[0].get("delta") or {}
+                            r_tok = delta.get("reasoning_content")
+                            c_tok = delta.get("content")
+                            if isinstance(r_tok, str) and r_tok:
+                                reasoning_acc.append(r_tok)
+                            if isinstance(c_tok, str) and c_tok:
+                                content_acc.append(c_tok)
+                            now = time.monotonic()
+                            if on_stream_delta is not None and (now - last_emit) >= 0.07:
+                                last_emit = now
+                                on_stream_delta("".join(reasoning_acc), "".join(content_acc))
+                    full_r = "".join(reasoning_acc).strip()
+                    full_c = "".join(content_acc).strip()
+                    if on_stream_delta is not None:
+                        on_stream_delta(full_r, full_c)
+                    return (full_c, full_r)
+                except urllib.error.HTTPError:
+                    if attempt == 0 and not self._shutting_down:
+                        # Bypass peg-gemma4 strict parser failure by streaming raw deltas or plain output
+                        use_stream = True
+                        continue
+                    raise
+                except (http.client.RemoteDisconnected, ConnectionResetError, urllib.error.URLError):
+                    if attempt == 0 and not self._shutting_down:
+                        self.stop_llm()
+                        continue
+                    raise
+            return ("", "")
+        finally:
+            self._engine_slot.release()
 
     # -----------------------------------------------------------------------
     # Media Engine (ComfyUI with strict --lowvram + ROCm)
     # -----------------------------------------------------------------------
 
-    def _start_comfyui(self, timeout_s: float = 90.0) -> None:
+    def _start_comfyui(
+        self,
+        timeout_s: float = 90.0,
+        cancel_event: threading.Event | None = None,
+    ) -> None:
         with self._lock:
-            if self._shutting_down:
+            self._reconcile_dead_processes()
+            if self._shutting_down or (cancel_event and cancel_event.is_set()):
                 return
+            if self._fast_img_server.is_running():
+                self._set_owner("transition", "Stopping image engine…")
+                self._fast_img_server.stop()
             if self._llama_proc is not None:
                 self._set_owner("transition", "Freeing text RAM…")
-                _terminate_proc_group(self._llama_proc, "llama-server")
+                self._last_handoff = _terminate_proc_group(self._llama_proc, "llama-server")
                 self._llama_proc = None
+            if cancel_event and cancel_event.is_set():
+                return
 
             if self._comfy_proc is not None and self._comfy_proc.poll() is None:
-                if self._http_ok(f"http://{COMFY_HOST}:{self._comfy_port}/system_stats"):
+                if self._comfy_http_ok("/system_stats"):
                     self._set_owner("media", "Media engine")
                     return
+                self.stop_comfyui()
 
             if not COMFY_VENV_PYTHON.is_file() or not COMFY_MAIN.is_file():
                 raise FileNotFoundError(f"ComfyUI not found in {COMFY_DIR}")
+
+            self._check_min_available_ram(2.0, "ComfyUI")
 
             COMFY_INPUT_DIR.mkdir(parents=True, exist_ok=True)
             COMFY_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -412,7 +539,7 @@ class MemoryRelayManager:
             self._comfy_port = _pick_free_port(18188)
             inner_port = _pick_free_port(18189)
 
-            self._set_owner("transition", "Starting air-gapped media engine…", "Starting ComfyUI (offline)…")
+            self._set_owner("transition", "Starting net-isolated media engine…", "Starting ComfyUI (offline)…")
             env = os.environ.copy()
             env["HSA_OVERRIDE_GFX_VERSION"] = "11.0.0"
             env["HSA_ENABLE_SDMA"] = "0"
@@ -441,30 +568,40 @@ class MemoryRelayManager:
                 str(COMFY_OUTPUT_DIR),
             ]
             comfy_log = open(LOG_DIR / "comfyui.log", "w", encoding="utf-8")
-            self._comfy_ag = launch_airgapped_http_service(
-                cmd=cmd,
-                inner_port=inner_port,
-                outer_port=self._comfy_port,
-                protection_label="Media AI (air-gapped, locked)",
-                log_fh=comfy_log,
-                cwd=COMFY_DIR,
-                env=env,
-            )
+            try:
+                self._comfy_ag = launch_airgapped_http_service(
+                    cmd=cmd,
+                    inner_port=inner_port,
+                    outer_port=self._comfy_port,
+                    protection_label="Media AI (net-isolated, locked)",
+                    log_fh=comfy_log,
+                    cwd=COMFY_DIR,
+                    env=env,
+                )
+            finally:
+                try:
+                    comfy_log.close()
+                except OSError:
+                    pass
             self._comfy_proc = self._comfy_ag.proc
 
         deadline = time.monotonic() + timeout_s
         while time.monotonic() < deadline:
-            if self._shutting_down:
+            if self._shutting_down or (cancel_event and cancel_event.is_set()):
+                self.stop_comfyui()
                 return
             if self._comfy_proc is not None and self._comfy_proc.poll() is not None:
+                rc = self._comfy_proc.returncode
+                self.stop_comfyui()
                 self._set_owner("idle", "ComfyUI failed")
-                raise RuntimeError(f"ComfyUI exited with code {self._comfy_proc.returncode}")
-            if self._http_ok(f"http://{COMFY_HOST}:{self._comfy_port}/system_stats"):
-                self._set_owner("media", "Media engine (air-gapped)")
+                raise RuntimeError(f"ComfyUI exited with code {rc}")
+            if self._comfy_http_ok("/system_stats"):
+                self._set_owner("media", "Media engine (net-isolated)")
                 return
             time.sleep(0.5)
 
-        raise TimeoutError("Timed out waiting for air-gapped ComfyUI API.")
+        self.stop_comfyui()
+        raise TimeoutError("Timed out waiting for net-isolated ComfyUI API.")
 
     def stop_comfyui(self) -> None:
         with self._lock:
@@ -523,31 +660,36 @@ class MemoryRelayManager:
 
         keyframes: list[Path] = []
         final_video: Path | None = None
-        run_tag = time.strftime("%Y%m%d_%H%M%S")
+        run_tag = f"pid{os.getpid()}_{time.strftime('%Y%m%d_%H%M%S')}_{os.urandom(2).hex()}"
         temp_comfy_files: list[Path] = []
         total_imgs = max(1, min(8, int(batch_count)))
 
+        if not self._engine_slot.acquire(timeout=2.0):
+            raise HandoffError("Cannot start media render: inference engine slot is already active.")
         try:
-            _emit(0, 0.06, "Air-gapping render sandbox…", "Freeing text RAM & blocking outbound net", "Air-Gap")
+            _emit(0, 0.06, "Stopping text engine & verifying reclaim…", "Reclaiming memory before isolated media boot", "Handoff")
             self.stop_llm()
             if cancel_event and cancel_event.is_set():
                 return ([], None)
+            self._check_min_available_ram(1.5, "media render engine")
 
-            # Stage 2: One-by-one image generation (Air-gapped Vulkan sd-server preferred)
+            # Stage 2: One-by-one image generation (Net-isolated Vulkan sd-server preferred)
             use_vulkan = has_vulkan_image_engine()
             if on_stage is not None:
-                on_stage("Air-Gapped Rendering")
+                on_stage("Net-Isolated Rendering")
             if use_vulkan:
-                self._set_owner("media", "Loading air-gapped image AI", "pony-diffusion-v6-xl-Q8_0 (Air-Gapped)")
+                self._set_owner("media", "Loading net-isolated image AI", "sd-server (net-isolated)")
                 _emit(
                     1,
                     0.12,
-                    "Booting air-gapped Vulkan SDXL engine…",
-                    "Network isolated (`unshare -r -n`) · 0 outbound packets",
+                    "Booting net-isolated Vulkan SDXL engine…",
+                    "Namespace isolation verifying interfaces & egress block",
                     "Booting",
                 )
                 try:
-                    self._fast_img_server.start()
+                    self._fast_img_server.start(cancel_event=cancel_event)
+                except AirGapIsolationError:
+                    raise
                 except Exception:
                     use_vulkan = False
 
@@ -597,7 +739,7 @@ class MemoryRelayManager:
                 self._fast_img_server.stop()
 
             if not use_vulkan and len(keyframes) < total_imgs and not (cancel_event and cancel_event.is_set()):
-                self._start_comfyui()
+                self._start_comfyui(cancel_event=cancel_event)
                 if cancel_event and cancel_event.is_set():
                     return (keyframes, None)
                 comfy_ref_name: str | None = None
@@ -650,9 +792,9 @@ class MemoryRelayManager:
             if cancel_event and cancel_event.is_set():
                 return (keyframes, None)
 
-            # Stage 3: Wan 2.1 VACE 1.3B + CausVid Chained Sliding Windows -> 24fps MP4
+            # Stage 3: Chained Sliding Windows Video -> 24fps MP4
             if video_seconds > 0 and keyframes:
-                self._start_comfyui()
+                self._start_comfyui(cancel_event=cancel_event)
                 self._set_owner("media", "Rendering video", "Wan 2.1 VACE 1.3B + CausVid (ROCm)")
                 anchor_src = keyframes[0]
                 anchor_name = f"vimona_anchor_{run_tag}{anchor_src.suffix}"
@@ -766,6 +908,22 @@ class MemoryRelayManager:
                         except OSError:
                             pass
             self.stop_comfyui()
+            self._engine_slot.release()
+
+    def _comfy_headers(self, extra: dict[str, str] | None = None) -> dict[str, str]:
+        hdrs = dict(extra or {})
+        if self._comfy_ag is not None:
+            hdrs.update(self._comfy_ag.request_headers())
+        return hdrs
+
+    def _comfy_http_ok(self, path: str) -> bool:
+        try:
+            if self._comfy_ag is not None:
+                st, _ = self._comfy_ag.http_request("GET", path, timeout=1.5)
+                return 200 <= st < 300
+            return self._http_ok(f"http://{COMFY_HOST}:{self._comfy_port}{path}")
+        except Exception:
+            return False
 
     def _submit_and_wait(
         self,
@@ -774,37 +932,55 @@ class MemoryRelayManager:
         on_tick: Callable[[float], None] | None = None,
     ) -> list[Path]:
         payload = json.dumps({"prompt": workflow}).encode("utf-8")
-        req = urllib.request.Request(
-            f"http://{COMFY_HOST}:{self._comfy_port}/prompt",
-            data=payload,
-            headers={"Content-Type": "application/json"},
-        )
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            res = json.loads(resp.read().decode("utf-8"))
+        if self._comfy_ag is not None:
+            st, raw = self._comfy_ag.http_request(
+                "POST", "/prompt", body=payload, headers={"Content-Type": "application/json"}, timeout=20.0
+            )
+            if not (200 <= st < 300):
+                raise RuntimeError(f"ComfyUI rejected prompt ({st})")
+            res = json.loads(raw.decode("utf-8"))
+        else:
+            req = urllib.request.Request(
+                f"http://{COMFY_HOST}:{self._comfy_port}/prompt",
+                data=payload,
+                headers=self._comfy_headers({"Content-Type": "application/json"}),
+            )
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                res = json.loads(resp.read().decode("utf-8"))
         prompt_id = res["prompt_id"]
 
         tick = 0
         while True:
             if self._shutting_down or (cancel_event and cancel_event.is_set()):
                 try:
-                    urllib.request.urlopen(
-                        urllib.request.Request(
-                            f"http://{COMFY_HOST}:{self._comfy_port}/interrupt",
-                            data=b"{}",
-                            headers={"Content-Type": "application/json"},
-                        ),
-                        timeout=3,
-                    )
+                    if self._comfy_ag is not None:
+                        self._comfy_ag.http_request(
+                            "POST", "/interrupt", body=b"{}", headers={"Content-Type": "application/json"}, timeout=3.0
+                        )
+                    else:
+                        urllib.request.urlopen(
+                            urllib.request.Request(
+                                f"http://{COMFY_HOST}:{self._comfy_port}/interrupt",
+                                data=b"{}",
+                                headers=self._comfy_headers({"Content-Type": "application/json"}),
+                            ),
+                            timeout=3,
+                        )
                 except Exception:
                     pass
                 return []
 
             try:
-                with urllib.request.urlopen(
-                    f"http://{COMFY_HOST}:{self._comfy_port}/history/{prompt_id}",
-                    timeout=5,
-                ) as hresp:
-                    hist = json.loads(hresp.read().decode("utf-8"))
+                if self._comfy_ag is not None:
+                    hst, hraw = self._comfy_ag.http_request("GET", f"/history/{prompt_id}", timeout=5.0)
+                    hist = json.loads(hraw.decode("utf-8")) if 200 <= hst < 300 else {}
+                else:
+                    hreq = urllib.request.Request(
+                        f"http://{COMFY_HOST}:{self._comfy_port}/history/{prompt_id}",
+                        headers=self._comfy_headers(),
+                    )
+                    with urllib.request.urlopen(hreq, timeout=5) as hresp:
+                        hist = json.loads(hresp.read().decode("utf-8"))
                 if prompt_id in hist:
                     entry = hist[prompt_id]
                     return self._collect_output_paths(entry)

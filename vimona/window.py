@@ -69,6 +69,11 @@ from .models import (
     RenderPlaylistJob,
     VideoClipSpec,
 )
+from .airgap import (
+    IsolationStatus,
+    get_isolation_status,
+    register_isolation_listener,
+)
 from .storage import (
     EPHEMERAL_MEDIA_DIR,
     cleanup_ephemeral_media,
@@ -850,6 +855,16 @@ class VimonaWindow(Adw.ApplicationWindow):
         self._perf_group.append(self._perf_turbo_btn)
         self._sync_perf_toggle_ui(get_performance_mode())
         ctl_box.append(self._perf_group)
+
+        self._isolation_status_lbl = Gtk.Label(label="")
+        self._isolation_status_lbl.add_css_class("research-perm-note")
+        self._isolation_status_lbl.set_xalign(0.0)
+        self._isolation_status_lbl.set_wrap(True)
+        self._sync_isolation_ui(get_isolation_status())
+        register_isolation_listener(
+            lambda st: GLib.idle_add(self._sync_isolation_ui, st)
+        )
+        ctl_box.append(self._isolation_status_lbl)
 
         sep_ctl = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
         ctl_box.append(sep_ctl)
@@ -2152,6 +2167,24 @@ class VimonaWindow(Adw.ApplicationWindow):
         self._sync_perf_toggle_ui(mode)
         if hasattr(self, "_composer"):
             self._composer.refresh_perf_footer()
+        return False
+
+    def _sync_isolation_ui(self, status: IsolationStatus) -> bool:
+        if hasattr(self, "_isolation_status_lbl"):
+            state_map = {
+                "isolated": "Isolation: Net-Isolated (netns verified)",
+                "starting": "Isolation: Starting namespace…",
+                "unavailable": "Isolation: Unavailable (blocked/unverified)",
+                "failed": f"Isolation: Failed ({status.error[:40]})" if status.error else "Isolation: Failed",
+                "stopped": "Isolation: Engines Stopped",
+            }
+            self._isolation_status_lbl.set_text(
+                state_map.get(status.state, f"Isolation: {status.state}")
+            )
+            self._isolation_status_lbl.set_tooltip_text(
+                f"state={status.state} · level={status.level} · "
+                f"ipv4_blk={status.ipv4_blocked} · ipv6_blk={status.ipv6_blocked} · dns_blk={status.dns_blocked}"
+            )
         return False
 
     def _sync_perf_toggle_ui(self, mode: str) -> None:
