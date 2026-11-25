@@ -40,7 +40,7 @@
     <rect x="18" y="50" width="184" height="50" rx="11" fill="#f7f7fb" stroke="#14141c" stroke-opacity="0.09"/>
     <circle cx="34" cy="70" r="4.5" fill="#2d6cdf"/>
     <text x="46" y="73" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="11.5" font-weight="700" fill="#16161d">Hardware-Tuned HF</text>
-    <text x="30" y="90" font-family="ui-monospace, monospace" font-size="9" fill="#5e5e6e">Qwen · RealVis · Wan · 469 Skills</text>
+    <text x="28" y="90" font-family="ui-monospace, monospace" font-size="8.5" fill="#5e5e6e">Qwen · RealVis · Wan · 469 Skills</text>
 
     <rect x="214" y="50" width="184" height="50" rx="11" fill="#f7f7fb" stroke="#14141c" stroke-opacity="0.09"/>
     <circle cx="230" cy="70" r="4.5" fill="#8c54db"/>
@@ -49,8 +49,8 @@
 
     <rect x="18" y="114" width="380" height="54" rx="11" fill="#eef1ff" stroke="#4e5eff" stroke-opacity="0.28"/>
     <circle cx="35" cy="135" r="5" fill="#4e5eff"/>
-    <text x="49" y="138" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="12" font-weight="700" fill="#14141c">Memory Relay · Pony V6 XL + Wan 2.1 VACE</text>
-    <text x="32" y="156" font-family="ui-monospace, monospace" font-size="9.5" fill="#3f478a">100% RAM swap · unshare -r -n · 720p DSLR finish</text>
+    <text x="49" y="138" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="12" font-weight="700" fill="#14141c">Memory Relay · 18 Hugging Face Models</text>
+    <text x="32" y="156" font-family="ui-monospace, monospace" font-size="9.5" fill="#3f478a">Qwen · Gemma · Pony · RealVis · FLUX · Wan · LTX</text>
 
     <rect x="18" y="182" width="184" height="46" rx="11" fill="#f7f7fb" stroke="#14141c" stroke-opacity="0.08"/>
     <text x="31" y="201" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#181820">Overnight Playlist</text>
@@ -85,16 +85,16 @@
     <circle cx="20" cy="18" r="4" fill="#1ea35c"/>
     <text x="34" y="22.5" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#16161d">Zero-Trace /dev/shm</text>
 
-    <rect x="182" y="0" width="182" height="36" rx="18" fill="#ffffff" stroke="#14141c" stroke-opacity="0.12"/>
+    <rect x="182" y="0" width="204" height="36" rx="18" fill="#ffffff" stroke="#14141c" stroke-opacity="0.12"/>
     <circle cx="202" cy="18" r="4" fill="#4e5eff"/>
-    <text x="216" y="22.5" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#16161d">Wan 2.1 + Pony V6 XL</text>
+    <text x="216" y="22.5" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#16161d">18 Hugging Face Models</text>
 
-    <rect x="376" y="0" width="160" height="36" rx="18" fill="#ffffff" stroke="#14141c" stroke-opacity="0.12"/>
-    <circle cx="396" cy="18" r="4" fill="#d97706"/>
-    <text x="410" y="22.5" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#16161d">93 KB ML SafeBlur</text>
+    <rect x="398" y="0" width="154" height="36" rx="18" fill="#ffffff" stroke="#14141c" stroke-opacity="0.12"/>
+    <circle cx="417" cy="18" r="4" fill="#d97706"/>
+    <text x="430" y="22.5" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#16161d">93 KB ML SafeBlur</text>
 
-    <rect x="548" y="0" width="168" height="36" rx="18" fill="#ffffff" stroke="#14141c" stroke-opacity="0.12"/>
-    <circle cx="568" cy="18" r="4" fill="#0284c7"/>
-    <text x="582" y="22.5" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#16161d">Linux · Windows</text>
+    <rect x="564" y="0" width="154" height="36" rx="18" fill="#ffffff" stroke="#14141c" stroke-opacity="0.12"/>
+    <circle cx="583" cy="18" r="4" fill="#0284c7"/>
+    <text x="596" y="22.5" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#16161d">Linux · Windows</text>
   </g>
 </svg>

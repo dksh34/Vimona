@@ -17,7 +17,7 @@
     <rect x="16" y="16" width="84" height="22" rx="11" fill="#1d2842"/>
     <text x="58" y="31" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10.5" font-weight="700" fill="#89b8ff">STAGE 01</text>
     <text x="16" y="64" font-family="Inter, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#ffffff">Router &amp; Chat LLM</text>
-    <text x="16" y="88" font-family="ui-monospace, monospace" font-size="11.5" fill="#9ea6c2">Qwen 3.5 · llama-server</text>
+    <text x="16" y="88" font-family="ui-monospace, monospace" font-size="11.5" fill="#9ea6c2">Qwen · Gemma · Llama · llama.cpp</text>
     <line x1="16" y1="106" x2="228" y2="106" stroke="#ffffff" stroke-opacity="0.08"/>
     <text x="16" y="130" font-family="Inter, -apple-system, sans-serif" font-size="12" fill="#c8c8d4">• Vulkan GPU acceleration</text>
     <text x="16" y="152" font-family="Inter, -apple-system, sans-serif" font-size="12" fill="#c8c8d4">• Top-3 .vimona-skill inject</text>
@@ -49,7 +49,7 @@
     <rect x="16" y="16" width="84" height="22" rx="11" fill="#252847"/>
     <text x="58" y="31" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10.5" font-weight="700" fill="#b4beff">STAGE 03</text>
     <text x="16" y="64" font-family="Inter, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#ffffff">Air-Gapped Diffusion</text>
-    <text x="16" y="88" font-family="ui-monospace, monospace" font-size="11.5" fill="#b4bce8">Pony V6 XL · Wan 2.1 VACE</text>
+    <text x="16" y="88" font-family="ui-monospace, monospace" font-size="11" fill="#b4bce8">Pony · RealVis · Juggernaut · Wan · LTX</text>
     <line x1="16" y1="106" x2="228" y2="106" stroke="#ffffff" stroke-opacity="0.08"/>
     <text x="16" y="130" font-family="Inter, -apple-system, sans-serif" font-size="12" fill="#d8dae8">• unshare -r -n · ENETUNREACH</text>
     <text x="16" y="152" font-family="Inter, -apple-system, sans-serif" font-size="12" fill="#d8dae8">• AF_UNIX loopback bridge</text>
