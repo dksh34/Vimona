@@ -6,6 +6,7 @@ import http.server
 import io
 from pathlib import Path
 import socket
+import subprocess
 import sys
 import tempfile
 import threading
@@ -149,11 +150,16 @@ class TestSafeBlurSecurity(unittest.TestCase):
         try:
             real_validate = search_worker.validate_public_http_url
 
-            def _wrapped_validate(u: str, *, resolve_dns: bool = False, pinned_hosts=None):
+            def _wrapped_validate(u: str, *, resolve_dns: bool = False, pinned_hosts=None, allowed_ports=None):
                 parsed = urllib.parse.urlparse(u)
                 if (parsed.hostname or "").lower() == "public.test":
                     return (True, "OK", {"127.0.0.1"})
-                return real_validate(u, resolve_dns=resolve_dns, pinned_hosts=pinned_hosts)
+                return real_validate(
+                    u,
+                    resolve_dns=resolve_dns,
+                    pinned_hosts=pinned_hosts,
+                    allowed_ports=allowed_ports,
+                )
 
             with mock.patch("vimona.search_worker.validate_public_http_url", side_effect=_wrapped_validate):
                 res = search_worker.fetch_public_image_pinned(
@@ -161,6 +167,7 @@ class TestSafeBlurSecurity(unittest.TestCase):
                     pinned_hosts={},
                     max_redirects=3,
                     timeout_s=3.0,
+                    allowed_ports={redir_port},
                 )
                 self.assertIsNone(res)
                 self.assertEqual(secret_hits, [])
@@ -170,6 +177,7 @@ class TestSafeBlurSecurity(unittest.TestCase):
                     pinned_hosts={},
                     max_redirects=2,
                     timeout_s=3.0,
+                    allowed_ports={redir_port},
                 )
                 self.assertIsNone(res_loop)
         finally:
@@ -299,6 +307,302 @@ class TestSafeBlurSecurity(unittest.TestCase):
                 self.assertIn(k, metrics[mod])
         self.assertGreaterEqual(metrics["vision"]["recall"], 0.8)
         self.assertLessEqual(metrics["vision"]["fpr"], 0.25)
+
+    def test_public_non_web_ports_blocked_in_proxy_and_image_fetch(self) -> None:
+        for bad_u in (
+            "http://93.184.216.34:8080/x",
+            "https://93.184.216.34:8443/x",
+            "https://93.184.216.34:22/x",
+            "http://93.184.216.34:443/x",
+            "https://93.184.216.34:80/x",
+        ):
+            ok, reason, _ = search_worker.validate_public_http_url(bad_u, resolve_dns=False)
+            self.assertFalse(ok, f"Expected non-web port block for {bad_u}, got {reason}")
+
+        self.assertTrue(search_worker.validate_public_http_url("http://93.184.216.34/a.png", resolve_dns=False)[0])
+        self.assertTrue(search_worker.validate_public_http_url("https://93.184.216.34/a.png", resolve_dns=False)[0])
+
+        with (
+            mock.patch("vimona.search_worker._PinnedHTTPConnection") as m_http,
+            mock.patch("vimona.search_worker._PinnedHTTPSConnection") as m_https,
+        ):
+            self.assertIsNone(search_worker.fetch_public_image_pinned("http://93.184.216.34:8080/a.png", pinned_hosts={}))
+            self.assertIsNone(search_worker.fetch_public_image_pinned("https://93.184.216.34:8443/a.png", pinned_hosts={}))
+            self.assertEqual(m_http.call_count, 0)
+            self.assertEqual(m_https.call_count, 0)
+
+        proxy = search_worker._ValidatingLocalProxy({})
+        p_port = proxy.start()
+        try:
+            bad_reqs = (
+                b"CONNECT 93.184.216.34:22 HTTP/1.1\r\nHost: 93.184.216.34:22\r\n\r\n",
+                b"CONNECT 93.184.216.34:8080 HTTP/1.1\r\nHost: 93.184.216.34:8080\r\n\r\n",
+                b"CONNECT 93.184.216.34:80 HTTP/1.1\r\nHost: 93.184.216.34:80\r\n\r\n",
+                b"GET http://93.184.216.34:8080/secret HTTP/1.1\r\nHost: 93.184.216.34:8080\r\n\r\n",
+                b"CONNECT 127.0.0.1:443 HTTP/1.1\r\nHost: 127.0.0.1:443\r\n\r\n",
+            )
+            for req_raw in bad_reqs:
+                with socket.create_connection(("127.0.0.1", p_port), timeout=2.0) as sk:
+                    sk.sendall(req_raw)
+                    reply = sk.recv(1024)
+                self.assertIn(b"403", reply, f"Expected 403 for {req_raw!r}, got {reply!r}")
+        finally:
+            proxy.stop()
+
+    def test_sweep_orphan_profiles_live_owner_and_scan_permission_error(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            live_dir = root / "vimona_ephem_live_owner"
+            live_dir.mkdir(parents=True)
+            proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
+            try:
+                ticks = search_worker._read_proc_start_ticks(proc.pid)
+                (live_dir / ".worker_owner.json").write_text(
+                    '{"pid": %d, "start_ticks": %s, "worker_tag": "tag1"}'
+                    % (proc.pid, "null" if ticks is None else str(ticks)),
+                    encoding="utf-8",
+                )
+                if ticks is not None:
+                    res_live = search_worker._sweep_orphan_shm_profiles(base_dirs=(root,))
+                    self.assertFalse(res_live["ok"])
+                    self.assertEqual(res_live["status"], "partial")
+                    self.assertTrue(live_dir.exists())
+                    self.assertEqual(len(res_live["skipped"]), 1)
+                    self.assertEqual(res_live["skipped"][0]["reason"], "owner_alive")
+                    self.assertIn(proc.pid, res_live["surviving_pids"])
+                else:
+                    # Windows / non-/proc fallback via exclusive lock held on .worker.lock
+                    with open(live_dir / ".worker.lock", "a+b") as fh:
+                        search_worker.lock_file_exclusive(fh, nonblocking=True)
+                        try:
+                            res_lock = search_worker._sweep_orphan_shm_profiles(base_dirs=(root,))
+                            self.assertFalse(res_lock["ok"])
+                            self.assertEqual(res_lock["status"], "partial")
+                            self.assertTrue(live_dir.exists())
+                        finally:
+                            search_worker.unlock_file(fh)
+
+                # Timeout path must NEVER set wiped=True when sweep is partial or kill fails
+                orig_popen = search_worker.subprocess.Popen
+                spawned_dummies: list[subprocess.Popen] = []
+
+                def _fake_sleep_popen(_cmd, **kwargs):
+                    real_kwargs = {"stdout": kwargs.get("stdout"), "stderr": kwargs.get("stderr")}
+                    if "start_new_session" in kwargs:
+                        real_kwargs["start_new_session"] = kwargs["start_new_session"]
+                    dp = orig_popen([sys.executable, "-c", "import time; time.sleep(30)"], **real_kwargs)
+                    spawned_dummies.append(dp)
+                    return dp
+
+                partial_sweep = {
+                    "ok": False,
+                    "status": "partial",
+                    "removed": [],
+                    "skipped": [{"path": str(live_dir), "reason": "owner_alive", "owner_pid": proc.pid}],
+                    "errors": [],
+                    "surviving_pids": [proc.pid],
+                    "target_dirs_remaining": [str(live_dir)],
+                }
+                try:
+                    with (
+                        mock.patch.object(search_worker, "COMFY_VENV_PYTHON", Path(sys.executable)),
+                        mock.patch("vimona.search_worker.purge_legacy_burner_profile", return_value=True),
+                        mock.patch("vimona.search_worker.kill_process_tree_verified", return_value=False),
+                        mock.patch("vimona.search_worker._sweep_orphan_shm_profiles", return_value=partial_sweep),
+                        mock.patch("vimona.search_worker.subprocess.Popen", side_effect=_fake_sleep_popen),
+                    ):
+                        out = search_worker.run_ephemeral_research(query="live timeout test", timeout_s=0.25)
+                    tr = out["trace_report"]
+                    self.assertFalse(tr["wiped"])
+                    self.assertEqual(tr["cleanup_status"], "failed")
+                    self.assertIn(proc.pid, tr["surviving_pids"])
+                    self.assertIn(str(live_dir), tr["remaining_dirs"])
+                finally:
+                    for dp in spawned_dummies:
+                        if dp.poll() is None:
+                            dp.kill()
+                            dp.wait(timeout=2.0)
+            finally:
+                proc.kill()
+                proc.wait(timeout=2.0)
+
+            with mock.patch("pathlib.Path.glob", side_effect=PermissionError("denied")):
+                res_perm = search_worker._sweep_orphan_shm_profiles(base_dirs=(root,))
+            self.assertFalse(res_perm["ok"])
+            self.assertEqual(res_perm["status"], "failed")
+            self.assertTrue(any("denied" in e.lower() for e in res_perm["errors"]))
+
+    def test_proxy_aggregate_byte_budget_request_cap_and_concurrency_cap(self) -> None:
+        class _Handler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self) -> None:
+                if self.path == "/big":
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/octet-stream")
+                    self.send_header("Connection", "close")
+                    self.end_headers()
+                    chunk = b"X" * 8192
+                    for _ in range(64):  # 512 KB total
+                        try:
+                            self.wfile.write(chunk)
+                            self.wfile.flush()
+                        except OSError:
+                            break
+                elif self.path == "/slow":
+                    time.sleep(0.55)
+                    self.send_response(200)
+                    self.send_header("Content-Length", "4")
+                    self.send_header("Connection", "close")
+                    self.end_headers()
+                    try:
+                        self.wfile.write(b"done")
+                    except OSError:
+                        pass
+                else:
+                    self.send_response(200)
+                    self.send_header("Content-Length", "2")
+                    self.send_header("Connection", "close")
+                    self.end_headers()
+                    try:
+                        self.wfile.write(b"ok")
+                    except OSError:
+                        pass
+
+            def log_message(self, *_args: object) -> None:
+                pass
+
+        srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), _Handler)
+        srv_port = int(srv.server_address[1])
+        t_srv = threading.Thread(target=srv.serve_forever, daemon=True)
+        t_srv.start()
+
+        real_validate = search_worker.validate_public_http_url
+
+        def _wrapped_validate(u: str, *, resolve_dns: bool = False, pinned_hosts=None, allowed_ports=None):
+            parsed = urllib.parse.urlparse(u)
+            if (parsed.hostname or "").lower() == "public.test":
+                return (True, "OK", {"127.0.0.1"})
+            return real_validate(
+                u,
+                resolve_dns=resolve_dns,
+                pinned_hosts=pinned_hosts,
+                allowed_ports=allowed_ports,
+            )
+
+        try:
+            with mock.patch("vimona.search_worker.validate_public_http_url", side_effect=_wrapped_validate):
+                # 1. Excessive aggregate & per-connection byte budget
+                proxy_bytes = search_worker._ValidatingLocalProxy(
+                    {},
+                    allowed_ports={srv_port},
+                    max_total_bytes=40960,
+                    max_conn_bytes=24576,
+                    max_concurrent_conns=8,
+                    max_total_requests=20,
+                    conn_timeout_s=3.0,
+                    deadline_s=15.0,
+                )
+                pb_port = proxy_bytes.start()
+                try:
+                    received_all = bytearray()
+                    for _ in range(3):
+                        with socket.create_connection(("127.0.0.1", pb_port), timeout=3.0) as sk:
+                            sk.sendall(
+                                f"GET http://public.test:{srv_port}/big HTTP/1.1\r\nHost: public.test:{srv_port}\r\nConnection: close\r\n\r\n".encode(
+                                    "ascii"
+                                )
+                            )
+                            while True:
+                                d = sk.recv(8192)
+                                if not d:
+                                    break
+                                received_all.extend(d)
+                    self.assertLess(len(received_all), 65536)
+                    self.assertTrue(proxy_bytes.budget_exceeded)
+                    self.assertLessEqual(proxy_bytes.total_bytes, 40960)
+
+                    with socket.create_connection(("127.0.0.1", pb_port), timeout=2.0) as sk:
+                        sk.sendall(
+                            f"GET http://public.test:{srv_port}/ok HTTP/1.1\r\nHost: public.test:{srv_port}\r\nConnection: close\r\n\r\n".encode(
+                                "ascii"
+                            )
+                        )
+                        after_rep = sk.recv(1024)
+                    self.assertIn(b"429", after_rep)
+                finally:
+                    proxy_bytes.stop()
+
+                # 2. Concurrent connection cap enforcement
+                proxy_conc = search_worker._ValidatingLocalProxy(
+                    {},
+                    allowed_ports={srv_port},
+                    max_concurrent_conns=2,
+                    max_total_requests=20,
+                    conn_timeout_s=5.0,
+                    deadline_s=15.0,
+                )
+                pc_port = proxy_conc.start()
+                try:
+                    n_clients = 5
+                    barrier = threading.Barrier(n_clients)
+                    statuses: list[bytes] = []
+                    st_lock = threading.Lock()
+
+                    def _hit_slow() -> None:
+                        with socket.create_connection(("127.0.0.1", pc_port), timeout=5.0) as sk:
+                            barrier.wait(timeout=3.0)
+                            sk.sendall(
+                                f"GET http://public.test:{srv_port}/slow HTTP/1.1\r\nHost: public.test:{srv_port}\r\nConnection: close\r\n\r\n".encode(
+                                    "ascii"
+                                )
+                            )
+                            rep = sk.recv(1024)
+                        with st_lock:
+                            statuses.append(rep.splitlines()[0] if rep else b"")
+
+                    threads = [threading.Thread(target=_hit_slow) for _ in range(n_clients)]
+                    for t in threads:
+                        t.start()
+                    for t in threads:
+                        t.join(timeout=8.0)
+
+                    ok_cnt = sum(1 for s in statuses if b"200" in s)
+                    cap_cnt = sum(1 for s in statuses if b"503" in s)
+                    self.assertEqual(ok_cnt, 2, statuses)
+                    self.assertEqual(cap_cnt, 3, statuses)
+                    self.assertLessEqual(proxy_conc.peak_active_conns, 2)
+                    self.assertGreaterEqual(proxy_conc.rejected_requests, 3)
+                finally:
+                    proxy_conc.stop()
+
+                # 3. Request count cap
+                proxy_req = search_worker._ValidatingLocalProxy(
+                    {},
+                    allowed_ports={srv_port},
+                    max_concurrent_conns=4,
+                    max_total_requests=2,
+                    conn_timeout_s=3.0,
+                    deadline_s=15.0,
+                )
+                pr_port = proxy_req.start()
+                try:
+                    reps: list[bytes] = []
+                    for _ in range(3):
+                        with socket.create_connection(("127.0.0.1", pr_port), timeout=2.0) as sk:
+                            sk.sendall(
+                                f"GET http://public.test:{srv_port}/ok HTTP/1.1\r\nHost: public.test:{srv_port}\r\nConnection: close\r\n\r\n".encode(
+                                    "ascii"
+                                )
+                            )
+                            reps.append(sk.recv(1024))
+                    self.assertIn(b"200", reps[0])
+                    self.assertIn(b"200", reps[1])
+                    self.assertIn(b"429", reps[2])
+                finally:
+                    proxy_req.stop()
+        finally:
+            srv.shutdown()
+            srv.server_close()
+            t_srv.join(timeout=1.0)
 
 
 if __name__ == "__main__":

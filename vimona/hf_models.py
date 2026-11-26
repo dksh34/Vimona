@@ -1975,6 +1975,23 @@ def _open_validated_hf_download(
     raise ModelDownloadError("Exceeded redirect limit")
 
 
+_CONTENT_RANGE_RE = re.compile(r"^\s*bytes\s+(\d+)-(\d+)/(\d+)\s*$", re.IGNORECASE)
+
+
+def _parse_content_range(header_val: str) -> tuple[int, int, int]:
+    """Parse strict RFC byte range `bytes <start>-<end>/<total>`; reject malformed or wildcard headers."""
+    raw = (header_val or "").strip()
+    m = _CONTENT_RANGE_RE.match(raw)
+    if not m:
+        raise ModelDownloadError(f"Missing or malformed Content-Range header on resumed download: {raw!r}")
+    start_b = int(m.group(1))
+    end_b = int(m.group(2))
+    total_b = int(m.group(3))
+    if total_b <= 0 or start_b > end_b or end_b >= total_b:
+        raise ModelDownloadError(f"Invalid Content-Range bounds '{start_b}-{end_b}/{total_b}'.")
+    return (start_b, end_b, total_b)
+
+
 def download_hf_model(
     spec: HFModelSpec,
     on_progress: Callable[[float, str], None] | None = None,
@@ -1983,7 +2000,7 @@ def download_hf_model(
     expected_sha256: str = "",
     expected_bytes: int = 0,
 ) -> Path:
-    """Download a model atomically with SHA-256, Range resume, disk check, & concurrency lock (`C1`–`C12`)."""
+    """Download a model atomically with SHA-256, Range resume, disk check, & persistent lock (`C1`–`C12`)."""
     roots = _search_roots_for_category(spec.category)
     dest_dir = next((r for r in roots if r.is_dir()), roots[-1])
 
@@ -1999,10 +2016,12 @@ def download_hf_model(
     part_path = dest_path.with_suffix(dest_path.suffix + ".part")
     lock_path = dest_path.with_suffix(dest_path.suffix + ".part.lock")
     lock_fh = None
+    lock_acquired = False
     try:
         lock_fh = open(lock_path, "a+b")
         try:
             lock_file_exclusive(lock_fh, nonblocking=True)
+            lock_acquired = True
         except BlockingIOError as exc:
             raise ModelDownloadError(f"Another process is already downloading {spec.name}") from exc
 
@@ -2031,7 +2050,8 @@ def download_hf_model(
 
         # C7 & C8: Configurable size limits and disk preflight check
         cfg = get_download_config()
-        est_bytes = exp_bytes if exp_bytes > 0 else int(max(0.1, spec.size_gb) * (1024 ** 3))
+        raw_gb = float(spec.size_gb) if float(spec.size_gb) > 0 else 0.1
+        est_bytes = exp_bytes if exp_bytes > 0 else int(raw_gb * (1024 ** 3))
         if est_bytes > cfg.max_file_bytes:
             raise ModelDownloadError(
                 f"Model {spec.name} ({est_bytes // (1024**2)} MB) exceeds configured max limit "
@@ -2041,7 +2061,7 @@ def download_hf_model(
         resume_from = 0
         if part_path.is_file():
             p_size = part_path.stat().st_size
-            if 0 < p_size and (exp_bytes <= 0 or p_size <= exp_bytes):
+            if 0 < p_size <= cfg.max_file_bytes and (exp_bytes <= 0 or p_size < exp_bytes):
                 resume_from = p_size
             else:
                 part_path.unlink(missing_ok=True)
@@ -2074,31 +2094,69 @@ def download_hf_model(
                 status_code = int(getattr(resp, "status", 200) or 200)
                 if status_code >= 400:
                     raise ModelDownloadError(f"HTTP {status_code} fetching {spec.name}")
+                if status_code not in (200, 206):
+                    raise ModelDownloadError(f"Unexpected HTTP {status_code} fetching {spec.name}")
 
                 if not exp_sha:
-                    etag = str(resp.headers.get("X-Linked-Etag") or resp.headers.get("ETag") or "").strip('"').lower()
+                    etag = str(
+                        resp.headers.get("X-Linked-Etag")
+                        or resp.headers.get("x-linked-etag")
+                        or resp.headers.get("ETag")
+                        or resp.headers.get("etag")
+                        or ""
+                    ).strip('"').lower()
                     if re.fullmatch(r"[0-9a-f]{64}", etag):
                         exp_sha = etag
 
-                cl_raw = resp.headers.get("Content-Length") or "0"
-                content_len = int(cl_raw) if str(cl_raw).isdigit() else 0
+                cl_raw = str(resp.headers.get("Content-Length") or resp.headers.get("content-length") or "0").strip()
+                content_len = int(cl_raw) if cl_raw.isdigit() else 0
                 if content_len > cfg.max_file_bytes:
                     raise ModelDownloadError(f"Remote Content-Length ({content_len}) exceeds limit.")
 
-                if status_code == 206 and resume_from > 0:
+                if status_code == 206:
+                    if resume_from <= 0:
+                        raise ModelDownloadError(f"Unexpected HTTP 206 response without Range request for {spec.name}.")
+                    cr_raw = str(resp.headers.get("Content-Range") or resp.headers.get("content-range") or "")
+                    cr_start, cr_end, cr_total = _parse_content_range(cr_raw)
+                    if cr_start != resume_from:
+                        raise ModelDownloadError(
+                            f"Resumed Content-Range start mismatch for {spec.name}: "
+                            f"requested {resume_from}, server returned {cr_start}."
+                        )
+                    if cr_end != (cr_total - 1):
+                        raise ModelDownloadError(
+                            f"Resumed Content-Range must run through EOF for {spec.name}: "
+                            f"got {cr_start}-{cr_end}/{cr_total}."
+                        )
+                    range_len = (cr_end - cr_start) + 1
+                    if content_len > 0 and content_len != range_len:
+                        raise ModelDownloadError(
+                            f"Content-Length ({content_len}) disagrees with Content-Range length ({range_len}) for {spec.name}."
+                        )
+                    if exp_bytes > 0 and cr_total != exp_bytes:
+                        raise ModelDownloadError(
+                            f"Content-Range total mismatch for {spec.name}: expected {exp_bytes}, server reported {cr_total}."
+                        )
+                    if cr_total > cfg.max_file_bytes:
+                        raise ModelDownloadError(
+                            f"Resumed Content-Range total ({cr_total}) exceeds max limit ({cfg.max_file_bytes})."
+                        )
                     mode = "ab"
                     read_b = resume_from
-                    total = (resume_from + content_len) if content_len > 0 else exp_bytes
+                    total = cr_total
+                    expected_session_len = content_len if content_len > 0 else range_len
                 else:
                     mode = "wb"
                     read_b = 0
                     resume_from = 0
                     total = content_len if content_len > 0 else exp_bytes
-
-                if exp_bytes > 0 and content_len > 0 and (resume_from + content_len) != exp_bytes and status_code in (200, 206):
-                    raise ModelDownloadError(
-                        f"Content-Length mismatch for {spec.name}: expected {exp_bytes} total bytes, server reported {resume_from + content_len}."
-                    )
+                    expected_session_len = content_len
+                    if total > cfg.max_file_bytes:
+                        raise ModelDownloadError(f"Remote size ({total}) exceeds max limit ({cfg.max_file_bytes}).")
+                    if exp_bytes > 0 and content_len > 0 and content_len != exp_bytes:
+                        raise ModelDownloadError(
+                            f"Content-Length mismatch for {spec.name}: expected {exp_bytes} total bytes, server reported {content_len}."
+                        )
 
                 throttle_bps = cfg.max_mb_per_sec * 1024.0 * 1024.0
                 stream_t0 = time.monotonic()
@@ -2111,8 +2169,20 @@ def download_hf_model(
                         chunk = resp.read(256 * 1024)
                         if not chunk:
                             break
+                        next_b = read_b + len(chunk)
+                        if next_b > cfg.max_file_bytes:
+                            keep_part_on_error = False
+                            raise ModelDownloadError(
+                                f"Download for {spec.name} exceeded configured max size limit "
+                                f"({cfg.max_file_bytes} bytes)."
+                            )
+                        if exp_bytes > 0 and next_b > exp_bytes:
+                            keep_part_on_error = False
+                            raise ModelDownloadError(
+                                f"Download for {spec.name} exceeded expected size ({exp_bytes} bytes)."
+                            )
                         fh.write(chunk)
-                        read_b += len(chunk)
+                        read_b = next_b
                         session_bytes += len(chunk)
                         if throttle_bps > 0:
                             expected_t = session_bytes / throttle_bps
@@ -2128,10 +2198,10 @@ def download_hf_model(
                     fh.flush()
                     os.fsync(fh.fileno())
 
-            # Detect incomplete Content-Length delivery (`C4`)
-            if content_len > 0 and session_bytes != content_len:
+            # Detect incomplete delivery (`C4`)
+            if expected_session_len > 0 and session_bytes != expected_session_len:
                 raise ModelDownloadError(
-                    f"Incomplete download for {spec.name}: got {session_bytes} of {content_len} bytes."
+                    f"Incomplete download for {spec.name}: got {session_bytes} of {expected_session_len} bytes."
                 )
 
             if read_b < 1024 * 1024:
@@ -2172,9 +2242,12 @@ def download_hf_model(
         with _DOWNLOAD_LOCK:
             _ACTIVE_DOWNLOADS.discard(dl_key)
         if lock_fh is not None:
+            if lock_acquired:
+                try:
+                    unlock_file(lock_fh)
+                except OSError:
+                    pass
             try:
-                unlock_file(lock_fh)
                 lock_fh.close()
             except OSError:
                 pass
-        lock_path.unlink(missing_ok=True)

@@ -353,14 +353,14 @@ Choose the direct download package for your operating system—no terminal comma
             <li><strong>Universal Linux:</strong> <code>Vimona-x86_64.AppImage</code></li>
           </ul>
         </li>
-        <li><strong>Direct Portable Bundles:</strong> <a href="downloads/Vimona-Linux-x86_64.run"><code>Vimona-Linux-x86_64.run</code></a> (<code>519 KB</code>) &amp; <a href="downloads/Vimona-Linux-x86_64.tar.gz"><code>Vimona-Linux-x86_64.tar.gz</code></a> (<code>516 KB</code>)</li>
+        <li><strong>Direct Portable Bundles:</strong> <a href="downloads/Vimona-Linux-x86_64.run"><code>Vimona-Linux-x86_64.run</code></a> (<code>524 KB</code>) &amp; <a href="downloads/Vimona-Linux-x86_64.tar.gz"><code>Vimona-Linux-x86_64.tar.gz</code></a> (<code>521 KB</code>)</li>
       </ul>
       <sub><strong>How to run:</strong> Install the matching <code>.deb</code>, <code>.rpm</code>, or <code>.pkg.tar.zst</code> package from <a href="https://github.com/dksh34/Vimona/releases/latest"><strong>Releases</strong></a>—or mark <code>Vimona-x86_64.AppImage</code> / <code>Vimona-Linux-x86_64.run</code> executable and launch directly.</sub>
     </td>
     <td width="50%" valign="top">
       <h3>Windows 10 / 11 (Experimental Preview — Linux Primary Today)</h3>
       <ul>
-        <li><strong>Experimental Preview Bundle:</strong> <a href="downloads/Vimona-Windows-x86_64.zip"><strong>Download Vimona-Windows-x86_64.zip</strong></a> (<code>539 KB</code> packaging preview; requires MSYS2 UCRT64 GTK4)</li>
+        <li><strong>Experimental Preview Bundle:</strong> <a href="downloads/Vimona-Windows-x86_64.zip"><strong>Download Vimona-Windows-x86_64.zip</strong></a> (<code>543 KB</code> packaging preview; requires MSYS2 UCRT64 GTK4)</li>
         <li><strong>CI Experimental Builds:</strong> <a href="https://github.com/dksh34/Vimona/releases/latest"><strong>GitHub Releases (<code>Vimona-Setup.exe</code> &amp; <code>Vimona.exe</code>)</strong></a> (unverified on end-user Windows hardware; Linux is the primary supported platform)</li>
       </ul>
       <sub><strong>Support Notice:</strong> Kernel network/mount isolation (<code>unshare -r -n -m</code>), volatile <code>/dev/shm</code> browser research, and <code>/proc</code> RAM monitoring are Linux-only today. Treat Windows builds as experimental preview until native Windows isolation &amp; runtime QA are complete.</sub>

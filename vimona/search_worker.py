@@ -34,6 +34,7 @@ import tempfile
 import threading
 import time
 import urllib.parse
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -48,6 +49,15 @@ _MAX_RESEARCH_BYTES = 24 * 1024 * 1024
 _MAX_WORKER_STDOUT_BYTES = 36 * 1024 * 1024
 _MAX_WORKER_STDERR_BYTES = 256 * 1024
 _MAX_NAVIGATIONS = 8
+_ALLOWED_HTTP_PORTS: frozenset[int] = frozenset({80})
+_ALLOWED_HTTPS_PORTS: frozenset[int] = frozenset({443})
+_ALLOWED_RESEARCH_PORTS: frozenset[int] = frozenset({80, 443})
+_MAX_PROXY_TOTAL_BYTES = 32 * 1024 * 1024
+_MAX_PROXY_CONN_BYTES = 10 * 1024 * 1024
+_MAX_PROXY_CONCURRENT_CONNS = 16
+_MAX_PROXY_TOTAL_REQUESTS = 180
+_PROXY_IO_TIMEOUT_S = 10.0
+_PROXY_DEFAULT_DEADLINE_S = 50.0
 _SAFESEARCH_KP_MAP = {"strict": "1", "moderate": "-1", "off": "-2"}
 
 from .airgap import (
@@ -135,8 +145,9 @@ def validate_public_http_url(
     *,
     resolve_dns: bool = True,
     pinned_hosts: dict[str, set[str]] | None = None,
+    allowed_ports: frozenset[int] | set[int] | None = None,
 ) -> tuple[bool, str, set[str]]:
-    """Validate public HTTP/HTTPS destinations and block SSRF / DNS rebinding (`F1`–`F4`)."""
+    """Validate public HTTP/HTTPS destinations, web ports, and block SSRF / DNS rebinding (`F1`–`F4`)."""
     raw = (url_str or "").strip()
     if not raw:
         return (False, "Empty URL", set())
@@ -145,7 +156,8 @@ def validate_public_http_url(
     except Exception:
         return (False, "Malformed URL", set())
 
-    if parsed.scheme.lower() not in ("http", "https"):
+    scheme = parsed.scheme.lower()
+    if scheme not in ("http", "https"):
         return (False, f"Unsupported scheme '{parsed.scheme}' (only http/https permitted)", set())
     if parsed.username or parsed.password or "@" in (parsed.netloc or ""):
         return (False, "Credentials in URL authority are blocked", set())
@@ -163,6 +175,14 @@ def validate_public_http_url(
             return (False, "Invalid port", set())
     except ValueError:
         return (False, "Invalid port", set())
+    eff_port = int(port) if port is not None else (443 if scheme == "https" else 80)
+    permitted_ports = (
+        allowed_ports
+        if allowed_ports is not None
+        else (_ALLOWED_HTTPS_PORTS if scheme == "https" else _ALLOWED_HTTP_PORTS)
+    )
+    if eff_port not in permitted_ports:
+        return (False, f"Blocked non-web port {eff_port} for scheme '{scheme}'", set())
 
     resolved_ips: set[str] = set()
     # Direct IP literal check
@@ -174,7 +194,7 @@ def validate_public_http_url(
     except ValueError:
         if resolve_dns:
             try:
-                infos = socket.getaddrinfo(host, port or (443 if parsed.scheme == "https" else 80), type=socket.SOCK_STREAM)
+                infos = socket.getaddrinfo(host, eff_port, type=socket.SOCK_STREAM)
             except OSError as exc:
                 return (False, f"DNS resolution failed for '{host}': {exc}", set())
             if not infos:
@@ -251,8 +271,9 @@ def fetch_public_image_pinned(
     max_redirects: int = 3,
     max_bytes: int = _MAX_IMAGE_BYTES,
     timeout_s: float = 7.0,
+    allowed_ports: frozenset[int] | set[int] | None = None,
 ) -> tuple[bytes, str] | None:
-    """Fetch public HTTP/HTTPS image with per-hop SSRF/redirect validation and pinned-IP dialing (`F1`–`F3`)."""
+    """Fetch public HTTP/HTTPS image with per-hop SSRF/port/redirect validation & pinned-IP dialing (`F1`–`F3`)."""
     if max_bytes <= 0:
         return None
     cur_url = (url or "").strip()
@@ -261,6 +282,7 @@ def fetch_public_image_pinned(
             cur_url,
             resolve_dns=True,
             pinned_hosts=pinned_hosts,
+            allowed_ports=allowed_ports,
         )
         if not ok or not resolved_ips:
             return None
@@ -350,16 +372,41 @@ def fetch_public_image_pinned(
 
 
 class _ValidatingLocalProxy:
-    """Loopback HTTP/CONNECT proxy enforcing `validate_public_http_url` & pinned-IP dialing for Firefox (`F1`–`F3`)."""
+    """Loopback HTTP/CONNECT proxy enforcing web ports, SSRF/pinned-IP validation, and byte/conn budgets (`F1`–`F3`)."""
 
-    def __init__(self, pinned_hosts: dict[str, set[str]]) -> None:
+    def __init__(
+        self,
+        pinned_hosts: dict[str, set[str]],
+        *,
+        allowed_ports: frozenset[int] | set[int] | None = None,
+        max_total_bytes: int = _MAX_PROXY_TOTAL_BYTES,
+        max_conn_bytes: int = _MAX_PROXY_CONN_BYTES,
+        max_concurrent_conns: int = _MAX_PROXY_CONCURRENT_CONNS,
+        max_total_requests: int = _MAX_PROXY_TOTAL_REQUESTS,
+        conn_timeout_s: float = _PROXY_IO_TIMEOUT_S,
+        deadline_s: float = _PROXY_DEFAULT_DEADLINE_S,
+    ) -> None:
         self._pinned_hosts = pinned_hosts
+        self._allowed_ports = allowed_ports
+        self._max_total_bytes = max(1024, int(max_total_bytes))
+        self._max_conn_bytes = max(1024, int(max_conn_bytes))
+        self._max_concurrent_conns = max(1, int(max_concurrent_conns))
+        self._max_total_requests = max(1, int(max_total_requests))
+        self._conn_timeout_s = max(0.2, float(conn_timeout_s))
+        self._deadline = time.monotonic() + max(0.5, float(deadline_s))
         self._stop_ev = threading.Event()
         self._srv: socket.socket | None = None
         self._accept_thread: threading.Thread | None = None
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._sockets: set[socket.socket] = set()
         self._threads: list[threading.Thread] = []
+        self.total_bytes: int = 0
+        self.total_requests: int = 0
+        self.active_conns: int = 0
+        self.peak_active_conns: int = 0
+        self.rejected_requests: int = 0
+        self.budget_exceeded: bool = False
+        self.limit_reason: str = ""
         self.port: int = 0
 
     def _close_socks(self, *socks: socket.socket) -> None:
@@ -376,15 +423,76 @@ class _ValidatingLocalProxy:
             except OSError:
                 pass
 
-    def _relay(self, src: socket.socket, dst: socket.socket) -> None:
+    def _abort_all_conns(self) -> None:
+        with self._lock:
+            socks = list(self._sockets)
+            self._sockets.clear()
+        for sk in socks:
+            try:
+                sk.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            try:
+                sk.close()
+            except OSError:
+                pass
+
+    def _charge_bytes(self, nbytes: int, conn_state: dict[str, int], conn_lock: threading.Lock) -> bool:
+        if nbytes <= 0:
+            return True
+        with conn_lock:
+            if (conn_state["bytes"] + nbytes) > self._max_conn_bytes:
+                with self._lock:
+                    self.budget_exceeded = True
+                    self.limit_reason = self.limit_reason or f"Connection byte cap exceeded ({self._max_conn_bytes} bytes)"
+                self._abort_all_conns()
+                return False
+            conn_state["bytes"] += nbytes
+
+        with self._lock:
+            if time.monotonic() >= self._deadline:
+                self.budget_exceeded = True
+                self.limit_reason = self.limit_reason or "Research proxy deadline exceeded"
+                over = True
+            elif (self.total_bytes + nbytes) > self._max_total_bytes:
+                self.budget_exceeded = True
+                self.limit_reason = self.limit_reason or f"Aggregate proxy byte budget exceeded ({self._max_total_bytes} bytes)"
+                over = True
+            else:
+                self.total_bytes += nbytes
+                over = False
+        if over:
+            self._abort_all_conns()
+            return False
+        return True
+
+    def _relay(
+        self,
+        src: socket.socket,
+        dst: socket.socket,
+        conn_state: dict[str, int],
+        conn_lock: threading.Lock,
+    ) -> None:
         try:
-            while not self._stop_ev.is_set():
-                data = src.recv(65536)
+            while not self._stop_ev.is_set() and not self.budget_exceeded:
+                rem_s = self._deadline - time.monotonic()
+                if rem_s <= 0:
+                    with self._lock:
+                        self.budget_exceeded = True
+                        self.limit_reason = self.limit_reason or "Research proxy deadline exceeded"
+                    self._abort_all_conns()
+                    break
+                io_to = max(0.05, min(self._conn_timeout_s, rem_s))
+                src.settimeout(io_to)
+                dst.settimeout(io_to)
+                data = src.recv(32768)
                 if not data:
                     try:
                         dst.shutdown(socket.SHUT_WR)
                     except OSError:
                         pass
+                    break
+                if not self._charge_bytes(len(data), conn_state, conn_lock):
                     break
                 dst.sendall(data)
         except OSError:
@@ -392,17 +500,27 @@ class _ValidatingLocalProxy:
         finally:
             self._close_socks(src, dst)
 
-    def _send_forbidden(self, client: socket.socket) -> None:
+    def _send_http_error(self, client: socket.socket, status_line: str, msg: str) -> None:
+        body = msg.encode("ascii", errors="replace")
         try:
-            client.sendall(b"HTTP/1.1 403 Forbidden\r\nContent-Length: 7\r\nConnection: close\r\n\r\nBlocked")
+            client.sendall(
+                f"HTTP/1.1 {status_line}\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n".encode("ascii")
+                + body
+            )
         except OSError:
             pass
         self._close_socks(client)
 
+    def _send_forbidden(self, client: socket.socket) -> None:
+        self._send_http_error(client, "403 Forbidden", "Blocked")
+
     def _handle_client(self, client: socket.socket) -> None:
         upstream: socket.socket | None = None
+        slot_acquired = False
+        rev_thread: threading.Thread | None = None
         try:
-            client.settimeout(5.0)
+            rem_hdr = min(5.0, self._conn_timeout_s, max(0.1, self._deadline - time.monotonic()))
+            client.settimeout(rem_hdr)
             buf = bytearray()
             while b"\r\n\r\n" not in buf and len(buf) < 32768:
                 chunk = client.recv(4096)
@@ -412,6 +530,8 @@ class _ValidatingLocalProxy:
                 buf.extend(chunk)
             sep = buf.find(b"\r\n\r\n")
             if sep == -1:
+                with self._lock:
+                    self.rejected_requests += 1
                 self._send_forbidden(client)
                 return
             head_bytes = bytes(buf[:sep])
@@ -419,9 +539,32 @@ class _ValidatingLocalProxy:
             lines = head_bytes.split(b"\r\n")
             req_parts = lines[0].decode("latin-1", errors="replace").split()
             if len(req_parts) < 3:
+                with self._lock:
+                    self.rejected_requests += 1
                 self._send_forbidden(client)
                 return
             method, target, proto = req_parts[0].upper(), req_parts[1], req_parts[2]
+
+            pre_err: tuple[str, str] | None = None
+            with self._lock:
+                if time.monotonic() >= self._deadline:
+                    self.rejected_requests += 1
+                    self.budget_exceeded = True
+                    self.limit_reason = self.limit_reason or "Research proxy deadline exceeded"
+                    pre_err = ("504 Gateway Timeout", "Proxy deadline exceeded")
+                elif self.budget_exceeded:
+                    self.rejected_requests += 1
+                    pre_err = ("429 Too Many Requests", "Proxy byte budget exceeded")
+                elif self.total_requests >= self._max_total_requests:
+                    self.rejected_requests += 1
+                    self.budget_exceeded = True
+                    self.limit_reason = self.limit_reason or f"Proxy request limit ({self._max_total_requests}) exceeded"
+                    pre_err = ("429 Too Many Requests", "Request cap exceeded")
+                else:
+                    self.total_requests += 1
+            if pre_err is not None:
+                self._send_http_error(client, *pre_err)
+                return
 
             if method == "CONNECT":
                 if target.startswith("[") and "]:" in target:
@@ -434,33 +577,83 @@ class _ValidatingLocalProxy:
                     synth_url = f"https://{target}/"
                     port_str = "443"
                 if not port_str.isdigit() or not (1 <= int(port_str) <= 65535):
+                    with self._lock:
+                        self.rejected_requests += 1
                     self._send_forbidden(client)
                     return
                 port_num = int(port_str)
-                ok, _err, resolved_ips = validate_public_http_url(
-                    synth_url, resolve_dns=True, pinned_hosts=self._pinned_hosts
-                )
-                if not ok or not resolved_ips:
+                connect_ports = self._allowed_ports if self._allowed_ports is not None else _ALLOWED_HTTPS_PORTS
+                if port_num not in connect_ports:
+                    with self._lock:
+                        self.rejected_requests += 1
                     self._send_forbidden(client)
                     return
-                upstream = _dial_validated_ips(resolved_ips, port_num, timeout=10.0)
-                upstream.settimeout(None)
-                client.settimeout(None)
-                client.sendall(b"HTTP/1.1 200 Connection Established\r\n\r\n")
-                if body_rem:
-                    upstream.sendall(body_rem)
-            else:
                 ok, _err, resolved_ips = validate_public_http_url(
-                    target, resolve_dns=True, pinned_hosts=self._pinned_hosts
+                    synth_url,
+                    resolve_dns=True,
+                    pinned_hosts=self._pinned_hosts,
+                    allowed_ports=connect_ports,
                 )
                 if not ok or not resolved_ips:
+                    with self._lock:
+                        self.rejected_requests += 1
+                    self._send_forbidden(client)
+                    return
+            else:
+                ok, _err, resolved_ips = validate_public_http_url(
+                    target,
+                    resolve_dns=True,
+                    pinned_hosts=self._pinned_hosts,
+                    allowed_ports=self._allowed_ports,
+                )
+                if not ok or not resolved_ips:
+                    with self._lock:
+                        self.rejected_requests += 1
                     self._send_forbidden(client)
                     return
                 parsed = urllib.parse.urlparse(target)
                 port_num = int(parsed.port or (443 if parsed.scheme.lower() == "https" else 80))
-                upstream = _dial_validated_ips(resolved_ips, port_num, timeout=10.0)
-                upstream.settimeout(None)
-                client.settimeout(None)
+
+            slot_err: tuple[str, str] | None = None
+            with self._lock:
+                if time.monotonic() >= self._deadline:
+                    self.rejected_requests += 1
+                    self.budget_exceeded = True
+                    self.limit_reason = self.limit_reason or "Research proxy deadline exceeded"
+                    slot_err = ("504 Gateway Timeout", "Proxy deadline exceeded")
+                elif self.budget_exceeded:
+                    self.rejected_requests += 1
+                    slot_err = ("429 Too Many Requests", "Proxy byte budget exceeded")
+                elif self.active_conns >= self._max_concurrent_conns:
+                    self.rejected_requests += 1
+                    slot_err = ("503 Service Unavailable", "Too many concurrent connections")
+                else:
+                    self.active_conns += 1
+                    if self.active_conns > self.peak_active_conns:
+                        self.peak_active_conns = self.active_conns
+                    slot_acquired = True
+            if slot_err is not None:
+                self._send_http_error(client, *slot_err)
+                return
+
+            rem_dial = max(0.2, min(self._conn_timeout_s, self._deadline - time.monotonic()))
+            upstream = _dial_validated_ips(resolved_ips, port_num, timeout=rem_dial)
+            with self._lock:
+                self._sockets.add(upstream)
+            io_to = max(0.2, min(self._conn_timeout_s, self._deadline - time.monotonic()))
+            upstream.settimeout(io_to)
+            client.settimeout(io_to)
+
+            conn_state = {"bytes": 0}
+            conn_lock = threading.Lock()
+            if method == "CONNECT":
+                client.sendall(b"HTTP/1.1 200 Connection Established\r\n\r\n")
+                if body_rem:
+                    if not self._charge_bytes(len(body_rem), conn_state, conn_lock):
+                        return
+                    upstream.sendall(body_rem)
+            else:
+                parsed = urllib.parse.urlparse(target)
                 path_q = parsed.path or "/"
                 if parsed.query:
                     path_q = f"{path_q}?{parsed.query}"
@@ -469,27 +662,41 @@ class _ValidatingLocalProxy:
                     if hl.lower().startswith(b"proxy-connection:"):
                         continue
                     clean_hdrs.append(hl)
-                upstream.sendall(b"\r\n".join(clean_hdrs) + b"\r\n\r\n" + body_rem)
+                payload = b"\r\n".join(clean_hdrs) + b"\r\n\r\n" + body_rem
+                if body_rem and not self._charge_bytes(len(body_rem), conn_state, conn_lock):
+                    return
+                upstream.sendall(payload)
 
+            rev_thread = threading.Thread(
+                target=self._relay,
+                args=(upstream, client, conn_state, conn_lock),
+                daemon=True,
+            )
             with self._lock:
-                self._sockets.add(upstream)
-            t1 = threading.Thread(target=self._relay, args=(client, upstream), daemon=True)
-            t2 = threading.Thread(target=self._relay, args=(upstream, client), daemon=True)
-            with self._lock:
-                self._threads = [t for t in self._threads if t.is_alive()] + [t1, t2]
-            t1.start()
-            t2.start()
+                self._threads = [t for t in self._threads if t.is_alive()] + [rev_thread]
+            rev_thread.start()
+            self._relay(client, upstream, conn_state, conn_lock)
         except Exception:
             if upstream is not None:
                 self._close_socks(client, upstream)
             else:
                 self._close_socks(client)
+        finally:
+            if upstream is not None:
+                self._close_socks(client, upstream)
+            else:
+                self._close_socks(client)
+            if rev_thread is not None and rev_thread.is_alive():
+                rev_thread.join(timeout=1.0)
+            if slot_acquired:
+                with self._lock:
+                    self.active_conns = max(0, self.active_conns - 1)
 
     def start(self) -> int:
         srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         srv.bind(("127.0.0.1", 0))
-        srv.listen(32)
+        srv.listen(64)
         srv.settimeout(0.3)
         self._srv = srv
         self.port = int(srv.getsockname()[1])
@@ -503,10 +710,20 @@ class _ValidatingLocalProxy:
                 except OSError:
                     break
                 with self._lock:
-                    self._sockets.add(c)
+                    live_threads = [t for t in self._threads if t.is_alive()]
+                    max_threads = max(32, self._max_concurrent_conns * 4)
+                    if len(live_threads) >= max_threads:
+                        self.rejected_requests += 1
+                        too_busy = True
+                    else:
+                        too_busy = False
+                        self._sockets.add(c)
+                if too_busy:
+                    self._send_http_error(c, "503 Service Unavailable", "Proxy handler limit reached")
+                    continue
                 ht = threading.Thread(target=self._handle_client, args=(c,), daemon=True)
                 with self._lock:
-                    self._threads = [t for t in self._threads if t.is_alive()] + [ht]
+                    self._threads = live_threads + [ht]
                 ht.start()
 
         self._accept_thread = threading.Thread(target=_accept_loop, daemon=True, name="vimona-search-proxy")
@@ -558,9 +775,11 @@ def sniff_image_format(raw_bytes: bytes) -> str | None:
 
 
 def _alloc_ephemeral_ram_dir(
-    *, allow_disk_fallback: bool = False
+    *, allow_disk_fallback: bool = False, worker_tag: str = ""
 ) -> tuple[Path, Any, str, dict[str, Any]]:
     """Create a private `0700` flock-locked dir on `/dev/shm` tmpfs (never label disk `/tmp` as RAM-only)."""
+    safe_tag = re.sub(r"[^A-Za-z0-9_-]+", "", worker_tag or "")[:24]
+    dir_prefix = f"vimona_ephem_{os.getpid()}_{safe_tag}_" if safe_tag else f"vimona_ephem_{os.getpid()}_"
     use_shm = SHM_DIR.is_dir() and os.access(SHM_DIR, os.W_OK)
     if use_shm:
         risk = detect_ram_persistence_risk(SHM_DIR)
@@ -568,7 +787,7 @@ def _alloc_ephemeral_ram_dir(
             raise RuntimeError(
                 f"{SHM_DIR} is backed by '{risk['fs_type']}' rather than tmpfs/ramfs; refusing to run without opt-in."
             )
-        p = Path(tempfile.mkdtemp(prefix=f"vimona_ephem_{os.getpid()}_", dir=str(SHM_DIR)))
+        p = Path(tempfile.mkdtemp(prefix=dir_prefix, dir=str(SHM_DIR)))
         profile_kind = (
             "/dev/shm tmpfs"
             if risk["is_ram_backed"]
@@ -580,7 +799,7 @@ def _alloc_ephemeral_ram_dir(
                 "/dev/shm is unavailable and disk-backed /tmp fallback is disabled for privacy."
             )
         tmp_base = Path(tempfile.gettempdir())
-        p = Path(tempfile.mkdtemp(prefix=f"vimona_ephem_{os.getpid()}_", dir=str(tmp_base)))
+        p = Path(tempfile.mkdtemp(prefix=dir_prefix, dir=str(tmp_base)))
         risk = detect_ram_persistence_risk(p)
         profile_kind = (
             "OS temp (tmpfs)"
@@ -604,6 +823,7 @@ def _alloc_ephemeral_ram_dir(
                     "pid": os.getpid(),
                     "uid": os.getuid() if hasattr(os, "getuid") else 0,
                     "start_ticks": _read_proc_start_ticks(os.getpid()),
+                    "worker_tag": safe_tag,
                     "created_at": time.time(),
                 }
             ),
@@ -901,6 +1121,9 @@ def _execute_in_firefox(
     pull_images: bool = True,
     max_images: int = 4,
     safesearch: str = "moderate",
+    *,
+    timeout_s: float = 55.0,
+    worker_tag: str = "",
 ) -> dict[str, Any]:
     from playwright.sync_api import sync_playwright
 
@@ -917,7 +1140,7 @@ def _execute_in_firefox(
 
     purge_legacy_burner_profile()
     disable_core_dumps()
-    ephem_dir, lock_fh, profile_kind, ram_risk = _alloc_ephemeral_ram_dir()
+    ephem_dir, lock_fh, profile_kind, ram_risk = _alloc_ephemeral_ram_dir(worker_tag=worker_tag)
     profile_dir = ephem_dir / "profile"
     ff_home = ephem_dir / "home"
     ff_cfg = ephem_dir / "xdg_config"
@@ -1024,7 +1247,10 @@ def _execute_in_firefox(
         except Exception:
             return
 
-    local_proxy = _ValidatingLocalProxy(pinned_hosts)
+    local_proxy = _ValidatingLocalProxy(
+        pinned_hosts,
+        deadline_s=max(5.0, float(timeout_s) - 3.0),
+    )
     proxy_port = local_proxy.start()
     try:
         with sync_playwright() as pw:
@@ -1089,8 +1315,10 @@ def _execute_in_firefox(
                             "takeaway": sanitize_untrusted_web_text(body_text, 420) or "Fetched page.",
                         }
                     )
-                    if pull_images:
+                    if pull_images and not local_proxy.budget_exceeded:
                         for cand in _collect_page_candidate_images(page, final_page_url, max_per_page=max_images * 2):
+                            if local_proxy.budget_exceeded:
+                                break
                             _try_pull_image(ctx, cand["image_url"], final_page_url, title, cand["alt"])
                             if len(references) >= max_images:
                                 break
@@ -1109,7 +1337,7 @@ def _execute_in_firefox(
                         if validate_public_http_url(r.get("url", ""), resolve_dns=False)[0]
                     ]
 
-                    if not results:
+                    if not results and not local_proxy.budget_exceeded:
                         page.goto(
                             f"https://duckduckgo.com/?q={encoded}&kp={kp_val}&ia=web",
                             wait_until="domcontentloaded",
@@ -1130,9 +1358,9 @@ def _execute_in_firefox(
                                     }
                                 )
 
-                    if pull_images:
+                    if pull_images and not local_proxy.budget_exceeded:
                         for tab in results[:3]:
-                            if len(references) >= max_images:
+                            if len(references) >= max_images or local_proxy.budget_exceeded:
                                 break
                             tab_url = tab.get("url", "")
                             ok_tu, _eu, _ = validate_public_http_url(
@@ -1142,12 +1370,16 @@ def _execute_in_firefox(
                                 continue
                             try:
                                 page.goto(tab_url, wait_until="domcontentloaded", timeout=10000)
+                                if local_proxy.budget_exceeded:
+                                    break
                                 post_u = page.url or tab_url
                                 if not validate_public_http_url(post_u, resolve_dns=True, pinned_hosts=pinned_hosts)[0]:
                                     continue
                                 page.wait_for_timeout(450)
                                 page_title = sanitize_untrusted_web_text(page.title(), 120) or tab.get("title", "")
                                 for cand in _collect_page_candidate_images(page, post_u, max_per_page=3):
+                                    if local_proxy.budget_exceeded:
+                                        break
                                     _try_pull_image(
                                         ctx,
                                         cand["image_url"],
@@ -1160,10 +1392,12 @@ def _execute_in_firefox(
                             except Exception:
                                 continue
 
-                        if len(references) < max_images:
+                        if len(references) < max_images and not local_proxy.budget_exceeded:
                             for cand in _collect_ddg_image_results(
                                 page, query, limit=max_images * 3, safesearch=ss_mode
                             ):
+                                if local_proxy.budget_exceeded:
+                                    break
                                 _try_pull_image(
                                     ctx,
                                     cand["image_url"],
@@ -1214,6 +1448,7 @@ def _execute_in_firefox(
             wipe_error = str(diag.get("error") or f"Cleanup verification failed: remnants remain at {ephem_dir}")
             wiped = False
 
+    wiped_verified = bool(wiped and not ephem_dir.exists())
     return {
         "query": query or url,
         "safesearch": f"{ss_mode} (kp={kp_val})",
@@ -1227,12 +1462,63 @@ def _execute_in_firefox(
             "ram_persistence_risk": ram_risk,
             "temp_dir": str(ephem_dir),
             "browser_killed": browser_killed,
-            "wiped": bool(wiped and not ephem_dir.exists()),
+            "wiped": wiped_verified,
+            "cleanup_status": "complete" if (wiped_verified and browser_killed) else "failed",
             "wipe_error": wipe_error,
             "bytes_budget_used": budget_state["bytes_used"],
+            "proxy_bytes_used": local_proxy.total_bytes,
+            "proxy_requests": local_proxy.total_requests,
+            "proxy_rejected_requests": local_proxy.rejected_requests,
+            "proxy_budget_exceeded": local_proxy.budget_exceeded,
+            "proxy_limit_reason": local_proxy.limit_reason,
             "safesearch": ss_mode,
             "images_extracted": len(references),
         },
+    }
+
+
+def _build_cleanup_trace(
+    sweep_res: dict[str, Any],
+    *,
+    browser_killed: bool,
+    ss_mode: str,
+    worker_pid: int | None = None,
+) -> dict[str, Any]:
+    """Assemble honest privacy cleanup report without claiming `wiped=True` on skipped/errored sweeps (`B7`)."""
+    surviving = [int(p) for p in sweep_res.get("surviving_pids", []) if int(p) > 0]
+    if not browser_killed and worker_pid and int(worker_pid) not in surviving:
+        surviving.append(int(worker_pid))
+    errors = list(sweep_res.get("errors", []))
+    skipped = list(sweep_res.get("skipped", []))
+    remaining = list(sweep_res.get("target_dirs_remaining", []))
+    raw_status = str(sweep_res.get("status") or ("complete" if sweep_res.get("ok") else "failed"))
+
+    if not browser_killed or raw_status == "failed" or errors or remaining:
+        cleanup_status = "failed"
+    elif raw_status == "partial" or skipped:
+        cleanup_status = "partial"
+    else:
+        cleanup_status = "complete"
+
+    wiped = bool(browser_killed and cleanup_status == "complete" and not skipped and not errors and not remaining)
+    err_parts = [str(e) for e in errors if e]
+    if not browser_killed:
+        err_parts.append(f"Worker process {worker_pid or '?'} or descendant survived termination")
+    if skipped:
+        err_parts.append(f"Skipped {len(skipped)} live/locked research dir(s)")
+    if remaining:
+        err_parts.append(f"Target dir(s) still remain: {', '.join(remaining)}")
+
+    return {
+        "wiped": wiped,
+        "cleanup_status": cleanup_status,
+        "wipe_error": "; ".join(err_parts),
+        "browser_killed": bool(browser_killed),
+        "safesearch": ss_mode,
+        "images_extracted": 0,
+        "skipped_dirs": skipped,
+        "surviving_pids": sorted(set(surviving)),
+        "remaining_dirs": remaining,
     }
 
 
@@ -1246,7 +1532,7 @@ def run_ephemeral_research(
     safesearch: str = "moderate",
     cancel_event: Any = None,
 ) -> dict[str, Any]:
-    """Run ephemeral Firefox research with SSRF protection, budgets, & ownership-safe wipe (`F1`–`F15`)."""
+    """Run ephemeral Firefox research with SSRF/port/budget protection & ownership-safe wipe (`F1`–`F15`)."""
     max_results = max(1, min(_MAX_RESULTS_CAP, int(max_results)))
     max_images = max(0, min(_MAX_IMAGES_CAP, int(max_images)))
     ss_mode = safesearch if safesearch in _SAFESEARCH_KP_MAP else "moderate"
@@ -1259,7 +1545,13 @@ def run_ephemeral_research(
                 "error": f"Blocked destination URL: {err_u}",
                 "results": [],
                 "references": [],
-                "trace_report": {"wiped": True, "browser_killed": True, "images_extracted": 0, "safesearch": ss_mode},
+                "trace_report": {
+                    "wiped": True,
+                    "cleanup_status": "complete",
+                    "browser_killed": True,
+                    "images_extracted": 0,
+                    "safesearch": ss_mode,
+                },
             }
 
     purge_legacy_burner_profile()
@@ -1269,9 +1561,16 @@ def run_ephemeral_research(
             "error": f"Python interpreter not found at {COMFY_VENV_PYTHON}",
             "results": [],
             "references": [],
-            "trace_report": {"wiped": True, "browser_killed": True, "images_extracted": 0, "safesearch": ss_mode},
+            "trace_report": {
+                "wiped": True,
+                "cleanup_status": "complete",
+                "browser_killed": True,
+                "images_extracted": 0,
+                "safesearch": ss_mode,
+            },
         }
 
+    worker_tag = f"w{os.getpid()}_{uuid.uuid4().hex[:10]}"
     cmd = [
         str(COMFY_VENV_PYTHON),
         "-m",
@@ -1282,6 +1581,10 @@ def run_ephemeral_research(
         str(max_images),
         "--safesearch",
         ss_mode,
+        "--worker-tag",
+        worker_tag,
+        "--timeout",
+        str(max(1.0, float(timeout_s))),
     ]
     if not pull_images:
         cmd.append("--no-images")
@@ -1363,7 +1666,11 @@ def run_ephemeral_research(
                 pass
             t_out.join(timeout=1.5)
             t_err.join(timeout=1.0)
-            sweep_res = _sweep_orphan_shm_profiles()
+            sweep_res = _sweep_orphan_shm_profiles(
+                worker_tag=worker_tag,
+                owner_pid=proc.pid,
+                owner_start_ticks=worker_start_ticks,
+            )
             if overflowed:
                 err_msg = "Research worker output exceeded maximum size limit."
             elif cancelled:
@@ -1375,13 +1682,12 @@ def run_ephemeral_research(
                 "error": err_msg,
                 "results": [],
                 "references": [],
-                "trace_report": {
-                    "wiped": bool(sweep_res.get("ok", False)),
-                    "wipe_error": "; ".join(sweep_res.get("errors", [])),
-                    "browser_killed": killed_ok,
-                    "safesearch": ss_mode,
-                    "images_extracted": 0,
-                },
+                "trace_report": _build_cleanup_trace(
+                    sweep_res,
+                    browser_killed=killed_ok,
+                    ss_mode=ss_mode,
+                    worker_pid=proc.pid,
+                ),
             }
 
         try:
@@ -1399,102 +1705,207 @@ def run_ephemeral_research(
                     pass
 
     if stdout_overflow.is_set():
-        sweep_res = _sweep_orphan_shm_profiles()
+        killed_ov = kill_process_tree_verified(
+            proc.pid,
+            root_start_ticks=worker_start_ticks,
+            term_timeout_s=2.0,
+            kill_timeout_s=1.5,
+        )
+        sweep_res = _sweep_orphan_shm_profiles(
+            worker_tag=worker_tag,
+            owner_pid=proc.pid,
+            owner_start_ticks=worker_start_ticks,
+        )
         return {
             "query": query or url,
             "error": "Research worker output exceeded maximum size limit.",
             "results": [],
             "references": [],
-            "trace_report": {
-                "wiped": bool(sweep_res.get("ok", False)),
-                "wipe_error": "; ".join(sweep_res.get("errors", [])),
-                "browser_killed": True,
-                "safesearch": ss_mode,
-                "images_extracted": 0,
-            },
+            "trace_report": _build_cleanup_trace(
+                sweep_res,
+                browser_killed=killed_ov,
+                ss_mode=ss_mode,
+                worker_pid=proc.pid,
+            ),
         }
 
     stdout = stdout_buf.decode("utf-8", errors="replace")
     stderr = stderr_buf.decode("utf-8", errors="replace")
 
-    sweep_res = _sweep_orphan_shm_profiles()
+    sweep_res = _sweep_orphan_shm_profiles(
+        worker_tag=worker_tag,
+        owner_pid=proc.pid,
+        owner_start_ticks=worker_start_ticks,
+    )
     if proc.returncode != 0:
         return {
             "query": query or url,
             "error": _clean_text(stderr, 260) or f"Worker exited with code {proc.returncode}",
             "results": [],
             "references": [],
-            "trace_report": {
-                "wiped": bool(sweep_res.get("ok", False)),
-                "wipe_error": "; ".join(sweep_res.get("errors", [])),
-                "browser_killed": True,
-                "images_extracted": 0,
-            },
+            "trace_report": _build_cleanup_trace(
+                sweep_res,
+                browser_killed=(proc.poll() is not None),
+                ss_mode=ss_mode,
+                worker_pid=proc.pid,
+            ),
         }
 
     try:
-        return json.loads(stdout.strip())
+        parsed_out = json.loads(stdout.strip())
     except json.JSONDecodeError:
         return {
             "query": query or url,
             "error": "Invalid JSON returned from ephemeral worker.",
             "results": [],
             "references": [],
-            "trace_report": {
-                "wiped": bool(sweep_res.get("ok", False)),
-                "wipe_error": "; ".join(sweep_res.get("errors", [])),
-                "browser_killed": True,
-                "images_extracted": 0,
-            },
+            "trace_report": _build_cleanup_trace(
+                sweep_res,
+                browser_killed=(proc.poll() is not None),
+                ss_mode=ss_mode,
+                worker_pid=proc.pid,
+            ),
         }
 
+    if isinstance(parsed_out, dict):
+        tr = parsed_out.setdefault("trace_report", {})
+        if isinstance(tr, dict):
+            temp_dir_str = str(tr.get("temp_dir") or "")
+            dir_absent = (not Path(temp_dir_str).exists()) if temp_dir_str else bool(tr.get("wiped"))
+            sweep_status = str(sweep_res.get("status") or ("complete" if sweep_res.get("ok") else "failed"))
+            if not dir_absent and temp_dir_str and temp_dir_str not in sweep_res.get("target_dirs_remaining", []):
+                sweep_res.setdefault("target_dirs_remaining", []).append(temp_dir_str)
+            tr["wiped"] = bool(
+                tr.get("wiped")
+                and tr.get("browser_killed")
+                and dir_absent
+                and not sweep_res.get("target_dirs_remaining")
+            )
+            tr["skipped_dirs"] = sweep_res.get("skipped", [])
+            tr["surviving_pids"] = sweep_res.get("surviving_pids", [])
+            if not tr["wiped"] or sweep_status == "failed":
+                tr["cleanup_status"] = "failed"
+            elif sweep_status == "partial":
+                tr["cleanup_status"] = "partial"
+            else:
+                tr["cleanup_status"] = "complete"
+    return parsed_out
 
-def _sweep_orphan_shm_profiles() -> dict[str, Any]:
-    """Safely sweep ONLY dead/unlocked `vimona_ephem_*` dirs owned by current UID (`B3`, `B4`)."""
+
+def _sweep_orphan_shm_profiles(
+    *,
+    worker_tag: str = "",
+    owner_pid: int | None = None,
+    owner_start_ticks: int | None = None,
+    base_dirs: tuple[Path, ...] | None = None,
+) -> dict[str, Any]:
+    """Safely sweep dead/unlocked `vimona_ephem_*` dirs and report `complete`|`partial`|`failed` (`B3`, `B4`, `B7`)."""
     my_uid = os.getuid() if hasattr(os, "getuid") else 0
     errors: list[str] = []
     removed: list[str] = []
-    for base in (SHM_DIR, Path(tempfile.gettempdir())):
+    skipped: list[dict[str, Any]] = []
+    surviving_pids: list[int] = []
+    target_dirs_remaining: list[str] = []
+    safe_tag = re.sub(r"[^A-Za-z0-9_-]+", "", worker_tag or "")[:24]
+
+    scan_bases = base_dirs if base_dirs is not None else (SHM_DIR, Path(tempfile.gettempdir()))
+    for base in scan_bases:
+        if not base.exists():
+            continue
         if not base.is_dir():
+            errors.append(f"Cleanup scan base is not a directory: {base}")
             continue
         try:
-            for item in base.glob("vimona_ephem_*"):
-                try:
-                    st = item.lstat()
-                    if st.st_uid != my_uid or item.is_symlink() or not item.is_dir():
-                        continue
-                    # Never interfere with active concurrent worker holding .worker.lock
-                    lock_p = item / ".worker.lock"
-                    if lock_p.exists():
-                        with open(lock_p, "r+b") as fh:
-                            try:
-                                lock_file_exclusive(fh, nonblocking=True)
-                                unlock_file(fh)
-                            except BlockingIOError:
-                                continue
-                    owner_p = item / ".worker_owner.json"
-                    owner_pid = None
-                    if owner_p.is_file():
+            entries = list(base.glob("vimona_ephem_*"))
+        except OSError as exc:
+            errors.append(f"Scan failed for {base}: {exc}")
+            continue
+
+        for item in entries:
+            try:
+                st = item.lstat()
+                if st.st_uid != my_uid or item.is_symlink() or not item.is_dir():
+                    continue
+                owner_p = item / ".worker_owner.json"
+                item_pid: int | None = None
+                item_ticks: int | None = None
+                item_tag = ""
+                if owner_p.is_file():
+                    try:
+                        meta = json.loads(owner_p.read_text(encoding="utf-8"))
+                        raw_pid = int(meta.get("pid") or 0)
+                        if raw_pid > 1:
+                            item_pid = raw_pid
+                        item_ticks = meta.get("start_ticks")
+                        item_tag = str(meta.get("worker_tag") or "")
+                    except Exception:
+                        pass
+
+                is_target = bool(
+                    (safe_tag and item_tag == safe_tag)
+                    or (safe_tag and f"_{safe_tag}_" in item.name)
+                    or (owner_pid is not None and item_pid == owner_pid)
+                )
+
+                # Never interfere with active concurrent worker holding .worker.lock
+                lock_p = item / ".worker.lock"
+                if lock_p.exists():
+                    with open(lock_p, "r+b") as fh:
                         try:
-                            meta = json.loads(owner_p.read_text(encoding="utf-8"))
-                            opid = int(meta.get("pid") or 0)
-                            ost = meta.get("start_ticks")
-                            if opid > 1 and is_pid_alive_with_start(opid, ost):
-                                continue  # Owner process still running!
-                            owner_pid = opid
-                        except Exception:
-                            pass
-                    elif (time.time() - st.st_mtime) < 15.0:
-                        continue  # Avoid racing a worker mid-startup before metadata exists
-                    if scorched_earth_wipe(item, owner_pid=owner_pid):
-                        removed.append(str(item))
-                    else:
-                        errors.append(f"Failed orphan cleanup: {item}")
-                except OSError as exc:
-                    errors.append(f"{item}: {exc}")
-        except OSError:
-            pass
-    return {"ok": len(errors) == 0, "removed": removed, "errors": errors}
+                            lock_file_exclusive(fh, nonblocking=True)
+                            unlock_file(fh)
+                        except BlockingIOError:
+                            skipped.append({"path": str(item), "reason": "lock_held", "owner_pid": item_pid})
+                            if item_pid is not None:
+                                surviving_pids.append(item_pid)
+                            if is_target:
+                                target_dirs_remaining.append(str(item))
+                            continue
+
+                if item_pid is not None and is_pid_alive_with_start(item_pid, item_ticks):
+                    skipped.append({"path": str(item), "reason": "owner_alive", "owner_pid": item_pid})
+                    surviving_pids.append(item_pid)
+                    if is_target:
+                        target_dirs_remaining.append(str(item))
+                    continue
+
+                if not owner_p.is_file() and not is_target and (time.time() - st.st_mtime) < 15.0:
+                    skipped.append({"path": str(item), "reason": "startup_grace", "owner_pid": None})
+                    continue
+
+                id_map = {item_pid: int(item_ticks)} if (item_pid is not None and item_ticks is not None) else None
+                if scorched_earth_wipe(item, owner_pid=item_pid, allowed_identities=id_map) and not item.exists():
+                    removed.append(str(item))
+                else:
+                    diag = get_last_wipe_diagnostics()
+                    diag_pids = [int(p) for p in diag.get("surviving_pids", []) if int(p) > 0]
+                    surviving_pids.extend(diag_pids)
+                    errors.append(str(diag.get("error") or f"Failed orphan cleanup: {item}"))
+                    if is_target or item.exists():
+                        target_dirs_remaining.append(str(item))
+            except OSError as exc:
+                errors.append(f"{item}: {exc}")
+
+    if owner_pid is not None and owner_pid > 1 and owner_start_ticks is not None:
+        if is_pid_alive_with_start(owner_pid, owner_start_ticks):
+            surviving_pids.append(owner_pid)
+
+    if errors or target_dirs_remaining:
+        status = "failed"
+    elif skipped:
+        status = "partial"
+    else:
+        status = "complete"
+
+    return {
+        "ok": status == "complete",
+        "status": status,
+        "removed": removed,
+        "skipped": skipped,
+        "errors": errors,
+        "surviving_pids": sorted({int(p) for p in surviving_pids if int(p) > 0}),
+        "target_dirs_remaining": target_dirs_remaining,
+    }
 
 
 # Compatibility alias for existing callers
@@ -1509,6 +1920,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-images", type=int, default=4)
     parser.add_argument("--safesearch", choices=("strict", "moderate", "off"), default="moderate")
     parser.add_argument("--no-images", action="store_true")
+    parser.add_argument("--worker-tag", default="")
+    parser.add_argument("--timeout", type=float, default=55.0)
     args = parser.parse_args(argv)
 
     max_res = max(1, min(_MAX_RESULTS_CAP, int(args.max_results)))
@@ -1521,6 +1934,8 @@ def main(argv: list[str] | None = None) -> int:
             pull_images=not args.no_images,
             max_images=max_img,
             safesearch=args.safesearch,
+            timeout_s=args.timeout,
+            worker_tag=args.worker_tag,
         )
         print(json.dumps(payload, ensure_ascii=False))
         return 0
