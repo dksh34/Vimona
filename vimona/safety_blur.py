@@ -15,20 +15,25 @@ from gi.repository import GdkPixbuf, GLib, Gtk
 
 from .icons import SvgIcon
 from .media import VideoFrameDecoder
-from .safety_ml import get_safety_ml_engine
+from .safety_ml import ClassificationResult, get_safety_ml_engine
 from .safety_patterns import is_explicit_text
 from .slide_commit import SlideCommitWidget
 from .tokens import COLORS
 
 
-def is_explicit_media(file_path: str | None, prompt_hint: str = "", title: str = "") -> bool:
-    """Classify image or video sensitivity (failing closed if vision classifier unavailable, `G1`, `G2`)."""
-    res = get_safety_ml_engine().assess_file(
+def assess_media_safety(file_path: str | None, prompt_hint: str = "", title: str = "") -> ClassificationResult:
+    """Return detailed fail-closed classification status for UI protection badges (`G1`, `G2`, `G11`)."""
+    return get_safety_ml_engine().assess_file(
         str(file_path or ""),
         prompt_hint or "",
         title or "",
     )
-    return res.flagged
+
+
+def is_explicit_media(file_path: str | None, prompt_hint: str = "", title: str = "") -> bool:
+    """Classify image or video sensitivity (failing closed on `unavailable` or `error` states)."""
+    res = assess_media_safety(file_path, prompt_hint=prompt_hint, title=title)
+    return bool(res.flagged or (res.status in ("unavailable", "error") and res.fail_closed))
 
 
 def get_safeblur_engine_badge() -> str:
@@ -94,10 +99,12 @@ class SafeBlurBox(Gtk.Overlay):
         require_slide_confirm: bool = True,
         on_state_changed: Callable[[bool], None] | None = None,
         hover_position: Gtk.PositionType = Gtk.PositionType.TOP,
+        safety_status: str = "",
     ) -> None:
         super().__init__()
         self.set_overflow(Gtk.Overflow.HIDDEN)
         self._explicit = explicit
+        self._safety_status = safety_status
         self._global_enabled = safe_blur_enabled
         self._user_override: bool | None = None
         self._require_slide = require_slide_confirm
@@ -122,7 +129,12 @@ class SafeBlurBox(Gtk.Overlay):
         self._scrim.set_can_target(False)
         self.add_overlay(self._scrim)
 
-        self._badge = Gtk.Label(label="safe-blur")
+        badge_text = "safe-blur"
+        if safety_status == "unavailable":
+            badge_text = "safe-blur (unverified)"
+        elif safety_status == "error":
+            badge_text = "safe-blur (error)"
+        self._badge = Gtk.Label(label=badge_text)
         self._badge.add_css_class("safe-blur-label-compact" if compact else "safe-blur-label")
         self._badge.set_halign(Gtk.Align.CENTER)
         self._badge.set_valign(Gtk.Align.CENTER)

@@ -4,14 +4,17 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-import fcntl
 import hashlib
+import http.client
+import ipaddress
 import json
 import os
 from pathlib import Path
 import platform
 import re
 import shutil
+import socket
+import ssl
 import subprocess
 import threading
 import time
@@ -22,6 +25,7 @@ from typing import Any, Callable
 
 from .config import get_config
 from .errors import ModelDownloadError as _BaseModelDownloadError
+from .platform_compat import lock_file_exclusive, unlock_file
 
 _CFG = get_config()
 MODELS_STATE_FILE = _CFG.state_dir / "models_config.json"
@@ -53,8 +57,7 @@ class DownloadConfig:
     require_sha256_when_known: bool = True
     allowed_https_suffixes: tuple[str, ...] = (
         "huggingface.co",
-        ".huggingface.co",
-        ".hf.co",
+        "hf.co",
     )
 
 
@@ -1800,14 +1803,176 @@ def verify_local_model_integrity(
     return (True, "Header & size verified")
 
 
-def _validate_download_url(url_str: str) -> None:
-    parsed = urllib.parse.urlparse(url_str)
-    if parsed.scheme != "https":
+def _is_non_public_ip(ip_obj: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    if isinstance(ip_obj, ipaddress.IPv6Address) and ip_obj.ipv4_mapped is not None:
+        ip_obj = ip_obj.ipv4_mapped
+    return (
+        ip_obj.is_private
+        or ip_obj.is_loopback
+        or ip_obj.is_link_local
+        or ip_obj.is_multicast
+        or ip_obj.is_reserved
+        or ip_obj.is_unspecified
+        or not ip_obj.is_global
+    )
+
+
+def _validate_download_url(
+    url_str: str,
+    *,
+    resolve_dns: bool = True,
+) -> tuple[str, int, str, set[str]]:
+    """Validate HTTPS URL, DNS-label boundary, port, creds, & resolved public IPs (`C9`)."""
+    raw = (url_str or "").strip()
+    try:
+        parsed = urllib.parse.urlparse(raw)
+    except Exception as exc:
+        raise ModelDownloadError(f"Malformed download URL: {url_str}") from exc
+    if parsed.scheme.lower() != "https":
         raise ModelDownloadError(f"Blocked non-HTTPS download URL: {url_str}")
-    host = (parsed.hostname or "").lower()
-    allowed = _DOWNLOAD_CONFIG.allowed_https_suffixes
-    if not any(host == s or host.endswith(s) for s in allowed):
+    if parsed.username or parsed.password or "@" in (parsed.netloc or ""):
+        raise ModelDownloadError("Blocked download URL with embedded credentials")
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise ModelDownloadError(f"Invalid port in download URL: {url_str}") from exc
+    if port is not None and int(port) != 443:
+        raise ModelDownloadError(f"Blocked non-443 download port {port} on URL: {url_str}")
+
+    host = (parsed.hostname or "").strip().lower().rstrip(".")
+    if not host:
+        raise ModelDownloadError(f"Missing hostname in download URL: {url_str}")
+    normalized_allowed = [
+        d for d in (s.strip().lstrip(".").lower().rstrip(".") for s in _DOWNLOAD_CONFIG.allowed_https_suffixes) if d
+    ]
+    if not any(host == dom or host.endswith("." + dom) for dom in normalized_allowed):
         raise ModelDownloadError(f"Blocked untrusted download host: {host}")
+
+    path_q = parsed.path or "/"
+    if parsed.query:
+        path_q = f"{path_q}?{parsed.query}"
+
+    resolved_ips: set[str] = set()
+    if resolve_dns:
+        try:
+            infos = socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
+        except OSError as exc:
+            raise ModelDownloadError(f"DNS resolution failed for '{host}': {exc}") from exc
+        if not infos:
+            raise ModelDownloadError(f"No DNS records for '{host}'")
+        for _fam, _st, _pr, _cn, sockaddr in infos:
+            ip_txt = str(sockaddr[0]).split("%", 1)[0]
+            try:
+                ip_obj = ipaddress.ip_address(ip_txt)
+            except ValueError as exc:
+                raise ModelDownloadError(f"Unparseable resolved IP '{ip_txt}' for '{host}'") from exc
+            if _is_non_public_ip(ip_obj):
+                raise ModelDownloadError(f"Blocked private/local resolved IP {ip_txt} for '{host}'")
+            resolved_ips.add(str(ip_obj))
+
+    return (host, 443, path_q, resolved_ips)
+
+
+class _PinnedHTTPSConnection(http.client.HTTPSConnection):
+    """HTTPS connection that dials pre-validated IP with SNI/cert verification against original host."""
+
+    def __init__(self, orig_host: str, port: int, pinned_ip: str, timeout: float = 30.0) -> None:
+        super().__init__(orig_host, port=port, timeout=timeout, context=ssl.create_default_context())
+        self._pinned_ip = pinned_ip
+        self._sni_host = orig_host
+
+    def connect(self) -> None:
+        raw_sock = socket.create_connection((self._pinned_ip, self.port), self.timeout, self.source_address)
+        self.sock = self._context.wrap_socket(raw_sock, server_hostname=self._sni_host)
+
+
+class _ValidatedDownloadStream:
+    """Context-managed HTTP response backed by pre-validated host & pinned IP."""
+
+    def __init__(self, conn: http.client.HTTPConnection, resp: http.client.HTTPResponse, final_url: str) -> None:
+        self._conn = conn
+        self._resp = resp
+        self._final_url = final_url
+        self.status = int(resp.status)
+        self.headers = resp.headers
+
+    def geturl(self) -> str:
+        return self._final_url
+
+    def read(self, amt: int = -1) -> bytes:
+        return self._resp.read(amt)
+
+    def __enter__(self) -> "_ValidatedDownloadStream":
+        return self
+
+    def __exit__(self, *_args: object) -> None:
+        try:
+            self._conn.close()
+        except Exception:
+            pass
+
+
+def _ordered_validated_ips(ips: set[str]) -> list[str]:
+    """Return validated IPs deterministically with IPv4 preferred before IPv6."""
+    return sorted(ips, key=lambda ip: (1 if ":" in ip else 0, ip))
+
+
+def _open_validated_hf_download(
+    url_str: str,
+    headers: dict[str, str],
+    *,
+    timeout_s: float = 30.0,
+    max_redirects: int = 6,
+) -> _ValidatedDownloadStream:
+    """Manually follow redirects after validating every destination host, port, & resolved IP BEFORE connecting."""
+    cur_url = (url_str or "").strip()
+    for hop in range(max(0, int(max_redirects)) + 1):
+        host, port, path_q, resolved_ips = _validate_download_url(cur_url, resolve_dns=True)
+        if not resolved_ips:
+            raise ModelDownloadError(f"No validated IP addresses for '{host}'")
+        req_hdrs = {
+            **headers,
+            "Host": host,
+            "Connection": "close",
+        }
+        conn: http.client.HTTPConnection | None = None
+        resp: http.client.HTTPResponse | None = None
+        last_exc: Exception | None = None
+        for target_ip in _ordered_validated_ips(resolved_ips):
+            cand_conn = _PinnedHTTPSConnection(host, port, target_ip, timeout=timeout_s)
+            try:
+                cand_conn.request("GET", path_q, headers=req_hdrs)
+                resp = cand_conn.getresponse()
+                conn = cand_conn
+                break
+            except ssl.SSLError as exc:
+                cand_conn.close()
+                raise ModelDownloadError(f"TLS verification error for {host}: {exc}") from exc
+            except ModelDownloadError:
+                cand_conn.close()
+                raise
+            except OSError as exc:
+                cand_conn.close()
+                last_exc = exc
+                continue
+            except Exception as exc:
+                cand_conn.close()
+                raise ModelDownloadError(f"Download connection error for {host}: {exc}") from exc
+        if conn is None or resp is None:
+            raise ModelDownloadError(f"Download connection error for {host}: {last_exc}") from last_exc
+
+        status = int(resp.status)
+        if status in (301, 302, 303, 307, 308):
+            loc = str(resp.getheader("Location") or "").strip()
+            conn.close()
+            if not loc:
+                raise ModelDownloadError(f"Redirect ({status}) missing Location header from {host}")
+            if hop >= max_redirects:
+                raise ModelDownloadError(f"Exceeded max redirects ({max_redirects}) downloading {host}")
+            cur_url = urllib.parse.urljoin(cur_url, loc)
+            continue
+        return _ValidatedDownloadStream(conn, resp, cur_url)
+    raise ModelDownloadError("Exceeded redirect limit")
 
 
 def download_hf_model(
@@ -1837,7 +2002,7 @@ def download_hf_model(
     try:
         lock_fh = open(lock_path, "a+b")
         try:
-            fcntl.flock(lock_fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            lock_file_exclusive(lock_fh, nonblocking=True)
         except BlockingIOError as exc:
             raise ModelDownloadError(f"Another process is already downloading {spec.name}") from exc
 
@@ -1894,14 +2059,18 @@ def download_hf_model(
         headers = {"User-Agent": "Vimona/1.0"}
         if resume_from > 0:
             headers["Range"] = f"bytes={resume_from}-"
-        req = urllib.request.Request(spec.download_url, headers=headers)
 
         keep_part_on_error = False
         try:
-            with urllib.request.urlopen(req, timeout=cfg.connect_timeout_s) as resp:
+            with _open_validated_hf_download(
+                spec.download_url,
+                headers,
+                timeout_s=cfg.connect_timeout_s,
+                max_redirects=cfg.max_redirects,
+            ) as resp:
                 resp_url = resp.geturl() if hasattr(resp, "geturl") else spec.download_url
                 if resp_url:
-                    _validate_download_url(resp_url)
+                    _validate_download_url(resp_url, resolve_dns=False)
                 status_code = int(getattr(resp, "status", 200) or 200)
                 if status_code >= 400:
                     raise ModelDownloadError(f"HTTP {status_code} fetching {spec.name}")
@@ -2004,7 +2173,7 @@ def download_hf_model(
             _ACTIVE_DOWNLOADS.discard(dl_key)
         if lock_fh is not None:
             try:
-                fcntl.flock(lock_fh.fileno(), fcntl.LOCK_UN)
+                unlock_file(lock_fh)
                 lock_fh.close()
             except OSError:
                 pass

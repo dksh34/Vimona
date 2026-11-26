@@ -61,16 +61,17 @@ class SafeBlurSettings:
     borderline_margin: float = BORDERLINE_MARGIN
     video_sample_frames: int = VIDEO_SAMPLE_FRAMES
     fail_closed_unavailable: bool = True
+    fail_closed_on_error: bool = True
     blur_on_borderline: bool = False
 
 
 @dataclass(frozen=True)
 class ClassificationResult:
-    """Rich classification output exposing status (`ok`|`borderline`|`unavailable`|`error`)."""
+    """Rich classification output exposing status (`safe`|`flagged`|`borderline`|`unavailable`|`error`)."""
 
     flagged: bool
     score: float
-    status: str  # "ok" | "borderline" | "unavailable" | "error"
+    status: str  # "safe" | "flagged" | "borderline" | "unavailable" | "error"
     confidence: float
     text_status: str
     vision_status: str
@@ -89,6 +90,7 @@ def get_safety_settings() -> SafeBlurSettings:
                     borderline_margin=max(0.01, min(0.25, float(raw.get("borderline_margin", BORDERLINE_MARGIN)))),
                     video_sample_frames=max(5, min(24, int(raw.get("video_sample_frames", VIDEO_SAMPLE_FRAMES)))),
                     fail_closed_unavailable=bool(raw.get("fail_closed_unavailable", True)),
+                    fail_closed_on_error=bool(raw.get("fail_closed_on_error", True)),
                     blur_on_borderline=bool(raw.get("blur_on_borderline", False)),
                 )
     except Exception:
@@ -103,6 +105,7 @@ def configure_safety_settings(
     borderline_margin: float | None = None,
     video_sample_frames: int | None = None,
     fail_closed_unavailable: bool | None = None,
+    fail_closed_on_error: bool | None = None,
     blur_on_borderline: bool | None = None,
 ) -> SafeBlurSettings:
     """Persist controlled SafeBlur thresholds safely (`G11`)."""
@@ -113,6 +116,7 @@ def configure_safety_settings(
         borderline_margin=max(0.01, min(0.25, float(borderline_margin if borderline_margin is not None else cur.borderline_margin))),
         video_sample_frames=max(5, min(24, int(video_sample_frames if video_sample_frames is not None else cur.video_sample_frames))),
         fail_closed_unavailable=cur.fail_closed_unavailable if fail_closed_unavailable is None else bool(fail_closed_unavailable),
+        fail_closed_on_error=cur.fail_closed_on_error if fail_closed_on_error is None else bool(fail_closed_on_error),
         blur_on_borderline=cur.blur_on_borderline if blur_on_borderline is None else bool(blur_on_borderline),
     )
     SAFETY_SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -126,6 +130,7 @@ def configure_safety_settings(
                 "borderline_margin": nxt.borderline_margin,
                 "video_sample_frames": nxt.video_sample_frames,
                 "fail_closed_unavailable": nxt.fail_closed_unavailable,
+                "fail_closed_on_error": nxt.fail_closed_on_error,
                 "blur_on_borderline": nxt.blur_on_borderline,
             },
             indent=2,
@@ -133,6 +138,8 @@ def configure_safety_settings(
         encoding="utf-8",
     )
     tmp.replace(SAFETY_SETTINGS_FILE)
+    if _ENGINE is not None:
+        _ENGINE.classify_file.cache_clear()
     return nxt
 
 
@@ -420,12 +427,14 @@ class SafeBlurMLEngine:
         cfg = get_safety_settings()
         th = float(threshold if threshold is not None else cfg.text_threshold)
         t_state = "ok" if self.text_available else "unavailable"
+        if not (text or "").strip():
+            return ClassificationResult(False, 0.0, "safe", 1.0, t_state, "n/a")
         prob = self.score_text(text)
         if not self.text_available and _UNAMBIGUOUS_NSFW_RE.search(text or ""):
-            return ClassificationResult(True, prob, "ok", 0.95, t_state, "n/a", "Hard keyword rule")
+            return ClassificationResult(True, prob, "flagged", 0.95, t_state, "n/a", "Hard keyword rule")
         if not self.text_available:
             return ClassificationResult(
-                bool(cfg.fail_closed_unavailable and bool((text or "").strip())),
+                bool(cfg.fail_closed_unavailable),
                 prob,
                 "unavailable",
                 0.0,
@@ -436,13 +445,13 @@ class SafeBlurMLEngine:
             )
         margin_low = max(0.0, th - cfg.borderline_margin)
         if prob >= th:
-            st = "ok"
+            st = "flagged"
             fl = True
         elif prob >= margin_low:
             st = "borderline"
             fl = bool(cfg.blur_on_borderline)
         else:
-            st = "ok"
+            st = "safe"
             fl = False
         conf = round(min(1.0, abs(prob - th) / max(0.05, cfg.borderline_margin)), 3)
         return ClassificationResult(fl, prob, st, conf, "ok", "n/a")
@@ -474,9 +483,20 @@ class SafeBlurMLEngine:
         t_res = self.assess_text(context_text) if context_text else None
         t_prob = t_res.score if t_res is not None else 0.0
         if t_res is not None and t_res.flagged:
-            vp = self.score_image_rgb(rgb)
+            try:
+                vp = self.score_image_rgb(rgb) if (rgb is not None and isinstance(rgb, np.ndarray) and rgb.size > 0) else 0.0
+            except Exception:
+                vp = 0.0
             eff = max(t_prob, vp if vp >= 0.0 else 0.0)
-            return ClassificationResult(True, eff, "ok", 1.0, t_res.text_status, "ok" if self.vision_available else "unavailable", "Context triggered")
+            return ClassificationResult(
+                True,
+                eff,
+                "flagged",
+                1.0,
+                t_res.text_status,
+                "ok" if self.vision_available else "unavailable",
+                "Context triggered",
+            )
 
         # G1 & G2: Missing or corrupt vision weights MUST report unavailable & fail-closed (never silent 0.0 safe!)
         if not self.vision_available or self._weights is None:
@@ -491,19 +511,41 @@ class SafeBlurMLEngine:
                 fail_closed=cfg.fail_closed_unavailable,
             )
 
-        if rgb is None or rgb.size == 0:
-            return ClassificationResult(False, 0.0, "error", 0.0, "ok", "ok", "Empty RGB array")
+        if rgb is None or not isinstance(rgb, np.ndarray) or rgb.size == 0 or rgb.ndim not in (2, 3):
+            return ClassificationResult(
+                flagged=bool(cfg.fail_closed_on_error),
+                score=0.0,
+                status="error",
+                confidence=0.0,
+                text_status=t_res.text_status if t_res else "ok",
+                vision_status="error",
+                reason="Empty or invalid RGB array",
+                fail_closed=cfg.fail_closed_on_error,
+            )
 
-        v_prob = self.score_image_rgb(rgb)
+        try:
+            v_prob = self.score_image_rgb(rgb)
+        except Exception as exc:
+            return ClassificationResult(
+                flagged=bool(cfg.fail_closed_on_error),
+                score=0.0,
+                status="error",
+                confidence=0.0,
+                text_status=t_res.text_status if t_res else "ok",
+                vision_status="error",
+                reason=f"Image scorer failed: {exc}",
+                fail_closed=cfg.fail_closed_on_error,
+            )
+
         margin_low = max(0.0, th_v - cfg.borderline_margin)
         if v_prob >= th_v:
-            st = "ok"
+            st = "flagged"
             fl = True
         elif v_prob >= margin_low:
             st = "borderline"
             fl = bool(cfg.blur_on_borderline)
         else:
-            st = "ok"
+            st = "safe"
             fl = False
         conf = round(min(1.0, abs(v_prob - th_v) / max(0.05, cfg.borderline_margin)), 3)
         return ClassificationResult(
@@ -530,13 +572,13 @@ class SafeBlurMLEngine:
         prompt_hint: str = "",
         title: str = "",
     ) -> ClassificationResult:
+        cfg = get_safety_settings()
         ctx = f"{title} {prompt_hint}".strip()
-        ctx_res = self.assess_text(ctx) if ctx else ClassificationResult(False, 0.0, "ok", 1.0, "ok", "ok")
+        ctx_res = self.assess_text(ctx) if ctx else ClassificationResult(False, 0.0, "safe", 1.0, "ok", "ok")
         if ctx_res.flagged:
             return ctx_res
 
         if not self.vision_available or self._weights is None:
-            cfg = get_safety_settings()
             return ClassificationResult(
                 flagged=bool(cfg.fail_closed_unavailable),
                 score=ctx_res.score,
@@ -549,17 +591,45 @@ class SafeBlurMLEngine:
             )
 
         if not file_path_str:
-            return ClassificationResult(False, ctx_res.score, "error", 0.0, ctx_res.text_status, "ok", "Missing path")
+            return ClassificationResult(
+                flagged=bool(cfg.fail_closed_on_error),
+                score=ctx_res.score,
+                status="error",
+                confidence=0.0,
+                text_status=ctx_res.text_status,
+                vision_status="error",
+                reason="Missing path",
+                fail_closed=cfg.fail_closed_on_error,
+            )
         p = Path(file_path_str)
         if not p.is_file():
-            return ClassificationResult(False, ctx_res.score, "error", 0.0, ctx_res.text_status, "ok", "File not found")
+            return ClassificationResult(
+                flagged=bool(cfg.fail_closed_on_error),
+                score=ctx_res.score,
+                status="error",
+                confidence=0.0,
+                text_status=ctx_res.text_status,
+                vision_status="error",
+                reason="File not found",
+                fail_closed=cfg.fail_closed_on_error,
+            )
 
-        cfg = get_safety_settings()
         ext = p.suffix.lower()
         try:
             if ext in (".mp4", ".webm", ".mkv", ".mov", ".avi"):
                 cap = cv2.VideoCapture(str(p))
                 try:
+                    if not cap.isOpened():
+                        return ClassificationResult(
+                            flagged=bool(cfg.fail_closed_on_error),
+                            score=ctx_res.score,
+                            status="error",
+                            confidence=0.0,
+                            text_status=ctx_res.text_status,
+                            vision_status="error",
+                            reason="Could not open video stream",
+                            fail_closed=cfg.fail_closed_on_error,
+                        )
                     n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
                     target_n = min(max(1, n), cfg.video_sample_frames)
                     if n <= target_n:
@@ -569,19 +639,32 @@ class SafeBlurMLEngine:
                     scores: list[float] = []
                     statuses: list[str] = []
                     flags = 0
+                    failed_reads = 0
                     for idx in idxs:
                         cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
                         ok, bgr = cap.read()
                         if not ok or bgr is None:
+                            failed_reads += 1
                             continue
                         rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
                         r_frm = self.assess_image_rgb(rgb, context_text=ctx)
+                        if r_frm.status in ("error", "unavailable"):
+                            return r_frm
                         scores.append(r_frm.score)
                         statuses.append(r_frm.status)
                         if r_frm.flagged:
                             flags += 1
-                    if not scores:
-                        return ClassificationResult(False, ctx_res.score * 0.7, "error", 0.0, ctx_res.text_status, "ok", "Unreadable video frames")
+                    if not scores or (len(idxs) > 0 and failed_reads > len(idxs) // 2):
+                        return ClassificationResult(
+                            flagged=bool(cfg.fail_closed_on_error),
+                            score=ctx_res.score,
+                            status="error",
+                            confidence=0.0,
+                            text_status=ctx_res.text_status,
+                            vision_status="error",
+                            reason="Unreadable or truncated video frames",
+                            fail_closed=cfg.fail_closed_on_error,
+                        )
                     # Peak & top-k aggregation instead of pure mean dilution (`G7`, `G8`)
                     top_k = sorted(scores, reverse=True)[: max(1, min(3, len(scores)))]
                     top_k_mean = sum(top_k) / len(top_k)
@@ -592,7 +675,7 @@ class SafeBlurMLEngine:
                         or peak >= cfg.vision_threshold
                         or top_k_mean >= (cfg.vision_threshold * 0.95)
                     )
-                    st = "borderline" if (not is_vid_flagged and "borderline" in statuses) else "ok"
+                    st = "flagged" if is_vid_flagged else ("borderline" if "borderline" in statuses else "safe")
                     return ClassificationResult(
                         flagged=is_vid_flagged,
                         score=peak if is_vid_flagged else top_k_mean,
@@ -606,11 +689,29 @@ class SafeBlurMLEngine:
             else:
                 bgr = cv2.imread(str(p))
                 if bgr is None:
-                    return ClassificationResult(False, ctx_res.score, "error", 0.0, ctx_res.text_status, "ok", "Unreadable image")
+                    return ClassificationResult(
+                        flagged=bool(cfg.fail_closed_on_error),
+                        score=ctx_res.score,
+                        status="error",
+                        confidence=0.0,
+                        text_status=ctx_res.text_status,
+                        vision_status="error",
+                        reason="Unreadable image or unsupported format",
+                        fail_closed=cfg.fail_closed_on_error,
+                    )
                 rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
                 return self.assess_image_rgb(rgb, context_text=ctx)
         except Exception as exc:
-            return ClassificationResult(False, ctx_res.score, "error", 0.0, ctx_res.text_status, "ok", str(exc))
+            return ClassificationResult(
+                flagged=bool(cfg.fail_closed_on_error),
+                score=ctx_res.score,
+                status="error",
+                confidence=0.0,
+                text_status=ctx_res.text_status,
+                vision_status="error",
+                reason=f"Classification error: {exc}",
+                fail_closed=cfg.fail_closed_on_error,
+            )
 
     @lru_cache(maxsize=256)
     def classify_file(
@@ -623,17 +724,44 @@ class SafeBlurMLEngine:
         return (res.flagged, res.score)
 
 
+def _compute_binary_metrics(tp: int, fp: int, tn: int, fn: int) -> dict[str, Any]:
+    prec = tp / (tp + fp) if (tp + fp) > 0 else 1.0
+    rec = tp / (tp + fn) if (tp + fn) > 0 else 1.0
+    fpr = fp / (fp + tn) if (fp + tn) > 0 else 0.0
+    fnr = fn / (fn + tp) if (fn + tp) > 0 else 0.0
+    return {
+        "tp": tp,
+        "fp": fp,
+        "tn": tn,
+        "fn": fn,
+        "total": tp + fp + tn + fn,
+        "precision": round(prec, 4),
+        "recall": round(rec, 4),
+        "fpr": round(fpr, 4),
+        "fnr": round(fnr, 4),
+    }
+
+
 def evaluate_safeblur_dataset(engine: SafeBlurMLEngine | None = None) -> dict[str, Any]:
-    """Run controlled labeled text+vision benchmark measuring FPR & FNR across skin tones/lighting (`G3`–`G6`, `G14`)."""
+    """Run controlled labeled text+vision regression benchmark with separate precision/recall/FPR/FNR (`G3`–`G6`, `G14`)."""
     eng = engine or get_safety_ml_engine()
     if eng.status != "ready":
         return {"status": "unavailable", "reason": eng.load_error}
 
-    # Text test set
+    # Expanded labeled text corpus (unambiguous explicit/NSFL vs technical/medical/aesthetic benign)
     pos_texts = [
         "explicit nude nsfw photography",
         "pornographic topless model",
         "dismembered gorefest scene",
+        "uncensored hardcore xxx sex scene",
+        "explicit erotica uncensored lingerie strip",
+        "graphic nsfl bloody decapitation",
+        "nsfw uncensored hentai explicit",
+        "nude woman boudoir uncensored full body",
+        "pornographic explicit adult couple",
+        "extreme graphic gore eviscerated",
+        "explicit sensual nude beach portrait",
+        "uncensored bdsm fetish explicit",
     ]
     neg_texts = [
         "sunset mountain lake alpenglow",
@@ -641,17 +769,27 @@ def evaluate_safeblur_dataset(engine: SafeBlurMLEngine | None = None) -> dict[st
         "kill process in linux kernel",
         "blonde woman smiling wearing thick winter coat in snow",
         "skin-tone ceramic vase on wooden table",
+        "vintage film camera 50mm lens street photography",
+        "terracotta pottery studio warm natural light",
+        "architectural concrete brutalist museum interior",
+        "software developer debugging bash script in terminal",
+        "alpine snow pine trees golden hour mist",
+        "red sports jacket portrait outdoors overcast",
+        "anatomy textbook diagram skeletal muscle structure",
     ]
-    t_fp = sum(1 for t in neg_texts if eng.classify_text(t)[0])
-    t_fn = sum(1 for t in pos_texts if not eng.classify_text(t)[0])
+    t_tp = sum(1 for t in pos_texts if eng.assess_text(t).flagged)
+    t_fn = len(pos_texts) - t_tp
+    t_fp = sum(1 for t in neg_texts if eng.assess_text(t).flagged)
+    t_tn = len(neg_texts) - t_fp
+    text_metrics = _compute_binary_metrics(t_tp, t_fp, t_tn, t_fn)
 
-    # Synthetic image test set (benign subjects across lighting/colors/skin tones, zero NSFW synthetic bypasses)
+    # Synthetic vision regression dataset covering lighting, colors, foliage/wood/brick, & high-exposure flesh/crimson checks
     benign_imgs: list[tuple[str, np.ndarray]] = []
     # 1. Night neon cyan/magenta scene
     im_neon = np.full((128, 128, 3), (18, 22, 48), dtype=np.uint8)
     im_neon[20:100, 30:98] = (20, 180, 210)
     benign_imgs.append(("cool_neon", im_neon))
-    # 2. Warm wooden cabin amber planks (horizontally striped warm pixels)
+    # 2. Warm wooden cabin amber planks
     im_wood = np.full((128, 128, 3), (145, 92, 54), dtype=np.uint8)
     for y in range(0, 128, 8):
         im_wood[y : y + 2, :] = (88, 52, 28)
@@ -664,16 +802,73 @@ def evaluate_safeblur_dataset(engine: SafeBlurMLEngine | None = None) -> dict[st
     im_dark = np.full((128, 128, 3), (24, 24, 28), dtype=np.uint8)
     im_dark[30:90, 50:78] = (72, 68, 64)
     benign_imgs.append(("lowkey_dark", im_dark))
+    # 5. Silver/monochrome cityscape
+    im_mono = np.full((128, 128, 3), (92, 96, 102), dtype=np.uint8)
+    im_mono[20:110, 20:50] = (140, 144, 150)
+    benign_imgs.append(("monochrome_city", im_mono))
+    # 6. Ocean teal wave gradients
+    im_sea = np.full((128, 128, 3), (26, 98, 124), dtype=np.uint8)
+    im_sea[:40, :] = (165, 205, 230)
+    benign_imgs.append(("ocean_teal", im_sea))
+    # 7. Autumn forest leaves (amber/gold/green)
+    im_aut = np.full((128, 128, 3), (62, 88, 44), dtype=np.uint8)
+    im_aut[24:96, 24:104] = (182, 134, 42)
+    benign_imgs.append(("autumn_foliage", im_aut))
+    # 8. Sunset lavender sky over dark ridge
+    im_sunset = np.full((128, 128, 3), (118, 86, 142), dtype=np.uint8)
+    im_sunset[80:, :] = (28, 24, 34)
+    benign_imgs.append(("lavender_dusk", im_sunset))
+    # 9. Technical emerald wireframe blueprint
+    im_grid = np.full((128, 128, 3), (12, 28, 24), dtype=np.uint8)
+    im_grid[::16, :] = (44, 188, 140)
+    im_grid[:, ::16] = (44, 188, 140)
+    benign_imgs.append(("emerald_grid", im_grid))
+    # 10. Clothed portrait placeholder (dark slate torso coat + bright background)
+    im_coat = np.full((128, 128, 3), (195, 210, 222), dtype=np.uint8)
+    im_coat[52:, 34:94] = (40, 48, 62)
+    benign_imgs.append(("clothed_coat_scene", im_coat))
 
-    v_fp = sum(1 for _lbl, arr in benign_imgs if eng.classify_image_rgb(arr)[0])
-    fpr_text = t_fp / max(1, len(neg_texts))
-    fnr_text = t_fn / max(1, len(pos_texts))
-    fpr_vision = v_fp / max(1, len(benign_imgs))
+    positive_imgs: list[tuple[str, np.ndarray]] = []
+    # Synthetic positive regression matrices across lighting & skin-tone/crimson spectra
+    for idx, (bg, fg, box) in enumerate(
+        [
+            ((35, 38, 42), (218, 152, 128), (16, 112, 18, 110)),
+            ((28, 30, 34), (176, 114, 86), (16, 112, 18, 110)),
+            ((22, 24, 30), (144, 92, 68), (18, 110, 20, 108)),
+            ((48, 52, 58), (226, 162, 136), (12, 116, 22, 106)),
+            ((18, 20, 26), (198, 134, 106), (20, 108, 16, 112)),
+            ((30, 30, 34), (135, 12, 16), (20, 108, 20, 108)),
+            ((20, 22, 28), (148, 18, 22), (16, 112, 24, 104)),
+            ((42, 40, 46), (162, 24, 28), (18, 110, 18, 110)),
+            ((15, 18, 24), (208, 144, 118), (14, 114, 14, 114)),
+            ((60, 64, 70), (188, 126, 98), (16, 112, 20, 108)),
+        ],
+        1,
+    ):
+        arr = np.full((128, 128, 3), bg, dtype=np.uint8)
+        y0, y1, x0, x1 = box
+        arr[y0:y1, x0:x1] = fg
+        positive_imgs.append((f"syn_pos_{idx:02d}", arr))
+
+    v_tp = sum(1 for _lbl, arr in positive_imgs if eng.assess_image_rgb(arr).flagged)
+    v_fn = len(positive_imgs) - v_tp
+    v_fp = sum(1 for _lbl, arr in benign_imgs if eng.assess_image_rgb(arr).flagged)
+    v_tn = len(benign_imgs) - v_fp
+    vision_metrics = _compute_binary_metrics(v_tp, v_fp, v_tn, v_fn)
+
     return {
         "status": "ok",
-        "text_fpr": round(fpr_text, 4),
-        "text_fnr": round(fnr_text, 4),
-        "vision_benign_fpr": round(fpr_vision, 4),
+        "dataset_type": "synthetic_regression",
+        "limitations": (
+            "Measured on expanded synthetic regression fixtures; real-world precision/recall "
+            "requires evaluation against a human-labeled photographic validation corpus."
+        ),
+        "text": text_metrics,
+        "vision": vision_metrics,
+        "text_fpr": text_metrics["fpr"],
+        "text_fnr": text_metrics["fnr"],
+        "vision_benign_fpr": vision_metrics["fpr"],
+        "vision_fnr": vision_metrics["fnr"],
         "tested_lighting_profiles": [lbl for lbl, _ in benign_imgs],
     }
 

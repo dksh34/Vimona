@@ -17,24 +17,27 @@ from __future__ import annotations
 
 import argparse
 import base64
-import fcntl
 import hashlib
+import http.client
 import io
 import ipaddress
 import json
 import os
 import re
-import resource
 import shutil
 import signal
 import socket
+import ssl
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import urllib.parse
 from pathlib import Path
 from typing import Any
+
+from .platform_compat import disable_core_dumps, lock_file_exclusive, unlock_file
 
 _MAX_RESULTS_CAP = 10
 _MAX_IMAGES_CAP = 8
@@ -42,13 +45,17 @@ _MAX_IMAGE_BYTES = 8 * 1024 * 1024
 _MAX_IMAGE_PIXELS = 16_000_000
 _MAX_IMAGE_DIM = 4096
 _MAX_RESEARCH_BYTES = 24 * 1024 * 1024
+_MAX_WORKER_STDOUT_BYTES = 36 * 1024 * 1024
+_MAX_WORKER_STDERR_BYTES = 256 * 1024
 _MAX_NAVIGATIONS = 8
 _SAFESEARCH_KP_MAP = {"strict": "1", "moderate": "-1", "off": "-2"}
 
 from .airgap import (
     _read_proc_start_ticks,
+    collect_descendant_identities,
     collect_descendant_pids,
     detect_ram_persistence_risk,
+    get_last_wipe_diagnostics,
     is_pid_alive_with_start,
     kill_process_tree_verified,
     purge_legacy_burner_profile,
@@ -83,6 +90,8 @@ _MEMORY_ONLY_FIREFOX_PREFS: dict[str, Any] = {
     "toolkit.telemetry.enabled": False,
     "datareporting.healthreport.uploadEnabled": False,
     "app.update.enabled": False,
+    "network.proxy.no_proxies_on": "",
+    "network.proxy.allow_hijacking_localhost": True,
 }
 
 
@@ -191,6 +200,348 @@ def validate_public_http_url(
     return (True, "OK", resolved_ips)
 
 
+class _PinnedHTTPConnection(http.client.HTTPConnection):
+    """HTTP client that dials a pre-validated pinned IP instead of re-resolving DNS (`F1`–`F3`)."""
+
+    def __init__(self, orig_host: str, port: int, pinned_ip: str, timeout: float = 7.0) -> None:
+        super().__init__(orig_host, port=port, timeout=timeout)
+        self._pinned_ip = pinned_ip
+
+    def connect(self) -> None:
+        self.sock = socket.create_connection((self._pinned_ip, self.port), self.timeout, self.source_address)
+
+
+class _PinnedHTTPSConnection(http.client.HTTPSConnection):
+    """HTTPS client that dials a pre-validated pinned IP and verifies TLS against original hostname."""
+
+    def __init__(self, orig_host: str, port: int, pinned_ip: str, timeout: float = 7.0) -> None:
+        super().__init__(orig_host, port=port, timeout=timeout, context=ssl.create_default_context())
+        self._pinned_ip = pinned_ip
+        self._sni_host = orig_host
+
+    def connect(self) -> None:
+        raw_sock = socket.create_connection((self._pinned_ip, self.port), self.timeout, self.source_address)
+        self.sock = self._context.wrap_socket(raw_sock, server_hostname=self._sni_host)
+
+
+def _ordered_validated_ips(ips: set[str]) -> list[str]:
+    """Return validated IPs deterministically with IPv4 preferred before IPv6."""
+    return sorted(ips, key=lambda ip: (1 if ":" in ip else 0, ip))
+
+
+def _dial_validated_ips(ips: set[str], port: int, *, timeout: float) -> socket.socket:
+    """Connect sequentially across validated IPs, propagating final OSError if none succeed."""
+    ordered = _ordered_validated_ips(ips)
+    last_exc: OSError | None = None
+    for target_ip in ordered:
+        try:
+            return socket.create_connection((target_ip, port), timeout=timeout)
+        except OSError as exc:
+            last_exc = exc
+            continue
+    if last_exc is not None:
+        raise last_exc
+    raise OSError("No validated target IPs available")
+
+
+def fetch_public_image_pinned(
+    url: str,
+    *,
+    pinned_hosts: dict[str, set[str]],
+    max_redirects: int = 3,
+    max_bytes: int = _MAX_IMAGE_BYTES,
+    timeout_s: float = 7.0,
+) -> tuple[bytes, str] | None:
+    """Fetch public HTTP/HTTPS image with per-hop SSRF/redirect validation and pinned-IP dialing (`F1`–`F3`)."""
+    if max_bytes <= 0:
+        return None
+    cur_url = (url or "").strip()
+    for hop in range(max_redirects + 1):
+        ok, _err, resolved_ips = validate_public_http_url(
+            cur_url,
+            resolve_dns=True,
+            pinned_hosts=pinned_hosts,
+        )
+        if not ok or not resolved_ips:
+            return None
+        parsed = urllib.parse.urlparse(cur_url)
+        scheme = parsed.scheme.lower()
+        host = (parsed.hostname or "").strip().lower().rstrip(".")
+        default_port = 443 if scheme == "https" else 80
+        port = int(parsed.port or default_port)
+        path_q = parsed.path or "/"
+        if parsed.query:
+            path_q = f"{path_q}?{parsed.query}"
+        host_hdr = f"[{host}]" if ":" in host else host
+        if port != default_port:
+            host_hdr = f"{host_hdr}:{port}"
+
+        req_headers = {
+            "Host": host_hdr,
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0",
+            "Accept": "image/avif,image/webp,image/png,image/jpeg,image/*;q=0.8,*/*;q=0.5",
+            "Connection": "close",
+        }
+        conn: http.client.HTTPConnection | None = None
+        resp: http.client.HTTPResponse | None = None
+        for target_ip in _ordered_validated_ips(resolved_ips):
+            cand_conn: http.client.HTTPConnection = (
+                _PinnedHTTPSConnection(host, port, target_ip, timeout=timeout_s)
+                if scheme == "https"
+                else _PinnedHTTPConnection(host, port, target_ip, timeout=timeout_s)
+            )
+            try:
+                cand_conn.request("GET", path_q, headers=req_headers)
+                resp = cand_conn.getresponse()
+                conn = cand_conn
+                break
+            except ssl.SSLError:
+                try:
+                    cand_conn.close()
+                except Exception:
+                    pass
+                return None
+            except OSError:
+                try:
+                    cand_conn.close()
+                except Exception:
+                    pass
+                continue
+            except Exception:
+                try:
+                    cand_conn.close()
+                except Exception:
+                    pass
+                return None
+
+        if conn is None or resp is None:
+            return None
+
+        try:
+            status = int(resp.status)
+            if status in (301, 302, 303, 307, 308):
+                loc = str(resp.getheader("Location") or "").strip()
+                if not loc or hop >= max_redirects:
+                    return None
+                cur_url = urllib.parse.urljoin(cur_url, loc)
+                continue
+            if status < 200 or status >= 300:
+                return None
+            cl_raw = resp.getheader("Content-Length") or ""
+            if cl_raw.isdigit() and int(cl_raw) > max_bytes:
+                return None
+            buf = bytearray()
+            while True:
+                chunk = resp.read(65536)
+                if not chunk:
+                    break
+                if (len(buf) + len(chunk)) > max_bytes:
+                    return None
+                buf.extend(chunk)
+            return (bytes(buf), cur_url)
+        except Exception:
+            return None
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
+    return None
+
+
+class _ValidatingLocalProxy:
+    """Loopback HTTP/CONNECT proxy enforcing `validate_public_http_url` & pinned-IP dialing for Firefox (`F1`–`F3`)."""
+
+    def __init__(self, pinned_hosts: dict[str, set[str]]) -> None:
+        self._pinned_hosts = pinned_hosts
+        self._stop_ev = threading.Event()
+        self._srv: socket.socket | None = None
+        self._accept_thread: threading.Thread | None = None
+        self._lock = threading.Lock()
+        self._sockets: set[socket.socket] = set()
+        self._threads: list[threading.Thread] = []
+        self.port: int = 0
+
+    def _close_socks(self, *socks: socket.socket) -> None:
+        with self._lock:
+            for sk in socks:
+                self._sockets.discard(sk)
+        for sk in socks:
+            try:
+                sk.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            try:
+                sk.close()
+            except OSError:
+                pass
+
+    def _relay(self, src: socket.socket, dst: socket.socket) -> None:
+        try:
+            while not self._stop_ev.is_set():
+                data = src.recv(65536)
+                if not data:
+                    try:
+                        dst.shutdown(socket.SHUT_WR)
+                    except OSError:
+                        pass
+                    break
+                dst.sendall(data)
+        except OSError:
+            pass
+        finally:
+            self._close_socks(src, dst)
+
+    def _send_forbidden(self, client: socket.socket) -> None:
+        try:
+            client.sendall(b"HTTP/1.1 403 Forbidden\r\nContent-Length: 7\r\nConnection: close\r\n\r\nBlocked")
+        except OSError:
+            pass
+        self._close_socks(client)
+
+    def _handle_client(self, client: socket.socket) -> None:
+        upstream: socket.socket | None = None
+        try:
+            client.settimeout(5.0)
+            buf = bytearray()
+            while b"\r\n\r\n" not in buf and len(buf) < 32768:
+                chunk = client.recv(4096)
+                if not chunk:
+                    self._close_socks(client)
+                    return
+                buf.extend(chunk)
+            sep = buf.find(b"\r\n\r\n")
+            if sep == -1:
+                self._send_forbidden(client)
+                return
+            head_bytes = bytes(buf[:sep])
+            body_rem = bytes(buf[sep + 4 :])
+            lines = head_bytes.split(b"\r\n")
+            req_parts = lines[0].decode("latin-1", errors="replace").split()
+            if len(req_parts) < 3:
+                self._send_forbidden(client)
+                return
+            method, target, proto = req_parts[0].upper(), req_parts[1], req_parts[2]
+
+            if method == "CONNECT":
+                if target.startswith("[") and "]:" in target:
+                    host_part, port_str = target[1:].split("]:", 1)
+                    synth_url = f"https://[{host_part}]:{port_str}/"
+                elif ":" in target:
+                    host_part, port_str = target.rsplit(":", 1)
+                    synth_url = f"https://{host_part}:{port_str}/"
+                else:
+                    synth_url = f"https://{target}/"
+                    port_str = "443"
+                if not port_str.isdigit() or not (1 <= int(port_str) <= 65535):
+                    self._send_forbidden(client)
+                    return
+                port_num = int(port_str)
+                ok, _err, resolved_ips = validate_public_http_url(
+                    synth_url, resolve_dns=True, pinned_hosts=self._pinned_hosts
+                )
+                if not ok or not resolved_ips:
+                    self._send_forbidden(client)
+                    return
+                upstream = _dial_validated_ips(resolved_ips, port_num, timeout=10.0)
+                upstream.settimeout(None)
+                client.settimeout(None)
+                client.sendall(b"HTTP/1.1 200 Connection Established\r\n\r\n")
+                if body_rem:
+                    upstream.sendall(body_rem)
+            else:
+                ok, _err, resolved_ips = validate_public_http_url(
+                    target, resolve_dns=True, pinned_hosts=self._pinned_hosts
+                )
+                if not ok or not resolved_ips:
+                    self._send_forbidden(client)
+                    return
+                parsed = urllib.parse.urlparse(target)
+                port_num = int(parsed.port or (443 if parsed.scheme.lower() == "https" else 80))
+                upstream = _dial_validated_ips(resolved_ips, port_num, timeout=10.0)
+                upstream.settimeout(None)
+                client.settimeout(None)
+                path_q = parsed.path or "/"
+                if parsed.query:
+                    path_q = f"{path_q}?{parsed.query}"
+                clean_hdrs = [f"{method} {path_q} {proto}".encode("latin-1")]
+                for hl in lines[1:]:
+                    if hl.lower().startswith(b"proxy-connection:"):
+                        continue
+                    clean_hdrs.append(hl)
+                upstream.sendall(b"\r\n".join(clean_hdrs) + b"\r\n\r\n" + body_rem)
+
+            with self._lock:
+                self._sockets.add(upstream)
+            t1 = threading.Thread(target=self._relay, args=(client, upstream), daemon=True)
+            t2 = threading.Thread(target=self._relay, args=(upstream, client), daemon=True)
+            with self._lock:
+                self._threads = [t for t in self._threads if t.is_alive()] + [t1, t2]
+            t1.start()
+            t2.start()
+        except Exception:
+            if upstream is not None:
+                self._close_socks(client, upstream)
+            else:
+                self._close_socks(client)
+
+    def start(self) -> int:
+        srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        srv.bind(("127.0.0.1", 0))
+        srv.listen(32)
+        srv.settimeout(0.3)
+        self._srv = srv
+        self.port = int(srv.getsockname()[1])
+
+        def _accept_loop() -> None:
+            while not self._stop_ev.is_set():
+                try:
+                    c, _ = srv.accept()
+                except socket.timeout:
+                    continue
+                except OSError:
+                    break
+                with self._lock:
+                    self._sockets.add(c)
+                ht = threading.Thread(target=self._handle_client, args=(c,), daemon=True)
+                with self._lock:
+                    self._threads = [t for t in self._threads if t.is_alive()] + [ht]
+                ht.start()
+
+        self._accept_thread = threading.Thread(target=_accept_loop, daemon=True, name="vimona-search-proxy")
+        self._accept_thread.start()
+        return self.port
+
+    def stop(self) -> None:
+        self._stop_ev.set()
+        if self._srv is not None:
+            try:
+                self._srv.close()
+            except OSError:
+                pass
+            self._srv = None
+        with self._lock:
+            socks = list(self._sockets)
+            self._sockets.clear()
+            threads = list(self._threads)
+            self._threads.clear()
+        for sk in socks:
+            try:
+                sk.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            try:
+                sk.close()
+            except OSError:
+                pass
+        if self._accept_thread is not None and self._accept_thread.is_alive():
+            self._accept_thread.join(timeout=1.0)
+        for t in threads:
+            if t.is_alive():
+                t.join(timeout=0.5)
+
+
 def sniff_image_format(raw_bytes: bytes) -> str | None:
     """Identify raster image format strictly from binary magic bytes (`F8`)."""
     if len(raw_bytes) < 12:
@@ -243,7 +594,7 @@ def _alloc_ephemeral_ram_dir(
         pass
     lock_fh = open(p / ".worker.lock", "a+b")
     try:
-        fcntl.flock(lock_fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        lock_file_exclusive(lock_fh, nonblocking=True)
     except OSError:
         pass
     try:
@@ -565,10 +916,7 @@ def _execute_in_firefox(
             raise ValueError(f"Blocked URL ({err_u})")
 
     purge_legacy_burner_profile()
-    try:
-        resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
-    except Exception:
-        pass
+    disable_core_dumps()
     ephem_dir, lock_fh, profile_kind, ram_risk = _alloc_ephemeral_ram_dir()
     profile_dir = ephem_dir / "profile"
     ff_home = ephem_dir / "home"
@@ -605,7 +953,7 @@ def _execute_in_firefox(
     seen_img_urls: set[str] = set()
     seen_hashes: set[str] = set()
     browser_killed = False
-    recorded_pids: list[int] = []
+    recorded_identities: dict[int, int] = {}
     wiped = False
     wipe_error = ""
     budget_state = {"bytes_used": 0, "nav_count": 0}
@@ -628,16 +976,17 @@ def _execute_in_firefox(
             return
         seen_img_urls.add(img_url)
         try:
-            resp = ctx.request.get(img_url, timeout=7000, max_redirects=3)
-            if not resp.ok:
-                return
-            final_img_url = str(getattr(resp, "url", img_url) or img_url)
-            ok_rf, _err_rf, _ = validate_public_http_url(
-                final_img_url, resolve_dns=True, pinned_hosts=pinned_hosts
+            remaining_budget = max(0, _MAX_RESEARCH_BYTES - budget_state["bytes_used"])
+            fetched = fetch_public_image_pinned(
+                img_url,
+                pinned_hosts=pinned_hosts,
+                max_redirects=3,
+                max_bytes=min(_MAX_IMAGE_BYTES, remaining_budget),
+                timeout_s=7.0,
             )
-            if not ok_rf:
+            if fetched is None:
                 return
-            raw_bytes = resp.body()
+            raw_bytes, final_img_url = fetched
             if not raw_bytes or len(raw_bytes) < 4096 or len(raw_bytes) > _MAX_IMAGE_BYTES:
                 return
             if (budget_state["bytes_used"] + len(raw_bytes)) > _MAX_RESEARCH_BYTES:
@@ -675,12 +1024,15 @@ def _execute_in_firefox(
         except Exception:
             return
 
+    local_proxy = _ValidatingLocalProxy(pinned_hosts)
+    proxy_port = local_proxy.start()
     try:
         with sync_playwright() as pw:
             ctx = pw.firefox.launch_persistent_context(
                 user_data_dir=str(profile_dir),
                 headless=True,
                 firefox_user_prefs=_MEMORY_ONLY_FIREFOX_PREFS,
+                proxy={"server": f"http://127.0.0.1:{proxy_port}"},
                 args=["-private"],
                 env=isolated_ff_env,
             )
@@ -705,7 +1057,13 @@ def _execute_in_firefox(
                 route.continue_()
 
             ctx.route("**/*", _route_guard)
-            recorded_pids = [p for p in collect_descendant_pids(os.getpid()) if p != os.getpid()]
+            recorded_identities.update(
+                {
+                    p: st
+                    for p, (_u, st) in collect_descendant_identities(os.getpid()).items()
+                    if p != os.getpid()
+                }
+            )
             try:
                 page = ctx.new_page()
                 page.set_default_timeout(14000)
@@ -816,23 +1174,29 @@ def _execute_in_firefox(
                                 if len(references) >= max_images:
                                     break
             finally:
-                recorded_pids.extend(
-                    p for p in collect_descendant_pids(os.getpid()) if p != os.getpid() and p not in recorded_pids
-                )
+                for p, (_u, st) in collect_descendant_identities(os.getpid()).items():
+                    if p != os.getpid():
+                        recorded_identities.setdefault(p, st)
                 try:
                     ctx.close()
                 except Exception:
                     pass
                 # Wait explicitly for browser/child processes to exit before wiping files (`B6`)
                 exited = True
-                for bpid in list(recorded_pids):
-                    if not kill_process_tree_verified(bpid, term_timeout_s=2.5, kill_timeout_s=1.5):
+                for bpid, bst in list(recorded_identities.items()):
+                    if not kill_process_tree_verified(
+                        bpid,
+                        root_start_ticks=bst,
+                        term_timeout_s=2.5,
+                        kill_timeout_s=1.5,
+                    ):
                         exited = False
                 browser_killed = exited
     finally:
+        local_proxy.stop()
         if lock_fh is not None:
             try:
-                fcntl.flock(lock_fh.fileno(), fcntl.LOCK_UN)
+                unlock_file(lock_fh)
             except OSError:
                 pass
             try:
@@ -842,11 +1206,12 @@ def _execute_in_firefox(
         wiped = scorched_earth_wipe(
             ephem_dir,
             owner_pid=os.getpid(),
-            allowed_pids=recorded_pids,
+            allowed_identities=recorded_identities,
             wait_timeout_s=4.0,
         )
         if not wiped or ephem_dir.exists():
-            wipe_error = f"Cleanup verification failed: remnants remain at {ephem_dir}"
+            diag = get_last_wipe_diagnostics()
+            wipe_error = str(diag.get("error") or f"Cleanup verification failed: remnants remain at {ephem_dir}")
             wiped = False
 
     return {
@@ -930,42 +1295,127 @@ def run_ephemeral_research(
         cwd=str(PROJECT_ROOT),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        text=True,
         start_new_session=True,
     )
-    deadline = time.monotonic() + max(5.0, float(timeout_s))
-    cancelled = False
-    timed_out = False
-    while proc.poll() is None:
-        if cancel_event is not None and cancel_event.is_set():
-            cancelled = True
-            break
-        if time.monotonic() >= deadline:
-            timed_out = True
-            break
-        time.sleep(0.1)
+    worker_start_ticks = _read_proc_start_ticks(proc.pid)
+    stdout_buf = bytearray()
+    stderr_buf = bytearray()
+    stdout_overflow = threading.Event()
 
-    if cancelled or timed_out:
-        killed_ok = kill_process_tree_verified(proc.pid, term_timeout_s=2.0, kill_timeout_s=1.5)
+    def _drain_pipe(pipe: Any, target: bytearray, cap: int, overflow_ev: threading.Event | None) -> None:
+        if pipe is None:
+            return
         try:
-            proc.wait(timeout=1.5)
+            while True:
+                chunk = pipe.read(65536)
+                if not chunk:
+                    break
+                if len(target) < cap:
+                    remaining = cap - len(target)
+                    target.extend(chunk[:remaining])
+                    if len(chunk) > remaining and overflow_ev is not None:
+                        overflow_ev.set()
+                elif overflow_ev is not None:
+                    overflow_ev.set()
         except Exception:
             pass
+
+    t_out = threading.Thread(
+        target=_drain_pipe,
+        args=(proc.stdout, stdout_buf, _MAX_WORKER_STDOUT_BYTES, stdout_overflow),
+        daemon=True,
+    )
+    t_err = threading.Thread(
+        target=_drain_pipe,
+        args=(proc.stderr, stderr_buf, _MAX_WORKER_STDERR_BYTES, None),
+        daemon=True,
+    )
+    t_out.start()
+    t_err.start()
+
+    deadline = time.monotonic() + max(0.2, float(timeout_s))
+    cancelled = False
+    timed_out = False
+    overflowed = False
+    try:
+        while proc.poll() is None:
+            if stdout_overflow.is_set():
+                overflowed = True
+                break
+            if cancel_event is not None and cancel_event.is_set():
+                cancelled = True
+                break
+            if time.monotonic() >= deadline:
+                timed_out = True
+                break
+            time.sleep(0.05)
+
+        if cancelled or timed_out or overflowed:
+            killed_ok = kill_process_tree_verified(
+                proc.pid,
+                root_start_ticks=worker_start_ticks,
+                term_timeout_s=2.0,
+                kill_timeout_s=1.5,
+            )
+            try:
+                proc.wait(timeout=1.5)
+            except Exception:
+                pass
+            t_out.join(timeout=1.5)
+            t_err.join(timeout=1.0)
+            sweep_res = _sweep_orphan_shm_profiles()
+            if overflowed:
+                err_msg = "Research worker output exceeded maximum size limit."
+            elif cancelled:
+                err_msg = "Research cancelled."
+            else:
+                err_msg = "Ephemeral Firefox worker timed out."
+            return {
+                "query": query or url,
+                "error": err_msg,
+                "results": [],
+                "references": [],
+                "trace_report": {
+                    "wiped": bool(sweep_res.get("ok", False)),
+                    "wipe_error": "; ".join(sweep_res.get("errors", [])),
+                    "browser_killed": killed_ok,
+                    "safesearch": ss_mode,
+                    "images_extracted": 0,
+                },
+            }
+
+        try:
+            proc.wait(timeout=2.0)
+        except Exception:
+            pass
+        t_out.join(timeout=3.0)
+        t_err.join(timeout=2.0)
+    finally:
+        for pipe in (proc.stdout, proc.stderr):
+            if pipe is not None:
+                try:
+                    pipe.close()
+                except Exception:
+                    pass
+
+    if stdout_overflow.is_set():
         sweep_res = _sweep_orphan_shm_profiles()
         return {
             "query": query or url,
-            "error": "Research cancelled." if cancelled else "Ephemeral Firefox worker timed out.",
+            "error": "Research worker output exceeded maximum size limit.",
             "results": [],
             "references": [],
             "trace_report": {
                 "wiped": bool(sweep_res.get("ok", False)),
                 "wipe_error": "; ".join(sweep_res.get("errors", [])),
-                "browser_killed": killed_ok,
+                "browser_killed": True,
                 "safesearch": ss_mode,
                 "images_extracted": 0,
             },
         }
-    stdout, stderr = proc.communicate()
+
+    stdout = stdout_buf.decode("utf-8", errors="replace")
+    stderr = stderr_buf.decode("utf-8", errors="replace")
 
     sweep_res = _sweep_orphan_shm_profiles()
     if proc.returncode != 0:
@@ -1018,8 +1468,8 @@ def _sweep_orphan_shm_profiles() -> dict[str, Any]:
                     if lock_p.exists():
                         with open(lock_p, "r+b") as fh:
                             try:
-                                fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                                fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+                                lock_file_exclusive(fh, nonblocking=True)
+                                unlock_file(fh)
                             except BlockingIOError:
                                 continue
                     owner_p = item / ".worker_owner.json"

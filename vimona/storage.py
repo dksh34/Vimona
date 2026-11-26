@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import fcntl
 import json
 import os
 import shutil
@@ -16,6 +15,7 @@ from typing import Any
 
 from .airgap import is_pid_alive_with_start, purge_legacy_burner_profile, scorched_earth_wipe
 from .config import get_config
+from .platform_compat import lock_file_exclusive, unlock_file
 
 from .models import (
     ChatSession,
@@ -51,7 +51,7 @@ def _ensure_ephemeral_media_dir_locked() -> Path:
         lock_path = EPHEMERAL_MEDIA_DIR / ".vimona_media.lock"
         fh = open(lock_path, "a+b")
         try:
-            fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            lock_file_exclusive(fh, nonblocking=True)
         except OSError:
             pass
         _MEDIA_LOCK_FH = fh
@@ -91,8 +91,8 @@ def _can_safely_reap_media_dir(entry: Path) -> bool:
         try:
             with open(lock_path, "r+b") as fh:
                 try:
-                    fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+                    lock_file_exclusive(fh, nonblocking=True)
+                    unlock_file(fh)
                 except BlockingIOError:
                     return False  # Live concurrent session owns this directory!
         except OSError:
@@ -117,7 +117,7 @@ def _release_current_media_lock() -> None:
     global _MEDIA_LOCK_FH
     if _MEDIA_LOCK_FH is not None:
         try:
-            fcntl.flock(_MEDIA_LOCK_FH.fileno(), fcntl.LOCK_UN)
+            unlock_file(_MEDIA_LOCK_FH)
         except OSError:
             pass
         try:
@@ -167,8 +167,8 @@ def cleanup_ephemeral_media(include_current: bool = True) -> dict[str, Any]:
                 if wlock.exists():
                     with open(wlock, "r+b") as fh:
                         try:
-                            fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                            fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+                            lock_file_exclusive(fh, nonblocking=True)
+                            unlock_file(fh)
                         except BlockingIOError:
                             skipped_active.append(str(entry))
                             continue
@@ -342,7 +342,7 @@ def save_chats(chats: list[ChatSession]) -> None:
 
         lock_path = STATE_DIR / ".chats.lock"
         with open(lock_path, "a+b") as lfh:
-            fcntl.flock(lfh.fileno(), fcntl.LOCK_EX)
+            lock_file_exclusive(lfh, nonblocking=False)
             try:
                 bak_file = STATE_DIR / "chats.json.bak"
                 if CHATS_FILE.is_file() and CHATS_FILE.stat().st_size > 2:
@@ -383,7 +383,7 @@ def save_chats(chats: list[ChatSession]) -> None:
                     raise
                 _LAST_STORAGE_STATUS.update({"state": "ok", "detail": f"Saved v{CHATS_SCHEMA_VERSION}"})
             finally:
-                fcntl.flock(lfh.fileno(), fcntl.LOCK_UN)
+                unlock_file(lfh)
 
 
 def _decode_chats_payload(raw_obj: Any) -> tuple[list[ChatSession], int]:

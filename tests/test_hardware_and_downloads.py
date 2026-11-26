@@ -7,6 +7,7 @@ import http.server
 import io
 import json
 from pathlib import Path
+import socket
 import struct
 import tempfile
 import threading
@@ -110,10 +111,14 @@ class TestModelDownloadsAndVerification(unittest.TestCase):
         good_sha = hashlib.sha256(data).hexdigest()
 
         class _RangeResp(io.BytesIO):
-            def __init__(self, body: bytes, status: int, headers_dict: dict[str, str]) -> None:
+            def __init__(self, body: bytes, status: int, headers_dict: dict[str, str], url: str = "") -> None:
                 super().__init__(body)
                 self.status = status
                 self.headers = headers_dict
+                self._url = url
+
+            def geturl(self) -> str:
+                return self._url
 
             def __enter__(self):
                 return self
@@ -142,18 +147,18 @@ class TestModelDownloadsAndVerification(unittest.TestCase):
             part_file = llm_dir / "test-model.gguf.part"
             part_file.write_bytes(data[:partial_len])
 
-            def _fake_urlopen(req, timeout=30.0):
-                rng = req.headers.get("Range")
+            def _fake_open(url_str, headers, *, timeout_s=30.0, max_redirects=6):
+                rng = headers.get("Range")
                 self.assertEqual(rng, f"bytes={partial_len}-")
                 rest = data[partial_len:]
-                return _RangeResp(rest, 206, {"Content-Length": str(len(rest))})
+                return _RangeResp(rest, 206, {"Content-Length": str(len(rest))}, url=url_str)
 
             with (
                 mock.patch.object(hf_models, "_CFG", mock.MagicMock(llm_dir=llm_dir, models_dir=root / "m", comfy_dir=root / "c")),
                 mock.patch.object(hf_models, "MODELS_STATE_FILE", root / "models_config.json"),
                 mock.patch.object(hf_models, "LOCAL_MODELS_DIR", root / "m"),
                 mock.patch("vimona.hf_models._search_roots_for_category", return_value=[llm_dir]),
-                mock.patch("urllib.request.urlopen", side_effect=_fake_urlopen),
+                mock.patch("vimona.hf_models._open_validated_hf_download", side_effect=_fake_open),
             ):
                 # Wrong checksum must reject cleanly (`C1`)
                 with self.assertRaises(hf_models.ModelDownloadError):
@@ -172,6 +177,82 @@ class TestModelDownloadsAndVerification(unittest.TestCase):
                 self.assertTrue(dest.is_file())
                 self.assertEqual(dest.read_bytes(), data)
                 self.assertFalse(part_file.exists())
+
+    def test_download_url_host_boundary_and_pre_connection_redirect_validation(self) -> None:
+        # Strict DNS-label boundary checks reject deceptive suffix hosts, credentials, non-443 ports, & non-HTTPS
+        blocked_urls = [
+            "https://evilhuggingface.co/unsloth/model.gguf",
+            "https://evilhf.co/model.gguf",
+            "http://huggingface.co/unsloth/model.gguf",
+            "https://user:pass@huggingface.co/unsloth/model.gguf",
+            "https://huggingface.co:8443/unsloth/model.gguf",
+            "https://cas-bridge.xethub.hf.co.attacker.example/file",
+        ]
+        for bad_u in blocked_urls:
+            with self.assertRaises(hf_models.ModelDownloadError, msg=f"Should reject {bad_u}"):
+                hf_models._validate_download_url(bad_u, resolve_dns=False)
+
+        with mock.patch(
+            "vimona.hf_models.socket.getaddrinfo",
+            return_value=[(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", 443))],
+        ):
+            with self.assertRaises(hf_models.ModelDownloadError):
+                hf_models._validate_download_url("https://huggingface.co/unsloth/model.gguf", resolve_dns=True)
+
+        with mock.patch(
+            "vimona.hf_models.socket.getaddrinfo",
+            return_value=[(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))],
+        ):
+            host, port, _pq, ips = hf_models._validate_download_url(
+                "https://us.aws.cdn.hf.co/repos/weights.safetensors?download=true",
+                resolve_dns=True,
+            )
+            self.assertEqual(host, "us.aws.cdn.hf.co")
+            self.assertEqual(port, 443)
+            self.assertEqual(ips, {"93.184.216.34"})
+
+        # Redirect validation occurs BEFORE connecting to the redirect target
+        for bad_redir in ("https://evil.example.com/pwn.gguf", "https://127.0.0.1/secret.gguf"):
+            fake_resp = mock.MagicMock()
+            fake_resp.status = 302
+            fake_resp.getheader.side_effect = lambda name, _r=bad_redir: _r if str(name).lower() == "location" else ""
+            fake_conn = mock.MagicMock()
+            fake_conn.getresponse.return_value = fake_resp
+            with (
+                mock.patch(
+                    "vimona.hf_models.socket.getaddrinfo",
+                    return_value=[(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))],
+                ),
+                mock.patch("vimona.hf_models._PinnedHTTPSConnection", return_value=fake_conn) as conn_cls,
+            ):
+                with self.assertRaises(hf_models.ModelDownloadError):
+                    hf_models._open_validated_hf_download(
+                        "https://huggingface.co/org/repo/resolve/main/m.gguf",
+                        {"User-Agent": "Vimona/1.0"},
+                        max_redirects=3,
+                    )
+                self.assertEqual(conn_cls.call_count, 1)
+
+        # Redirect loop enforces max_redirects cap cleanly
+        loop_resp = mock.MagicMock()
+        loop_resp.status = 302
+        loop_resp.getheader.side_effect = lambda name: "https://hf.co/next.gguf" if str(name).lower() == "location" else ""
+        loop_conn = mock.MagicMock()
+        loop_conn.getresponse.return_value = loop_resp
+        with (
+            mock.patch(
+                "vimona.hf_models.socket.getaddrinfo",
+                return_value=[(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))],
+            ),
+            mock.patch("vimona.hf_models._PinnedHTTPSConnection", return_value=loop_conn) as loop_cls,
+        ):
+            with self.assertRaises(hf_models.ModelDownloadError):
+                hf_models._open_validated_hf_download(
+                    "https://huggingface.co/org/repo/resolve/main/m.gguf",
+                    {"User-Agent": "Vimona/1.0"},
+                    max_redirects=2,
+                )
+            self.assertEqual(loop_cls.call_count, 3)
 
 
 if __name__ == "__main__":

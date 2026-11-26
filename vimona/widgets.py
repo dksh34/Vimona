@@ -24,7 +24,7 @@ from .aquarium import AquariumSimulation
 from .crt_warp import CRTWarpWidget
 from .electric_border import ElectricBorderOverlay
 from .icons import SvgIcon
-from .safety_blur import SafeBlurBox, _BlurLayer, is_explicit_media, is_explicit_text
+from .safety_blur import SafeBlurBox, _BlurLayer, assess_media_safety, is_explicit_media, is_explicit_text
 from .slide_commit import SlideCommitWidget
 from .text_loop import TextLoopWidget
 from .tv_mascot import TV_MASCOT_STATES, TvMascotState, TvMascotWidget
@@ -2109,12 +2109,13 @@ class KeyframeGrid(Gtk.Box):
                 pic.set_can_shrink(True)
                 pic.set_hexpand(True)
                 pic.set_vexpand(True)
-                explicit = is_explicit_media(kf.image_path, self._prompt_hint, kf.title)
+                safety_res = assess_media_safety(kf.image_path, self._prompt_hint, kf.title)
                 blur_wrap = SafeBlurBox(
                     pic,
-                    explicit=explicit,
+                    explicit=bool(safety_res.flagged),
                     safe_blur_enabled=self._safe_blur_enabled,
                     blur_radius=24.0,
+                    safety_status=safety_res.status,
                 )
                 self._blur_boxes.append(blur_wrap)
                 gate.set_content_widget(blur_wrap)
@@ -2248,11 +2249,13 @@ class VideoPlayerCard(Gtk.Box):
 
         self.append(overlay)
 
+        vid_safety = assess_media_safety(clip.video_path, self._prompt_hint, clip.title)
         self._video_blur_box = SafeBlurBox(
             self._canvas,
-            explicit=is_explicit_media(clip.video_path, self._prompt_hint, clip.title),
+            explicit=bool(vid_safety.flagged),
             safe_blur_enabled=self._safe_blur_enabled,
             blur_radius=24.0,
+            safety_status=vid_safety.status,
         )
 
         # Hide play/expand overlays while CRT placeholder holds for >=3s
@@ -4584,11 +4587,13 @@ class GalleryView(Gtk.Box):
                 pic.set_can_shrink(True)
                 pic.set_hexpand(True)
                 pic.set_vexpand(True)
+                img_safety = assess_media_safety(item.file_path, item.prompt_hint, item.title)
                 bb = SafeBlurBox(
                     pic,
-                    explicit=is_explicit_media(item.file_path, item.prompt_hint, item.title),
+                    explicit=bool(img_safety.flagged),
                     safe_blur_enabled=self._safe_blur_enabled,
                     blur_radius=40.0,
+                    safety_status=img_safety.status,
                 )
                 self._blur_boxes.append(bb)
                 thumb_ov.set_child(bb)
@@ -4621,11 +4626,13 @@ class GalleryView(Gtk.Box):
                 draw_neutral_frame(cr, float(w), float(h), item.title)
 
             da.set_draw_func(_draw_vid)
+            vid_g_safety = assess_media_safety(item.file_path, item.prompt_hint, item.title)
             bb = SafeBlurBox(
                 da,
-                explicit=is_explicit_media(item.file_path, item.prompt_hint, item.title),
+                explicit=bool(vid_g_safety.flagged),
                 safe_blur_enabled=self._safe_blur_enabled,
                 blur_radius=40.0,
+                safety_status=vid_g_safety.status,
             )
             self._blur_boxes.append(bb)
             thumb_ov.set_child(bb)

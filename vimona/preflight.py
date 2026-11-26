@@ -36,11 +36,15 @@ class PreflightReport:
     capabilities: dict[str, bool] = field(default_factory=dict)
     can_start_gui: bool = True
     degraded_reasons: list[str] = field(default_factory=list)
+    platform_supported: bool = True
+    gui_stack_ready: bool = True
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "os_platform": self.os_platform,
             "os_supported": self.os_supported,
+            "platform_supported": self.platform_supported,
+            "gui_stack_ready": self.gui_stack_ready,
             "display_backend": self.display_backend,
             "checks": [asdict(c) for c in self.checks],
             "capabilities": dict(self.capabilities),
@@ -51,6 +55,7 @@ class PreflightReport:
     def format_text(self) -> str:
         lines = [
             f"Vimona Preflight Report ({self.os_platform}, display={self.display_backend})",
+            f"Platform Supported: {'YES' if self.platform_supported else 'NO'} · GTK Stack: {'YES' if self.gui_stack_ready else 'NO'}",
             f"GUI Ready: {'YES' if self.can_start_gui else 'NO'}",
             "Capabilities: " + ", ".join(f"{k}={'yes' if v else 'no'}" for k, v in sorted(self.capabilities.items())),
         ]
@@ -212,9 +217,13 @@ def run_preflight_checks(
     if env_keys:
         checks.append(PreflightCheckItem("env_overrides", "ok", ", ".join(env_keys)))
 
-    can_start_gui = py_ok and gtk_ok and (os_supported or not require_display) and ((wayland or x11) or not require_display)
+    platform_supported = os_supported
+    gui_stack_ready = py_ok and gtk_ok
+    can_start_gui = platform_supported and gui_stack_ready and ((wayland or x11) or not require_display)
     capabilities = {
         "gui": can_start_gui,
+        "platform_supported": platform_supported,
+        "gui_stack_ready": gui_stack_ready,
         "text_llm": llama_ok,
         "image_fast_vulkan": sd_ok,
         "comfyui": comfy_ok,
@@ -231,4 +240,6 @@ def run_preflight_checks(
         capabilities=capabilities,
         can_start_gui=can_start_gui,
         degraded_reasons=degraded,
+        platform_supported=platform_supported,
+        gui_stack_ready=gui_stack_ready,
     )

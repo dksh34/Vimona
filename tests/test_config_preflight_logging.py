@@ -10,7 +10,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from vimona import config, errors, logging_utils, preflight
+from vimona import config, errors, logging_utils, platform_compat, preflight
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -108,9 +108,25 @@ class TestPreflightAndStaticAssets(unittest.TestCase):
             mock.patch("vimona.preflight.sys.platform", "win32"),
             mock.patch("vimona.preflight.shutil.which", return_value=None),
         ):
-            rep = preflight.run_preflight_checks(require_display=True)
-            self.assertFalse(rep.os_supported)
-            self.assertFalse(rep.can_start_gui)
+            for req_disp in (True, False):
+                rep = preflight.run_preflight_checks(require_display=req_disp)
+                self.assertFalse(rep.os_supported)
+                self.assertFalse(rep.platform_supported)
+                self.assertFalse(rep.can_start_gui)
+
+    def test_platform_compat_file_locking_and_helpers(self) -> None:
+        self.assertIsInstance(platform_compat.get_current_uid(), int)
+        with tempfile.TemporaryDirectory() as td:
+            lock_p = Path(td) / ".compat.lock"
+            with open(lock_p, "a+b") as fh1, open(lock_p, "a+b") as fh2:
+                fh1.write(b"x")
+                fh1.flush()
+                platform_compat.lock_file_exclusive(fh1, nonblocking=True)
+                with self.assertRaises(BlockingIOError):
+                    platform_compat.lock_file_exclusive(fh2, nonblocking=True)
+                platform_compat.unlock_file(fh1)
+                platform_compat.lock_file_exclusive(fh2, nonblocking=True)
+                platform_compat.unlock_file(fh2)
 
     def test_all_python_modules_ast_parse_cleanly_and_assets_exist(self) -> None:
         py_files = list((REPO_ROOT / "vimona").glob("*.py")) + list((REPO_ROOT / "tests").glob("*.py"))

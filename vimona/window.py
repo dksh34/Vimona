@@ -2190,7 +2190,8 @@ class VimonaWindow(Adw.ApplicationWindow):
     def _sync_isolation_ui(self, status: IsolationStatus) -> bool:
         if hasattr(self, "_isolation_status_lbl"):
             state_map = {
-                "isolated": "Isolation: Net-Isolated (netns verified)",
+                "isolated": "Isolation: Full Air-Gap (netns + tmpfs + NNP)",
+                "partial": "Isolation: Partial (netns only)",
                 "starting": "Isolation: Starting namespace…",
                 "unavailable": "Isolation: Unavailable (blocked/unverified)",
                 "failed": f"Isolation: Failed ({status.error[:40]})" if status.error else "Isolation: Failed",
@@ -2201,7 +2202,8 @@ class VimonaWindow(Adw.ApplicationWindow):
             )
             self._isolation_status_lbl.set_tooltip_text(
                 f"state={status.state} · level={status.level} · "
-                f"ipv4_blk={status.ipv4_blocked} · ipv6_blk={status.ipv6_blocked} · dns_blk={status.dns_blocked}"
+                f"ipv4_blk={status.ipv4_blocked} · ipv6_blk={status.ipv6_blocked} · dns_blk={status.dns_blocked} · "
+                f"mount_tmp={status.mount_isolated} · nnp={status.no_new_privs} · core0={status.core_dumps_disabled}"
             )
         return False
 
