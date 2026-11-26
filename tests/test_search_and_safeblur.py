@@ -6,11 +6,13 @@ import http.server
 import io
 from pathlib import Path
 import socket
+import socketserver
 import subprocess
 import sys
 import tempfile
 import threading
 import time
+import types
 import unittest
 from unittest import mock
 import urllib.parse
@@ -432,7 +434,7 @@ class TestSafeBlurSecurity(unittest.TestCase):
             self.assertEqual(res_perm["status"], "failed")
             self.assertTrue(any("denied" in e.lower() for e in res_perm["errors"]))
 
-    def test_proxy_aggregate_byte_budget_request_cap_and_concurrency_cap(self) -> None:
+    def test_proxy_aggregate_byte_budget_connection_cap_and_concurrency_cap(self) -> None:
         class _Handler(http.server.BaseHTTPRequestHandler):
             def do_GET(self) -> None:
                 if self.path == "/big":
@@ -497,7 +499,7 @@ class TestSafeBlurSecurity(unittest.TestCase):
                     max_total_bytes=40960,
                     max_conn_bytes=24576,
                     max_concurrent_conns=8,
-                    max_total_requests=20,
+                    max_total_connections=20,
                     conn_timeout_s=3.0,
                     deadline_s=15.0,
                 )
@@ -536,7 +538,7 @@ class TestSafeBlurSecurity(unittest.TestCase):
                     {},
                     allowed_ports={srv_port},
                     max_concurrent_conns=2,
-                    max_total_requests=20,
+                    max_total_connections=20,
                     conn_timeout_s=5.0,
                     deadline_s=15.0,
                 )
@@ -570,20 +572,20 @@ class TestSafeBlurSecurity(unittest.TestCase):
                     self.assertEqual(ok_cnt, 2, statuses)
                     self.assertEqual(cap_cnt, 3, statuses)
                     self.assertLessEqual(proxy_conc.peak_active_conns, 2)
-                    self.assertGreaterEqual(proxy_conc.rejected_requests, 3)
+                    self.assertGreaterEqual(proxy_conc.rejected_connections, 3)
                 finally:
                     proxy_conc.stop()
 
-                # 3. Request count cap
-                proxy_req = search_worker._ValidatingLocalProxy(
+                # 3. Connection/tunnel count cap
+                proxy_conn = search_worker._ValidatingLocalProxy(
                     {},
                     allowed_ports={srv_port},
                     max_concurrent_conns=4,
-                    max_total_requests=2,
+                    max_total_connections=2,
                     conn_timeout_s=3.0,
                     deadline_s=15.0,
                 )
-                pr_port = proxy_req.start()
+                pr_port = proxy_conn.start()
                 try:
                     reps: list[bytes] = []
                     for _ in range(3):
@@ -598,11 +600,167 @@ class TestSafeBlurSecurity(unittest.TestCase):
                     self.assertIn(b"200", reps[1])
                     self.assertIn(b"429", reps[2])
                 finally:
-                    proxy_req.stop()
+                    proxy_conn.stop()
         finally:
             srv.shutdown()
             srv.server_close()
             t_srv.join(timeout=1.0)
+
+    def test_ephemeral_lock_acquisition_fails_closed_and_never_starts_firefox(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            for lock_exc in (
+                PermissionError("Permission denied"),
+                OSError("No file locking backend available on this platform"),
+            ):
+                with (
+                    mock.patch.object(search_worker, "SHM_DIR", root),
+                    mock.patch("vimona.search_worker.detect_ram_persistence_risk", return_value={"is_ram_backed": True, "fs_type": "tmpfs"}),
+                    mock.patch("vimona.search_worker.lock_file_exclusive", side_effect=lock_exc),
+                    mock.patch("vimona.search_worker.unlock_file") as unlock_mock,
+                ):
+                    with self.assertRaises(RuntimeError):
+                        search_worker._alloc_ephemeral_ram_dir(allow_disk_fallback=False, worker_tag="failtest")
+                    self.assertEqual(unlock_mock.call_count, 0)
+                    self.assertEqual(list(root.glob("vimona_ephem_*")), [])
+
+            fake_pw_pkg = types.ModuleType("playwright")
+            fake_pw_sync = types.ModuleType("playwright.sync_api")
+            fake_sync_pw = mock.MagicMock()
+            fake_pw_sync.sync_playwright = fake_sync_pw  # type: ignore[attr-defined]
+            fake_pw_pkg.sync_api = fake_pw_sync  # type: ignore[attr-defined]
+
+            with (
+                mock.patch.object(search_worker, "SHM_DIR", root),
+                mock.patch("vimona.search_worker.purge_legacy_burner_profile", return_value=True),
+                mock.patch("vimona.search_worker.detect_ram_persistence_risk", return_value={"is_ram_backed": True, "fs_type": "tmpfs"}),
+                mock.patch("vimona.search_worker.lock_file_exclusive", side_effect=PermissionError("denied")),
+                mock.patch.dict(sys.modules, {"playwright": fake_pw_pkg, "playwright.sync_api": fake_pw_sync}),
+            ):
+                with self.assertRaises(RuntimeError):
+                    search_worker._execute_in_firefox(query="test lock fail closed", pull_images=False)
+                self.assertEqual(fake_sync_pw.call_count, 0)
+                self.assertEqual(list(root.glob("vimona_ephem_*")), [])
+
+    def test_proxy_connection_tunnel_cap_semantics_keepalive_vs_connect(self) -> None:
+        seen_http: list[tuple[str, str]] = []
+
+        class _HttpHandler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self) -> None:
+                seen_http.append((self.path, str(self.headers.get("Connection") or "")))
+                self.send_response(200)
+                self.send_header("Content-Length", "2")
+                self.send_header("Connection", "close")
+                self.end_headers()
+                self.wfile.write(b"ok")
+
+            def log_message(self, *_args: object) -> None:
+                pass
+
+        class _EchoHandler(socketserver.BaseRequestHandler):
+            def handle(self) -> None:
+                while True:
+                    d = self.request.recv(4096)
+                    if not d:
+                        break
+                    self.request.sendall(d)
+
+        class _ThreadingEchoServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+            allow_reuse_address = True
+            daemon_threads = True
+
+        http_srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), _HttpHandler)
+        http_port = int(http_srv.server_address[1])
+        echo_srv = _ThreadingEchoServer(("127.0.0.1", 0), _EchoHandler)
+        echo_port = int(echo_srv.server_address[1])
+
+        t_h = threading.Thread(target=http_srv.serve_forever, daemon=True)
+        t_e = threading.Thread(target=echo_srv.serve_forever, daemon=True)
+        t_h.start()
+        t_e.start()
+
+        real_validate = search_worker.validate_public_http_url
+
+        def _wrapped_validate(u: str, *, resolve_dns: bool = False, pinned_hosts=None, allowed_ports=None):
+            parsed = urllib.parse.urlparse(u)
+            if (parsed.hostname or "").lower() == "public.test":
+                return (True, "OK", {"127.0.0.1"})
+            return real_validate(
+                u,
+                resolve_dns=resolve_dns,
+                pinned_hosts=pinned_hosts,
+                allowed_ports=allowed_ports,
+            )
+
+        try:
+            with mock.patch("vimona.search_worker.validate_public_http_url", side_effect=_wrapped_validate):
+                proxy = search_worker._ValidatingLocalProxy(
+                    {},
+                    allowed_ports={http_port, echo_port},
+                    max_total_connections=2,
+                    max_concurrent_conns=4,
+                    max_total_bytes=1024 * 1024,
+                    max_conn_bytes=512 * 1024,
+                    conn_timeout_s=3.0,
+                    deadline_s=15.0,
+                )
+                p_port = proxy.start()
+                try:
+                    # 1. Plain HTTP forces Connection: close & drops pipelined 2nd request on single socket
+                    with socket.create_connection(("127.0.0.1", p_port), timeout=3.0) as sk_http:
+                        pipelined = (
+                            f"GET http://public.test:{http_port}/first HTTP/1.1\r\n"
+                            f"Host: public.test:{http_port}\r\nConnection: keep-alive\r\n\r\n"
+                            f"GET http://public.test:{http_port}/second HTTP/1.1\r\n"
+                            f"Host: public.test:{http_port}\r\nConnection: close\r\n\r\n"
+                        ).encode("ascii")
+                        sk_http.sendall(pipelined)
+                        chunks = bytearray()
+                        while True:
+                            part = sk_http.recv(4096)
+                            if not part:
+                                break
+                            chunks.extend(part)
+                    self.assertIn(b"200", chunks)
+                    self.assertEqual(seen_http, [("/first", "close")])
+                    self.assertEqual(proxy.http_connections, 1)
+                    self.assertEqual(proxy.total_connections, 1)
+
+                    # 2. One CONNECT tunnel carries multiple sequential messages as 1 tunnel count
+                    with socket.create_connection(("127.0.0.1", p_port), timeout=3.0) as sk_tun:
+                        sk_tun.sendall(
+                            f"CONNECT public.test:{echo_port} HTTP/1.1\r\nHost: public.test:{echo_port}\r\n\r\n".encode(
+                                "ascii"
+                            )
+                        )
+                        est = sk_tun.recv(1024)
+                        self.assertIn(b"200", est)
+                        sk_tun.sendall(b"MSG1\n")
+                        self.assertEqual(sk_tun.recv(64), b"MSG1\n")
+                        sk_tun.sendall(b"MSG2\n")
+                        self.assertEqual(sk_tun.recv(64), b"MSG2\n")
+                    self.assertEqual(proxy.connect_tunnels, 1)
+                    self.assertEqual(proxy.total_connections, 2)
+
+                    # 3. 3rd connection hits max_total_connections=2
+                    with socket.create_connection(("127.0.0.1", p_port), timeout=2.0) as sk_3:
+                        sk_3.sendall(
+                            f"GET http://public.test:{http_port}/third HTTP/1.1\r\nHost: public.test:{http_port}\r\nConnection: close\r\n\r\n".encode(
+                                "ascii"
+                            )
+                        )
+                        rep3 = sk_3.recv(1024)
+                    self.assertIn(b"429", rep3)
+                    self.assertGreaterEqual(proxy.rejected_connections, 1)
+                finally:
+                    proxy.stop()
+        finally:
+            http_srv.shutdown()
+            http_srv.server_close()
+            echo_srv.shutdown()
+            echo_srv.server_close()
+            t_h.join(timeout=1.0)
+            t_e.join(timeout=1.0)
 
 
 if __name__ == "__main__":

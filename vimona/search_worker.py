@@ -55,7 +55,7 @@ _ALLOWED_RESEARCH_PORTS: frozenset[int] = frozenset({80, 443})
 _MAX_PROXY_TOTAL_BYTES = 32 * 1024 * 1024
 _MAX_PROXY_CONN_BYTES = 10 * 1024 * 1024
 _MAX_PROXY_CONCURRENT_CONNS = 16
-_MAX_PROXY_TOTAL_REQUESTS = 180
+_MAX_PROXY_TOTAL_CONNECTIONS = 180
 _PROXY_IO_TIMEOUT_S = 10.0
 _PROXY_DEFAULT_DEADLINE_S = 50.0
 _SAFESEARCH_KP_MAP = {"strict": "1", "moderate": "-1", "off": "-2"}
@@ -372,7 +372,13 @@ def fetch_public_image_pinned(
 
 
 class _ValidatingLocalProxy:
-    """Loopback HTTP/CONNECT proxy enforcing web ports, SSRF/pinned-IP validation, and byte/conn budgets (`F1`–`F3`)."""
+    """Loopback HTTP/CONNECT proxy enforcing web ports, SSRF/pinned-IP validation, and byte/conn budgets (`F1`–`F3`).
+
+    `max_total_connections` caps accepted proxy client connections (single-request plain HTTP
+    connections with `Connection: close` plus opaque HTTPS `CONNECT` tunnels). Individual
+    encrypted requests multiplexed inside an HTTPS tunnel are not inspected/counted separately
+    and are bounded by `max_conn_bytes`, `max_total_bytes`, I/O timeouts, and `deadline_s`.
+    """
 
     def __init__(
         self,
@@ -382,7 +388,7 @@ class _ValidatingLocalProxy:
         max_total_bytes: int = _MAX_PROXY_TOTAL_BYTES,
         max_conn_bytes: int = _MAX_PROXY_CONN_BYTES,
         max_concurrent_conns: int = _MAX_PROXY_CONCURRENT_CONNS,
-        max_total_requests: int = _MAX_PROXY_TOTAL_REQUESTS,
+        max_total_connections: int = _MAX_PROXY_TOTAL_CONNECTIONS,
         conn_timeout_s: float = _PROXY_IO_TIMEOUT_S,
         deadline_s: float = _PROXY_DEFAULT_DEADLINE_S,
     ) -> None:
@@ -391,7 +397,7 @@ class _ValidatingLocalProxy:
         self._max_total_bytes = max(1024, int(max_total_bytes))
         self._max_conn_bytes = max(1024, int(max_conn_bytes))
         self._max_concurrent_conns = max(1, int(max_concurrent_conns))
-        self._max_total_requests = max(1, int(max_total_requests))
+        self._max_total_connections = max(1, int(max_total_connections))
         self._conn_timeout_s = max(0.2, float(conn_timeout_s))
         self._deadline = time.monotonic() + max(0.5, float(deadline_s))
         self._stop_ev = threading.Event()
@@ -401,10 +407,12 @@ class _ValidatingLocalProxy:
         self._sockets: set[socket.socket] = set()
         self._threads: list[threading.Thread] = []
         self.total_bytes: int = 0
-        self.total_requests: int = 0
+        self.total_connections: int = 0
+        self.http_connections: int = 0
+        self.connect_tunnels: int = 0
         self.active_conns: int = 0
         self.peak_active_conns: int = 0
-        self.rejected_requests: int = 0
+        self.rejected_connections: int = 0
         self.budget_exceeded: bool = False
         self.limit_reason: str = ""
         self.port: int = 0
@@ -531,7 +539,7 @@ class _ValidatingLocalProxy:
             sep = buf.find(b"\r\n\r\n")
             if sep == -1:
                 with self._lock:
-                    self.rejected_requests += 1
+                    self.rejected_connections += 1
                 self._send_forbidden(client)
                 return
             head_bytes = bytes(buf[:sep])
@@ -540,7 +548,7 @@ class _ValidatingLocalProxy:
             req_parts = lines[0].decode("latin-1", errors="replace").split()
             if len(req_parts) < 3:
                 with self._lock:
-                    self.rejected_requests += 1
+                    self.rejected_connections += 1
                 self._send_forbidden(client)
                 return
             method, target, proto = req_parts[0].upper(), req_parts[1], req_parts[2]
@@ -548,20 +556,22 @@ class _ValidatingLocalProxy:
             pre_err: tuple[str, str] | None = None
             with self._lock:
                 if time.monotonic() >= self._deadline:
-                    self.rejected_requests += 1
+                    self.rejected_connections += 1
                     self.budget_exceeded = True
                     self.limit_reason = self.limit_reason or "Research proxy deadline exceeded"
                     pre_err = ("504 Gateway Timeout", "Proxy deadline exceeded")
                 elif self.budget_exceeded:
-                    self.rejected_requests += 1
+                    self.rejected_connections += 1
                     pre_err = ("429 Too Many Requests", "Proxy byte budget exceeded")
-                elif self.total_requests >= self._max_total_requests:
-                    self.rejected_requests += 1
+                elif self.total_connections >= self._max_total_connections:
+                    self.rejected_connections += 1
                     self.budget_exceeded = True
-                    self.limit_reason = self.limit_reason or f"Proxy request limit ({self._max_total_requests}) exceeded"
-                    pre_err = ("429 Too Many Requests", "Request cap exceeded")
+                    self.limit_reason = (
+                        self.limit_reason or f"Proxy connection/tunnel limit ({self._max_total_connections}) exceeded"
+                    )
+                    pre_err = ("429 Too Many Requests", "Connection/tunnel cap exceeded")
                 else:
-                    self.total_requests += 1
+                    self.total_connections += 1
             if pre_err is not None:
                 self._send_http_error(client, *pre_err)
                 return
@@ -578,14 +588,14 @@ class _ValidatingLocalProxy:
                     port_str = "443"
                 if not port_str.isdigit() or not (1 <= int(port_str) <= 65535):
                     with self._lock:
-                        self.rejected_requests += 1
+                        self.rejected_connections += 1
                     self._send_forbidden(client)
                     return
                 port_num = int(port_str)
                 connect_ports = self._allowed_ports if self._allowed_ports is not None else _ALLOWED_HTTPS_PORTS
                 if port_num not in connect_ports:
                     with self._lock:
-                        self.rejected_requests += 1
+                        self.rejected_connections += 1
                     self._send_forbidden(client)
                     return
                 ok, _err, resolved_ips = validate_public_http_url(
@@ -596,7 +606,7 @@ class _ValidatingLocalProxy:
                 )
                 if not ok or not resolved_ips:
                     with self._lock:
-                        self.rejected_requests += 1
+                        self.rejected_connections += 1
                     self._send_forbidden(client)
                     return
             else:
@@ -608,7 +618,7 @@ class _ValidatingLocalProxy:
                 )
                 if not ok or not resolved_ips:
                     with self._lock:
-                        self.rejected_requests += 1
+                        self.rejected_connections += 1
                     self._send_forbidden(client)
                     return
                 parsed = urllib.parse.urlparse(target)
@@ -617,15 +627,15 @@ class _ValidatingLocalProxy:
             slot_err: tuple[str, str] | None = None
             with self._lock:
                 if time.monotonic() >= self._deadline:
-                    self.rejected_requests += 1
+                    self.rejected_connections += 1
                     self.budget_exceeded = True
                     self.limit_reason = self.limit_reason or "Research proxy deadline exceeded"
                     slot_err = ("504 Gateway Timeout", "Proxy deadline exceeded")
                 elif self.budget_exceeded:
-                    self.rejected_requests += 1
+                    self.rejected_connections += 1
                     slot_err = ("429 Too Many Requests", "Proxy byte budget exceeded")
                 elif self.active_conns >= self._max_concurrent_conns:
-                    self.rejected_requests += 1
+                    self.rejected_connections += 1
                     slot_err = ("503 Service Unavailable", "Too many concurrent connections")
                 else:
                     self.active_conns += 1
@@ -640,6 +650,10 @@ class _ValidatingLocalProxy:
             upstream = _dial_validated_ips(resolved_ips, port_num, timeout=rem_dial)
             with self._lock:
                 self._sockets.add(upstream)
+                if method == "CONNECT":
+                    self.connect_tunnels += 1
+                else:
+                    self.http_connections += 1
             io_to = max(0.2, min(self._conn_timeout_s, self._deadline - time.monotonic()))
             upstream.settimeout(io_to)
             client.settimeout(io_to)
@@ -652,30 +666,55 @@ class _ValidatingLocalProxy:
                     if not self._charge_bytes(len(body_rem), conn_state, conn_lock):
                         return
                     upstream.sendall(body_rem)
+                rev_thread = threading.Thread(
+                    target=self._relay,
+                    args=(upstream, client, conn_state, conn_lock),
+                    daemon=True,
+                )
+                with self._lock:
+                    self._threads = [t for t in self._threads if t.is_alive()] + [rev_thread]
+                rev_thread.start()
+                self._relay(client, upstream, conn_state, conn_lock)
             else:
                 parsed = urllib.parse.urlparse(target)
                 path_q = parsed.path or "/"
                 if parsed.query:
                     path_q = f"{path_q}?{parsed.query}"
                 clean_hdrs = [f"{method} {path_q} {proto}".encode("latin-1")]
+                has_req_body_hdr = False
                 for hl in lines[1:]:
-                    if hl.lower().startswith(b"proxy-connection:"):
+                    hl_l = hl.lower()
+                    if hl_l.startswith((b"proxy-connection:", b"connection:", b"keep-alive:")):
                         continue
+                    if hl_l.startswith((b"content-length:", b"transfer-encoding:")):
+                        has_req_body_hdr = True
                     clean_hdrs.append(hl)
-                payload = b"\r\n".join(clean_hdrs) + b"\r\n\r\n" + body_rem
-                if body_rem and not self._charge_bytes(len(body_rem), conn_state, conn_lock):
-                    return
-                upstream.sendall(payload)
+                clean_hdrs.append(b"Connection: close")
 
-            rev_thread = threading.Thread(
-                target=self._relay,
-                args=(upstream, client, conn_state, conn_lock),
-                daemon=True,
-            )
-            with self._lock:
-                self._threads = [t for t in self._threads if t.is_alive()] + [rev_thread]
-            rev_thread.start()
-            self._relay(client, upstream, conn_state, conn_lock)
+                single_bodyless_http = (method in ("GET", "HEAD", "OPTIONS", "DELETE") and not has_req_body_hdr)
+                if single_bodyless_http:
+                    # Drop pipelined/keep-alive tail bytes so 1 plain-HTTP connection maps to at most 1 request
+                    payload = b"\r\n".join(clean_hdrs) + b"\r\n\r\n"
+                    upstream.sendall(payload)
+                    try:
+                        upstream.shutdown(socket.SHUT_WR)
+                    except OSError:
+                        pass
+                    self._relay(upstream, client, conn_state, conn_lock)
+                else:
+                    payload = b"\r\n".join(clean_hdrs) + b"\r\n\r\n" + body_rem
+                    if body_rem and not self._charge_bytes(len(body_rem), conn_state, conn_lock):
+                        return
+                    upstream.sendall(payload)
+                    rev_thread = threading.Thread(
+                        target=self._relay,
+                        args=(upstream, client, conn_state, conn_lock),
+                        daemon=True,
+                    )
+                    with self._lock:
+                        self._threads = [t for t in self._threads if t.is_alive()] + [rev_thread]
+                    rev_thread.start()
+                    self._relay(client, upstream, conn_state, conn_lock)
         except Exception:
             if upstream is not None:
                 self._close_socks(client, upstream)
@@ -713,7 +752,7 @@ class _ValidatingLocalProxy:
                     live_threads = [t for t in self._threads if t.is_alive()]
                     max_threads = max(32, self._max_concurrent_conns * 4)
                     if len(live_threads) >= max_threads:
-                        self.rejected_requests += 1
+                        self.rejected_connections += 1
                         too_busy = True
                     else:
                         too_busy = False
@@ -774,10 +813,34 @@ def sniff_image_format(raw_bytes: bytes) -> str | None:
     return None
 
 
+class _EphemeralDirLock:
+    """Tracks verified exclusive lock ownership for one ephemeral research directory (`B4`)."""
+
+    def __init__(self, fh: Any = None, *, acquired: bool = False) -> None:
+        self.fh = fh
+        self.acquired = bool(acquired)
+
+    def release(self) -> None:
+        fh = self.fh
+        self.fh = None
+        was_acquired = self.acquired
+        self.acquired = False
+        if fh is not None:
+            if was_acquired:
+                try:
+                    unlock_file(fh)
+                except OSError:
+                    pass
+            try:
+                fh.close()
+            except OSError:
+                pass
+
+
 def _alloc_ephemeral_ram_dir(
     *, allow_disk_fallback: bool = False, worker_tag: str = ""
-) -> tuple[Path, Any, str, dict[str, Any]]:
-    """Create a private `0700` flock-locked dir on `/dev/shm` tmpfs (never label disk `/tmp` as RAM-only)."""
+) -> tuple[Path, _EphemeralDirLock, str, dict[str, Any]]:
+    """Create a private `0700` fail-closed flock-locked dir on `/dev/shm` tmpfs (`B1`, `B4`)."""
     safe_tag = re.sub(r"[^A-Za-z0-9_-]+", "", worker_tag or "")[:24]
     dir_prefix = f"vimona_ephem_{os.getpid()}_{safe_tag}_" if safe_tag else f"vimona_ephem_{os.getpid()}_"
     use_shm = SHM_DIR.is_dir() and os.access(SHM_DIR, os.W_OK)
@@ -807,16 +870,13 @@ def _alloc_ephemeral_ram_dir(
             else f"DISK-BACKED OS temp ({risk['fs_type']} — NOT RAM-only)"
         )
 
+    lock_fh = None
+    lock_acquired = False
     try:
         os.chmod(p, 0o700)
-    except OSError:
-        pass
-    lock_fh = open(p / ".worker.lock", "a+b")
-    try:
+        lock_fh = open(p / ".worker.lock", "a+b")
         lock_file_exclusive(lock_fh, nonblocking=True)
-    except OSError:
-        pass
-    try:
+        lock_acquired = True
         (p / ".worker_owner.json").write_text(
             json.dumps(
                 {
@@ -824,14 +884,19 @@ def _alloc_ephemeral_ram_dir(
                     "uid": os.getuid() if hasattr(os, "getuid") else 0,
                     "start_ticks": _read_proc_start_ticks(os.getpid()),
                     "worker_tag": safe_tag,
+                    "lock_acquired": True,
                     "created_at": time.time(),
                 }
             ),
             encoding="utf-8",
         )
-    except OSError:
-        pass
-    return p, lock_fh, profile_kind, risk
+        return p, _EphemeralDirLock(lock_fh, acquired=True), profile_kind, risk
+    except Exception as exc:
+        _EphemeralDirLock(lock_fh, acquired=lock_acquired).release()
+        scorched_earth_wipe(p, owner_pid=os.getpid())
+        if p.exists():
+            shutil.rmtree(p, ignore_errors=True)
+        raise RuntimeError(f"Failed to acquire exclusive ephemeral research lock for {p}: {exc}") from exc
 
 
 def _describe_rgb_color(r: float, g: float, b: float) -> str:
@@ -1125,8 +1190,6 @@ def _execute_in_firefox(
     timeout_s: float = 55.0,
     worker_tag: str = "",
 ) -> dict[str, Any]:
-    from playwright.sync_api import sync_playwright
-
     max_results = max(1, min(_MAX_RESULTS_CAP, int(max_results)))
     max_images = max(0, min(_MAX_IMAGES_CAP, int(max_images))) if pull_images else 0
     ss_mode = safesearch if safesearch in _SAFESEARCH_KP_MAP else "moderate"
@@ -1140,7 +1203,12 @@ def _execute_in_firefox(
 
     purge_legacy_burner_profile()
     disable_core_dumps()
-    ephem_dir, lock_fh, profile_kind, ram_risk = _alloc_ephemeral_ram_dir(worker_tag=worker_tag)
+    ephem_dir, ephem_lock, profile_kind, ram_risk = _alloc_ephemeral_ram_dir(worker_tag=worker_tag)
+    if not isinstance(ephem_lock, _EphemeralDirLock) or not ephem_lock.acquired:
+        scorched_earth_wipe(ephem_dir, owner_pid=os.getpid())
+        if ephem_dir.exists():
+            shutil.rmtree(ephem_dir, ignore_errors=True)
+        raise RuntimeError(f"Exclusive ephemeral research lock was not acquired for {ephem_dir}")
     profile_dir = ephem_dir / "profile"
     ff_home = ephem_dir / "home"
     ff_cfg = ephem_dir / "xdg_config"
@@ -1253,6 +1321,8 @@ def _execute_in_firefox(
     )
     proxy_port = local_proxy.start()
     try:
+        from playwright.sync_api import sync_playwright
+
         with sync_playwright() as pw:
             ctx = pw.firefox.launch_persistent_context(
                 user_data_dir=str(profile_dir),
@@ -1428,15 +1498,7 @@ def _execute_in_firefox(
                 browser_killed = exited
     finally:
         local_proxy.stop()
-        if lock_fh is not None:
-            try:
-                unlock_file(lock_fh)
-            except OSError:
-                pass
-            try:
-                lock_fh.close()
-            except OSError:
-                pass
+        ephem_lock.release()
         wiped = scorched_earth_wipe(
             ephem_dir,
             owner_pid=os.getpid(),
@@ -1467,8 +1529,10 @@ def _execute_in_firefox(
             "wipe_error": wipe_error,
             "bytes_budget_used": budget_state["bytes_used"],
             "proxy_bytes_used": local_proxy.total_bytes,
-            "proxy_requests": local_proxy.total_requests,
-            "proxy_rejected_requests": local_proxy.rejected_requests,
+            "proxy_connections": local_proxy.total_connections,
+            "proxy_http_connections": local_proxy.http_connections,
+            "proxy_connect_tunnels": local_proxy.connect_tunnels,
+            "proxy_rejected_connections": local_proxy.rejected_connections,
             "proxy_budget_exceeded": local_proxy.budget_exceeded,
             "proxy_limit_reason": local_proxy.limit_reason,
             "safesearch": ss_mode,
